@@ -64,7 +64,7 @@ export function TitleBar({
       </span>
       {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
       {customButtons ? (
-        <div className="flex shrink-0 items-center">
+        <div className="-mr-2 ml-1 flex h-full shrink-0 items-stretch border-l border-line/70 pl-1">
           <CaptionButton label={t('window.minimize')} onClick={() => void minimizeWindow()}>
             <Minus size={13} />
           </CaptionButton>
@@ -102,7 +102,7 @@ function CaptionButton({
       className={cn(
         'h-full w-[46px] rounded-none border-0 bg-transparent p-0 text-muted active:translate-y-0 hover:bg-raised hover:text-ink',
         'focus-visible:ring-2 focus-visible:ring-accent/35',
-        danger && 'hover:bg-bad hover:text-white',
+        danger && 'hover:bg-[#c42b1c] hover:text-white',
       )}
     >
       {children}

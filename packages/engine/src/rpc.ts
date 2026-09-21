@@ -16,6 +16,7 @@ import { dedupe } from './lib/naming.ts';
 import { openRaster, rasterSelfCheck } from './lib/render.ts';
 import { getSharp, imageSelfCheck, imageInfo, transcodePng } from './lib/images.ts';
 import { selfCheckFont } from './lib/fonts.ts';
+import { archiveInvoiceFiles, scanInvoiceDirectory, undoInvoiceArchive } from './lib/invoice-organizer.ts';
 import { EngineError } from './errors.ts';
 import { logger } from './logger.ts';
 
@@ -116,6 +117,22 @@ async function dispatch(
           manager.list().filter((job) => job.progress.state === 'running').map((job) => job.id),
         ),
       });
+    case 'invoice.scan':
+      return scanInvoiceDirectory({
+        directory: String(params.directory ?? ''),
+        recursive: params.recursive !== false,
+        maxFiles: Number(params.maxFiles ?? 2000),
+        excludeDirectory: params.excludeDirectory ? String(params.excludeDirectory) : undefined,
+      });
+    case 'invoice.archive':
+      return archiveInvoiceFiles({
+        sourceDirectory: String(params.sourceDirectory ?? ''),
+        targetDirectory: String(params.targetDirectory ?? ''),
+        conflict: params.conflict === 'skip' ? 'skip' : 'rename',
+        files: Array.isArray(params.files) ? params.files as Array<{ path: string; sha256: string; relativePath: string; enabled: boolean; fields?: import('@potools/core').InvoiceScanEntry['fields'] }> : [],
+      });
+    case 'invoice.undo':
+      return undoInvoiceArchive(String(params.archiveId ?? ''));
     default:
       throw new EngineError('bad_request', `未知方法：${method}`);
   }
@@ -139,9 +156,9 @@ async function probeFile(file: FileRef): Promise<ProbedPdf> {
 async function thumbs(file: FileRef, params: Record<string, unknown>): Promise<PageThumb[]> {
   const pages = Array.isArray(params.pages) ? (params.pages as number[]) : [];
   if (!pages.length) return [];
-  const width = Math.min(600, Math.max(48, Number(params.width) || 160));
-  const format = params.format === 'png' ? 'png' : 'jpeg';
-  const quality = Number(params.quality) || 72;
+  const width = Math.min(2400, Math.max(48, Number(params.width) || 160));
+  const format = params.format === 'png' || width > 600 ? 'png' : 'jpeg';
+  const quality = Math.min(95, Math.max(45, Number(params.quality) || (width > 600 ? 92 : 68)));
   const input = await readInput(file);
   const out: PageThumb[] = [];
   let raster: Awaited<ReturnType<typeof openRaster>> | null = null;
@@ -156,13 +173,16 @@ async function thumbs(file: FileRef, params: Record<string, unknown>): Promise<P
       const page = pages.includes(1) ? 1 : 0;
       if (page) {
         const image = sharp(input.bytes, { failOn: 'none' }).rotate().resize({ width, withoutEnlargement: true });
-        const bytes = await image.flatten({ background: '#ffffff' }).jpeg({ quality }).toBuffer();
-        const dimensions = await sharp(bytes).metadata();
+        const imageMeta = await image.metadata();
+        const imageFormat = format === 'png' ? 'png' : 'jpeg';
+        const bytes = imageFormat === 'png'
+          ? await image.flatten({ background: '#ffffff' }).png({ compressionLevel: 6 }).toBuffer()
+          : await image.flatten({ background: '#ffffff' }).jpeg({ quality }).toBuffer();
         out.push({
           page,
-          dataUrl: `data:image/jpeg;base64,${Buffer.from(bytes).toString('base64')}`,
-          width: dimensions.width ?? meta.width,
-          height: dimensions.height ?? meta.height,
+          dataUrl: `data:image/${imageFormat};base64,${Buffer.from(bytes).toString('base64')}`,
+          width: imageMeta.width ?? meta.width,
+          height: imageMeta.height ?? meta.height,
           rotation: 0,
         });
       }

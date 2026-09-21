@@ -9,6 +9,7 @@ export type ToolId =
   | 'rotate'
   | 'extract-pages'
   | 'invoice-merge'
+  | 'invoice-organize'
   | 'delete-pages'
   | 'remove-blank'
   | 'resize'
@@ -259,7 +260,10 @@ export type RpcMethodName =
   | 'shell.reveal'
   | 'shell.print'
   | 'temp.stat'
-  | 'temp.clean';
+  | 'temp.clean'
+  | 'invoice.scan'
+  | 'invoice.archive'
+  | 'invoice.undo';
 
 export interface RpcRequest<M extends RpcMethodName = RpcMethodName> {
   jsonrpc: '2.0';
@@ -291,6 +295,58 @@ export interface RpcParamsMap {
   'shell.print': { path: string };
   'temp.stat': Record<string, never>;
   'temp.clean': { olderThanDays?: number; keepJobs?: number };
+  'invoice.scan': { directory: string; recursive?: boolean; maxFiles?: number; excludeDirectory?: string };
+  'invoice.archive': {
+    sourceDirectory: string;
+    targetDirectory: string;
+    conflict: 'rename' | 'skip';
+    files: Array<{ path: string; sha256: string; relativePath: string; enabled: boolean; fields?: InvoiceScanEntry['fields'] }>;
+  };
+  'invoice.undo': { archiveId: string };
+}
+
+export interface InvoiceScanEntry {
+  path: string;
+  relativePath: string;
+  name: string;
+  extension: string;
+  sizeBytes: number;
+  sha256: string;
+  pageCount: number | null;
+  extractedText: string;
+  recognition: 'native-text' | 'needs-ocr' | 'failed';
+  fields: {
+    date: string;
+    seller: string;
+    buyer: string;
+    invoiceNo: string;
+    amount: string;
+    type: string;
+  };
+  error?: string;
+}
+
+export interface InvoiceScanResult {
+  sourceDirectory: string;
+  scannedAt: number;
+  files: InvoiceScanEntry[];
+  skipped: Array<{ relativePath: string; reason: string }>;
+  warnings: string[];
+}
+
+export interface InvoiceArchiveResult {
+  archiveId: string;
+  copied: Array<{ source: string; target: string; sha256: string; fields: InvoiceScanEntry['fields'] }>;
+  skipped: Array<{ source: string; reason: string }>;
+  failed: Array<{ source: string; reason: string }>;
+  reportPath?: string;
+  csvReportPath?: string;
+  warnings: string[];
+}
+
+export interface InvoiceUndoResult {
+  removed: string[];
+  skipped: Array<{ path: string; reason: string }>;
 }
 
 export interface RpcSuccess<R> {

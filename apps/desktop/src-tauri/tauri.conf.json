@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm --filter @potools/desktop dev",
     "devUrl": "http://127.0.0.1:5199",
-    "beforeBuildCommand": "pnpm --filter @potools/engine build && pnpm --filter @potools/desktop build",
+    "beforeBuildCommand": "node scripts/prepare-engine-runtime.mjs && pnpm --filter @potools/engine build && pnpm --filter @potools/desktop build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -30,7 +30,8 @@
     }
   },
   "bundle": {
-    "active": true,    "targets": "all",
+    "active": true,
+    "targets": "all",
     "category": "Productivity",
     "publisher": "pohoc",
     "shortDescription": "本机文件工具平台",
@@ -45,6 +46,16 @@
     ],
     "resources": {
       "../../../packages/engine/dist": "engine"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "languages": ["SimpChinese", "English"],
+        "displayLanguageSelector": true,
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "template": "nsis/installer.nsi"
+      }
     },
     "macOS": {
       "minimumSystemVersion": "11.0"

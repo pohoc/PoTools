@@ -5,10 +5,17 @@ import { useEngine } from '../stores/engine.ts';
 
 const THUMB_CACHE = new Map<string, PageThumb>();
 const REF_CACHE = new Map<string, Promise<FileRef>>();
-const MAX_THUMB_CACHE_ENTRIES = 24;
+// Large page renders are much larger than card thumbnails. Keep only a few
+// high-resolution pages so opening several previews cannot retain hundreds
+// of megabytes of base64 image data in the renderer.
+const MAX_THUMB_CACHE_ENTRIES = 16;
 
-function key(fileId: string, page: number): string {
-  return `${fileId}:${page}`;
+function key(fileId: string, page: number, width: number): string {
+  return `${fileId}:${page}:${width}`;
+}
+
+function maxCacheEntries(width: number): number {
+  return width > 600 ? 3 : MAX_THUMB_CACHE_ENTRIES;
 }
 
 function fileRefFor(picked: PickedFile): Promise<FileRef> {
@@ -30,10 +37,11 @@ export function clearThumbCache(): void {
   REF_CACHE.clear();
 }
 
-function cacheThumb(id: string, thumb: PageThumb): void {
+function cacheThumb(id: string, thumb: PageThumb, width: number): void {
   THUMB_CACHE.delete(id);
   THUMB_CACHE.set(id, thumb);
-  while (THUMB_CACHE.size > MAX_THUMB_CACHE_ENTRIES) {
+  const limit = maxCacheEntries(width);
+  while (THUMB_CACHE.size > limit) {
     const oldest = THUMB_CACHE.keys().next().value;
     if (!oldest) break;
     THUMB_CACHE.delete(oldest);
@@ -58,30 +66,33 @@ export function usePageThumbs(
   useEffect(() => {
     const fresh: Record<string, PageThumb> = {};
     const active = new Set(wanted.map((item) => item.fileId));
-    const wantedKeys = new Set(wanted.map((item) => key(item.fileId, item.page)));
+    const wantedKeys = new Set(wanted.map((item) => key(item.fileId, item.page, width)));
     for (const [id, thumb] of THUMB_CACHE) {
-      if (!active.has(id.slice(0, id.lastIndexOf(':')))) continue;
-      if (wantedKeys.has(id)) fresh[id] = thumb;
+      const [fileId, page] = id.split(':');
+      if (!active.has(fileId ?? '')) continue;
+      const wantedKey = key(fileId ?? '', Number(page), width);
+      if (wantedKeys.has(wantedKey)) fresh[wantedKey] = thumb;
     }
     for (const item of wanted) {
-      const cached = THUMB_CACHE.get(key(item.fileId, item.page));
-      if (cached) fresh[key(item.fileId, item.page)] = cached;
+      const thumbKey = key(item.fileId, item.page, width);
+      const cached = THUMB_CACHE.get(thumbKey);
+      if (cached) fresh[thumbKey] = cached;
     }
     setThumbs(fresh);
     for (const id of [...requested.current]) {
-      const fileId = id.slice(0, id.lastIndexOf(':'));
-      if (!active.has(fileId)) requested.current.delete(id);
+      const fileId = id.split(':')[0];
+      if (!fileId || !active.has(fileId)) requested.current.delete(id);
     }
-  }, [wanted]);
+  }, [wanted, width]);
 
   const signature = useMemo(() => {
     const missing: string[] = [];
     for (const item of wanted) {
-      const id = key(item.fileId, item.page);
+      const id = key(item.fileId, item.page, width);
       if (!THUMB_CACHE.has(id) && !requested.current.has(id)) missing.push(id);
     }
     return missing.sort().join('|');
-  }, [wanted]);
+  }, [wanted, width]);
 
   useEffect(() => {
     if (!signature) return;
@@ -101,7 +112,7 @@ export function usePageThumbs(
         if (!picked) continue;
         for (let start = 0; start < pages.length; start += 8) {
           const chunk = pages.slice(start, start + 8);
-          chunk.forEach((page) => requested.current.add(key(fileId, page)));
+          chunk.forEach((page) => requested.current.add(key(fileId, page, width)));
           try {
             const result = await call<PageThumb[]>('page.thumbs', {
               file: await fileRefFor(picked),
@@ -111,13 +122,14 @@ export function usePageThumbs(
             setThumbs((prev) => {
               const next = { ...prev };
               for (const thumb of result) {
-                cacheThumb(key(fileId, thumb.page), thumb);
-                next[key(fileId, thumb.page)] = thumb;
+                const thumbKey = key(fileId, thumb.page, width);
+                cacheThumb(thumbKey, thumb, width);
+                next[thumbKey] = thumb;
               }
               return next;
             });
           } catch {
-            chunk.forEach((page) => requested.current.delete(key(fileId, page)));
+            chunk.forEach((page) => requested.current.delete(key(fileId, page, width)));
           }
         }
       }

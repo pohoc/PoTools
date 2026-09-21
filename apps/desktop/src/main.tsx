@@ -43,7 +43,7 @@ function Root() {
   const locale = useSettings((state) => state.locale);
   return (
     <I18nProvider locale={locale}>
-      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <HashRouter>
         <App />
       </HashRouter>
     </I18nProvider>

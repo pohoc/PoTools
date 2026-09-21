@@ -1,5 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { win32 as winPath } from 'node:path';
 import { PDFDocument, StandardFonts, type PDFFont } from 'pdf-lib';
 import fontkitAdaptor from '@pdf-lib/fontkit';
 import type { JobGlobals } from '@potools/core';
@@ -15,11 +17,18 @@ const CANDIDATES: Record<string, string[]> = {
     '/System/Library/Fonts/Supplemental/Songti.ttc',
   ],
   win32: [
-    'C:/Windows/Fonts/msyh.ttf',
-    'C:/Windows/Fonts/msyh.ttc',
-    'C:/Windows/Fonts/simhei.ttf',
-    'C:/Windows/Fonts/simsun.ttc',
-    'C:/Windows/Fonts/simfang.ttf',
+    'msyh.ttc',
+    'msyh.ttf',
+    'msyhl.ttc',
+    'msyhbd.ttc',
+    'simhei.ttf',
+    'simsun.ttc',
+    'simsun.ttf',
+    'simfang.ttf',
+    'simkai.ttf',
+    'Deng.ttf',
+    'msjh.ttc',
+    'mingliu.ttc',
   ],
   default: [
     '/usr/share/fonts/truetype/arphic/uming.ttc',
@@ -30,11 +39,71 @@ const CANDIDATES: Record<string, string[]> = {
   ],
 };
 
+const CJK_FONT_NAME = /(?:yahei|simsun|simhei|simkai|simfang|dengxian|mingliu|pmingliu|jhenghei|noto.*cjk|source han|wenquanyi|ar pl|微软雅黑|宋体|黑体|楷体|仿宋|等线|細明體|正黑體)/i;
+const WINDOWS_FONT_REGISTRY_KEYS = [
+  'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts',
+  'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts',
+];
 const bytesCache = new Map<string, Promise<Uint8Array>>();
+let windowsCandidates: string[] | null = null;
+
+function windowsFontDirectories(): string[] {
+  const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? 'C:\\Windows';
+  const directories = [winPath.join(systemRoot, 'Fonts')];
+  if (process.env.LOCALAPPDATA) {
+    directories.push(winPath.join(process.env.LOCALAPPDATA, 'Microsoft', 'Windows', 'Fonts'));
+  }
+  if (process.env.USERPROFILE) {
+    directories.push(winPath.join(process.env.USERPROFILE, 'AppData', 'Local', 'Microsoft', 'Windows', 'Fonts'));
+  }
+  return [...new Set(directories)];
+}
+
+function registeredCjkFontPaths(directories: string[]): string[] {
+  const paths: string[] = [];
+  for (const key of WINDOWS_FONT_REGISTRY_KEYS) {
+    let output: string;
+    try {
+      output = execFileSync('reg.exe', ['query', key], {
+        encoding: 'utf8',
+        timeout: 3000,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+    } catch {
+      continue;
+    }
+
+    for (const line of output.split(/\r?\n/)) {
+      const entry = line.match(/^\s*(.+?)\s+REG_(?:SZ|EXPAND_SZ)\s+(.+?)\s*$/);
+      const [, fontName, rawValue] = entry ?? [];
+      if (!fontName || !rawValue || !CJK_FONT_NAME.test(fontName)) continue;
+
+      const value = rawValue.replace(/%([^%]+)%/g, (match, variable: string) => process.env[variable] ?? match);
+      if (winPath.isAbsolute(value)) {
+        paths.push(value);
+      } else {
+        paths.push(...directories.map((directory) => winPath.join(directory, value)));
+      }
+    }
+  }
+  return paths;
+}
+
+function discoverWindowsFontCandidates(): string[] {
+  if (windowsCandidates) return windowsCandidates;
+  const directories = windowsFontDirectories();
+  const wellKnown = directories.flatMap((directory) =>
+    (CANDIDATES.win32 ?? []).map((filename) => winPath.join(directory, filename)),
+  );
+  windowsCandidates = [...new Set([...wellKnown, ...registeredCjkFontPaths(directories)])];
+  return windowsCandidates;
+}
 
 export function cjkFontCandidates(): string[] {
   const list = CANDIDATES[process.platform] ?? [];
-  return [...list, ...(CANDIDATES.default ?? [])];
+  const platformCandidates = process.platform === 'win32' ? discoverWindowsFontCandidates() : list;
+  return [...new Set([...platformCandidates, ...(CANDIDATES.default ?? [])])];
 }
 
 /** First usable font able to render `text`, or null when only Latin is needed. */

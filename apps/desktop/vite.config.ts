@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 
 const enginePort = process.env.POTOOLS_ENGINE_PORT ?? '8787';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   define: {
     // The dev proxy buffers SSE, so the event stream dials the engine directly.
     __ENGINE_DIRECT__: JSON.stringify(`http://127.0.0.1:${enginePort}`),

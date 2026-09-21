@@ -1,7 +1,10 @@
+import { useEffect, useState } from 'react';
 import type { JobSnapshot, OutputFile } from 'core';
 import { TOOLS } from 'core';
+import type { FileRef, PageThumb } from 'core';
 import { Icon } from './Icon.tsx';
 import { Button, EmptyState, ProgressBar, Section, StateBadge } from './ui.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog.tsx';
 import { useI18n } from '../i18n/index.tsx';
 import { formatBytes, formatDuration } from '../lib/format.ts';
 import {
@@ -181,11 +184,12 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
 
       {job.artifacts.length ? (
         <ul className="flex flex-col gap-1 px-4 pb-4">
-          {job.artifacts.map((artifact) => (
+            {job.artifacts.map((artifact) => (
             <li
               key={artifact.id}
               className="group flex items-center gap-2.5 rounded-control border border-line bg-surface px-2.5 py-2"
             >
+              {artifact.kind === 'image' ? <OutputImagePreview jobId={job.id} artifact={artifact} /> : null}
               <Icon name={kindIcon(artifact)} size={15} className="shrink-0 text-faint" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[12.5px] leading-5 text-ink" title={artifact.path ?? artifact.name}>
@@ -241,5 +245,83 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
         </span>
       </div>
     </Section>
+  );
+}
+
+function OutputImagePreview({
+  jobId,
+  artifact,
+}: {
+  jobId: string;
+  artifact: OutputFile;
+}) {
+  const call = useEngine((state) => state.call);
+  const { t } = useI18n();
+  const [thumb, setThumb] = useState<PageThumb | null>(null);
+  const [large, setLarge] = useState<PageThumb | null>(null);
+  const [open, setOpen] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    const file: FileRef = {
+      id: `output-${jobId}-${artifact.id}`,
+      name: artifact.name,
+      path: artifact.path ?? undefined,
+      sizeBytes: artifact.sizeBytes,
+      dataBase64: artifact.path ? undefined : artifact.dataBase64,
+    };
+    if (!file.path && !file.dataBase64) {
+      setFailed(true);
+      return;
+    }
+    void call<PageThumb[]>('page.thumbs', { file, pages: [1], width: 160 })
+      .then((result) => {
+        if (alive) setThumb(result[0] ?? null);
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+    return () => { alive = false; };
+  }, [artifact.id, artifact.name, artifact.path, artifact.sizeBytes, artifact.dataBase64, call, jobId]);
+
+  useEffect(() => {
+    if (!open || large) return;
+    const file: FileRef = {
+      id: `output-${jobId}-${artifact.id}`,
+      name: artifact.name,
+      path: artifact.path ?? undefined,
+      sizeBytes: artifact.sizeBytes,
+      dataBase64: artifact.path ? undefined : artifact.dataBase64,
+    };
+    void call<PageThumb[]>('page.thumbs', { file, pages: [1], width: 1600 })
+      .then((result) => setLarge(result[0] ?? null))
+      .catch(() => setLarge(thumb));
+  }, [open, large, thumb, artifact.id, artifact.name, artifact.path, artifact.sizeBytes, artifact.dataBase64, call, jobId]);
+
+  if (failed || !thumb) return null;
+  return (
+    <>
+      <button
+        type="button"
+        className="flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-control border border-line bg-canvas"
+        aria-label={t('preview.large')}
+        title={t('preview.large')}
+        onClick={() => setOpen(true)}
+      >
+        <img src={thumb.dataUrl} alt="" className="max-h-full max-w-full object-contain" />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="flex h-[min(92vh,58rem)] w-[min(96vw,84rem)] max-w-none flex-col overflow-hidden p-0" aria-describedby={`output-image-preview-${jobId}-${artifact.id}`}>
+          <DialogHeader className="shrink-0 border-b border-line px-5 py-3 pr-12">
+            <DialogTitle className="truncate text-[14px]">{artifact.name}</DialogTitle>
+            <DialogDescription id={`output-image-preview-${jobId}-${artifact.id}`}>{t('preview.large')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-canvas p-4 sm:p-8">
+            <img src={(large ?? thumb).dataUrl} alt={artifact.name} className="max-h-full max-w-full object-contain shadow-pop" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

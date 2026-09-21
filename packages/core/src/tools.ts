@@ -17,7 +17,8 @@ export type ToolWorkflow =
   | 'extraction'
   | 'optimization'
   | 'metadata'
-  | 'image-processing';
+  | 'image-processing'
+  | 'invoice-organizing';
 
 export type ToolFormat = FileKind | 'image' | 'jpg' | 'png' | 'webp' | 'tiff';
 
@@ -44,7 +45,7 @@ export interface ToolDescriptor {
 }
 
 export const TOOL_WORKFLOWS: ToolWorkflow[] = [
-  'page-management', 'page-layout', 'annotation', 'conversion', 'extraction', 'optimization', 'metadata', 'image-processing',
+  'page-management', 'page-layout', 'annotation', 'conversion', 'extraction', 'optimization', 'metadata', 'image-processing', 'invoice-organizing',
 ];
 
 const POSITION_OPTIONS = [
@@ -1310,6 +1311,20 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     ],
   },
   {
+    id: 'invoice-organize',
+    nameKey: 'tool.invoiceOrganize.name',
+    descKey: 'tool.invoiceOrganize.desc',
+    category: 'organize',
+    icon: 'receipt',
+    order: 14,
+    accept: 'application/pdf,image/*,.tif,.tiff',
+    multiFile: true,
+    layout: 'standard',
+    artifactKind: 'json',
+    keywords: ['发票整理', '发票归档', '目录整理', 'invoice organize', 'invoice archive'],
+    fields: [],
+  },
+  {
     id: 'pdf-to-word',
     nameKey: 'tool.pdfToWord.name',
     descKey: 'tool.pdfToWord.desc',
@@ -1701,6 +1716,7 @@ const TOOL_WORKFLOW_BY_ID: Record<ToolId, ToolWorkflow> = {
   merge: 'page-management', split: 'page-management', organize: 'page-management', rotate: 'page-management',
   'extract-pages': 'page-management', 'delete-pages': 'page-management',
   resize: 'page-layout', crop: 'page-layout', margins: 'page-layout', nup: 'page-layout', 'invoice-merge': 'page-layout',
+  'invoice-organize': 'invoice-organizing',
   watermark: 'annotation', 'page-numbers': 'annotation', 'header-footer': 'annotation',
   'pdf-to-images': 'conversion', 'images-to-pdf': 'conversion', 'pdf-to-word': 'conversion', 'pdf-to-excel': 'conversion',
   'pdf-to-ppt': 'conversion', 'pdf-to-markdown': 'conversion', 'pdf-to-html': 'conversion', 'pdf-to-csv': 'conversion',
@@ -1730,8 +1746,8 @@ const IMAGE_OUTPUTS: Partial<Record<ToolId, ToolFormat[]>> = {
 export const TOOL_LIST: ToolDescriptor[] = TOOL_DEFINITIONS.map((tool) => ({
   ...tool,
   workflow: TOOL_WORKFLOW_BY_ID[tool.id],
-  inputFormats: (tool.accept.split(',').map((format) => INPUT_FORMATS[format.trim()]).filter(Boolean) as ToolFormat[]),
-  outputFormats: IMAGE_OUTPUTS[tool.id] ?? [tool.artifactKind],
+  inputFormats: [...new Set(tool.accept.split(',').map((format) => INPUT_FORMATS[format.trim()]).filter(Boolean) as ToolFormat[])],
+  outputFormats: [...new Set(IMAGE_OUTPUTS[tool.id] ?? [tool.artifactKind])],
 }));
 
 export const TOOLS: Record<ToolId, ToolDescriptor> = TOOL_LIST.reduce(

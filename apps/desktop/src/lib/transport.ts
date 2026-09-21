@@ -20,7 +20,7 @@ export interface Transport {
   status: TransportStatus;
   info: EngineInfo | null;
   start(options?: { concurrency?: number }): Promise<EngineInfo>;
-  call<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<T>;
+  call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs?: number): Promise<T>;
   onEvent(handler: (event: EngineEvent) => void): () => void;
   onStatus(handler: (status: TransportStatus) => void): () => void;
   stop(): void;
@@ -40,7 +40,7 @@ abstract class BaseTransport implements Transport {
   protected statusHandlers = new Set<(status: TransportStatus) => void>();
 
   abstract start(options?: { concurrency?: number }): Promise<EngineInfo>;
-  abstract call<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<T>;
+  abstract call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs?: number): Promise<T>;
   abstract stop(): void;
 
   onEvent(handler: (event: EngineEvent) => void): () => void {
@@ -69,6 +69,9 @@ class HttpTransport extends BaseTransport {
   readonly mode = 'web' as const;
   private source: EventSource | null = null;
   private probe: ReturnType<typeof setInterval> | null = null;
+  private probeInFlight = false;
+  private healthTimer: ReturnType<typeof setInterval> | null = null;
+  private healthInFlight = false;
   private base: string;
 
   constructor(base = '/engine') {
@@ -82,6 +85,7 @@ class HttpTransport extends BaseTransport {
       this.info = info;
       this.setStatus('ready');
       this.openEvents();
+      this.startHealthCheck();
       return info;
     } catch (error) {
       this.setStatus('offline');
@@ -90,9 +94,9 @@ class HttpTransport extends BaseTransport {
     }
   }
 
-  async call<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<T> {
+  async call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs?: number): Promise<T> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120_000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs ?? 120_000);
     let response: Response;
     try {
       response = await fetch(`${this.base}/rpc`, {
@@ -119,6 +123,9 @@ class HttpTransport extends BaseTransport {
     this.source = null;
     if (this.probe) clearInterval(this.probe);
     this.probe = null;
+    this.probeInFlight = false;
+    if (this.healthTimer) clearInterval(this.healthTimer);
+    this.healthTimer = null;
   }
 
   private openEvents(): void {
@@ -151,16 +158,40 @@ class HttpTransport extends BaseTransport {
   private startProbe(): void {
     if (this.probe) return;
     this.probe = setInterval(() => {
-      void this.call<EngineInfo>('engine.info', {})
+      if (this.probeInFlight) return;
+      this.probeInFlight = true;
+      void this.call<EngineInfo>('engine.info', {}, 2500)
         .then((info) => {
           this.info = info;
           this.setStatus('ready');
           this.openEvents();
+          this.startHealthCheck();
           if (this.probe) clearInterval(this.probe);
           this.probe = null;
         })
-        .catch(() => this.setStatus('offline'));
+        .catch(() => this.setStatus('offline'))
+        .finally(() => { this.probeInFlight = false; });
     }, 3000);
+  }
+
+  private startHealthCheck(): void {
+    if (this.healthTimer) return;
+    this.healthTimer = setInterval(() => {
+      if (this.healthInFlight || this.status !== 'ready') return;
+      this.healthInFlight = true;
+      void this.call<EngineInfo>('engine.info', {}, 2500)
+        .then((info) => {
+          this.info = info;
+          this.setStatus('ready');
+        })
+        .catch(() => {
+          this.setStatus('offline');
+          this.source?.close();
+          this.source = null;
+          this.startProbe();
+        })
+        .finally(() => { this.healthInFlight = false; });
+    }, 5000);
   }
 }
 
@@ -174,6 +205,8 @@ class TauriTransport extends BaseTransport {
   private pending = new Map<string, Pending>();
   private unlisten: (() => void) | null = null;
   private ready: Promise<EngineInfo> | null = null;
+  private healthTimer: ReturnType<typeof setInterval> | null = null;
+  private healthInFlight = false;
 
   async start(options?: { concurrency?: number }): Promise<EngineInfo> {
     if (this.ready) return this.ready;
@@ -187,12 +220,23 @@ class TauriTransport extends BaseTransport {
       this.onLine(String(payload));
     });
     this.unlisten = unlisten;
-    await bridge.invoke('engine_start', { concurrency: concurrency ?? 1 });
-    // The host may have started the sidecar before the webview existed, so the
-    // startup frame cannot be relied on: ask the engine directly instead.
-    const info = await this.call<EngineInfo>('engine.info', {});
+    // The host waits for and returns the sidecar's first ready frame. This
+    // keeps startup behind an explicit engine handshake instead of racing a
+    // second RPC against a process that may still be initializing.
+    const raw = await bridge.invoke<string>('engine_start', { concurrency: concurrency ?? 1 });
+    let frame: { id?: unknown; result?: EngineInfo };
+    try {
+      frame = JSON.parse(raw) as { id?: unknown; result?: EngineInfo };
+    } catch {
+      throw new RpcError('offline', '引擎启动握手不是有效 JSON');
+    }
+    if (frame.id !== 'ready' || !frame.result || typeof frame.result !== 'object') {
+      throw new RpcError('offline', '引擎启动握手格式不正确');
+    }
+    const info = frame.result;
     this.info = info;
     this.setStatus('ready');
+    this.startHealthCheck();
     return info;
   }
 
@@ -221,14 +265,14 @@ class TauriTransport extends BaseTransport {
     }
   }
 
-  async call<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<T> {
+  async call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs = 120_000): Promise<T> {
     const bridge = await engineBridge();
     const id = nextId();
     const line = JSON.stringify({ jsonrpc: '2.0', id, method, params });
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
         if (this.pending.delete(id)) reject(new RpcError('offline', `${method} timed out`));
-      }, 120_000);
+      }, timeoutMs);
       this.pending.set(id, {
         resolve: (value) => {
           clearTimeout(timeout);
@@ -249,8 +293,22 @@ class TauriTransport extends BaseTransport {
   stop(): void {
     this.unlisten?.();
     this.unlisten = null;
+    if (this.healthTimer) clearInterval(this.healthTimer);
+    this.healthTimer = null;
     this.pending.clear();
     this.ready = null;
+  }
+
+  private startHealthCheck(): void {
+    if (this.healthTimer) return;
+    this.healthTimer = setInterval(() => {
+      if (this.healthInFlight) return;
+      this.healthInFlight = true;
+      void this.call<{ pong: number }>('engine.ping', {}, 2500)
+        .then(() => this.setStatus('ready'))
+        .catch(() => this.setStatus('offline'))
+        .finally(() => { this.healthInFlight = false; });
+    }, 5000);
   }
 }
 

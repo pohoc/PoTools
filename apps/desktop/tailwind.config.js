@@ -1,5 +1,3 @@
-import animate from 'tailwindcss-animate';
-
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -54,7 +52,7 @@ export default {
         titlebar: '40px',
       },
       keyframes: {
-        'fade-up': { from: { opacity: '0', transform: 'translateY(4px)' }, to: { opacity: '1', transform: 'none' } },
+        'fade-up': { from: { opacity: '0' }, to: { opacity: '1' } },
         shimmer: { '100%': { transform: 'translateX(100%)' } },
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
         'accordion-up': { from: { height: 'var(--radix-accordion-content-height)' }, to: { height: '0' } },
@@ -66,5 +64,5 @@ export default {
       },
     },
   },
-  plugins: [animate],
+  plugins: [],
 };

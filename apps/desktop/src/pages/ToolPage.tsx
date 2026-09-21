@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, Link } from 'react-router-dom';
 import type { JobSnapshot, ToolDescriptor, ToolId } from 'core';
 import { TOOLS } from 'core';
@@ -22,14 +22,17 @@ import { useSettings } from '../lib/settings.ts';
 import { formatBytes } from '../lib/format.ts';
 import { kindFor } from '../lib/files.ts';
 import { usePageThumbs } from '../lib/usePageThumbs.ts';
+import { Minus, Plus, RotateCcw, RotateCw, Maximize2 } from 'lucide-react';
 import { ImageStudioEditor } from '../components/ImageStudioEditor.tsx';
 import type { PickedFile } from '../lib/files.ts';
 import type { ProbedPdf } from 'core';
+import { InvoiceOrganizerPage } from './InvoiceOrganizerPage.tsx';
 
 export function ToolPage() {
   const { toolId } = useParams<{ toolId: string }>();
   const descriptor = toolId ? TOOLS[toolId as ToolId] : undefined;
   if (!descriptor) return <Navigate to="/" replace />;
+  if (descriptor.id === 'invoice-organize') return <InvoiceOrganizerPage />;
   return <ToolWorkspace key={descriptor.id} descriptor={descriptor} />;
 }
 
@@ -291,6 +294,11 @@ function InputPreview({
 }) {
   const { t } = useI18n();
   const [active, setActive] = useState<{ fileId: string; page: number } | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragOrigin = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const wanted = useMemo(() => {
     const items: Array<{ fileId: string; page: number }> = [];
     for (const file of files) {
@@ -303,20 +311,24 @@ function InputPreview({
     }
     return items;
   }, [files, probes]);
-  const { thumbs } = usePageThumbs(files, wanted, 160);
+  // Keep card previews quick to rasterize and transfer. The separate modal
+  // request uses a high-resolution PNG only after the user opens a page.
+  const { thumbs } = usePageThumbs(files, wanted, 192);
+  const largeWanted = useMemo(() => active ? [active] : [], [active]);
+  const { thumbs: largeThumbs } = usePageThumbs(files, largeWanted, 2200);
 
   return (
     <Section title={title}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
         {wanted.map((item) => {
-          const thumb = thumbs[`${item.fileId}:${item.page}`];
+          const thumb = thumbs[`${item.fileId}:${item.page}:192`];
           const file = files.find((entry) => entry.id === item.fileId);
           return (
             <figure key={`${item.fileId}:${item.page}`} className="min-w-0 overflow-hidden rounded-control border border-line bg-canvas">
               <button
                 type="button"
                 aria-label={tfPreviewLabel(t('preview.open'), file?.name ?? '', item.page)}
-                onClick={() => setActive(item)}
+                onClick={() => { setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); setActive(item); }}
                 className="group block w-full cursor-zoom-in text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
               >
               <div className="flex h-[148px] items-center justify-center p-2">
@@ -332,27 +344,61 @@ function InputPreview({
       </div>
       {wanted.length === 0 ? <p className="text-[11.5px] text-faint">{t('preview.unavailable')}</p> : null}
       <Dialog open={active !== null} onOpenChange={(open) => { if (!open) setActive(null); }}>
-        <DialogContent className="w-[min(94vw,72rem)] max-w-none p-0" aria-describedby="page-preview-description">
-          <DialogHeader className="border-b border-line px-5 py-4 pr-12">
+        <DialogContent className="flex h-[min(92vh,58rem)] w-[min(96vw,84rem)] max-w-none flex-col overflow-hidden p-0" aria-describedby="page-preview-description">
+          <DialogHeader className="shrink-0 border-b border-line px-5 py-3 pr-12">
             <DialogTitle className="truncate text-[14px]">{t('preview.large')}</DialogTitle>
             <DialogDescription id="page-preview-description" className="truncate">
               {active ? `${files.find((file) => file.id === active.fileId)?.name ?? ''} · ${tfPreviewPage(t('preview.page'), active.page)}` : ''}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex min-h-[45vh] max-h-[78vh] items-center justify-center overflow-auto bg-canvas p-4 sm:p-8">
-            {active && thumbs[`${active.fileId}:${active.page}`] ? (
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-3 py-2">
+            <div className="flex items-center gap-1">
+              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.zoomOut')} title={t('preview.zoomOut')} disabled={zoom <= 0.25} onClick={() => setZoom((value) => Math.max(0.25, Math.round((value - 0.25) * 100) / 100))}><Minus size={14} /></ShadcnButton>
+              <span className="w-12 text-center text-[11px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span>
+              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.zoomIn')} title={t('preview.zoomIn')} disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, Math.round((value + 0.25) * 100) / 100))}><Plus size={14} /></ShadcnButton>
+              <ShadcnButton variant="outline" size="sm" className="ml-1" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>{t('preview.fit')}</ShadcnButton>
+              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.rotateLeft')} title={t('preview.rotateLeft')} onClick={() => setRotation((value) => value - 90)}><RotateCcw size={14} /></ShadcnButton>
+              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.rotateRight')} title={t('preview.rotateRight')} onClick={() => setRotation((value) => value + 90)}><RotateCw size={14} /></ShadcnButton>
+              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.reset')} title={t('preview.reset')} onClick={() => { setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}><Maximize2 size={14} /></ShadcnButton>
+            </div>
+            <span className="hidden text-[11px] text-faint sm:inline">{t('preview.zoomHint')}</span>
+          </div>
+          <div
+            className={`flex min-h-0 flex-1 items-center justify-center overflow-auto bg-canvas p-4 sm:p-8 ${zoom > 1 ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+            onWheel={(event) => {
+              if (!event.ctrlKey && !event.metaKey) return;
+              event.preventDefault();
+              setZoom((value) => Math.min(4, Math.max(0.25, Math.round((value * (event.deltaY < 0 ? 1.1 : 0.9)) * 100) / 100)));
+            }}
+            onPointerDown={(event) => {
+              if (zoom <= 1 || event.button !== 0) return;
+              dragOrigin.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
+              event.currentTarget.setPointerCapture(event.pointerId);
+              setDragging(true);
+            }}
+            onPointerMove={(event) => {
+              const origin = dragOrigin.current;
+              if (!origin) return;
+              setPan({ x: origin.panX + event.clientX - origin.x, y: origin.panY + event.clientY - origin.y });
+            }}
+            onPointerUp={() => { dragOrigin.current = null; setDragging(false); }}
+            onPointerCancel={() => { dragOrigin.current = null; setDragging(false); }}
+          >
+            {active && largeThumbs[`${active.fileId}:${active.page}:2200`] ? (
               <img
-                src={thumbs[`${active.fileId}:${active.page}`]?.dataUrl}
+                src={largeThumbs[`${active.fileId}:${active.page}:2200`]?.dataUrl}
                 alt={`${files.find((file) => file.id === active.fileId)?.name ?? ''} · ${active.page}`}
-                className="max-h-[70vh] max-w-full object-contain shadow-pop"
+                draggable={false}
+                className="max-h-full max-w-full shrink-0 select-none object-contain shadow-pop"
+                style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`, transformOrigin: 'center' }}
               />
             ) : <span className="text-[12px] text-faint">{t('preview.loading')}</span>}
           </div>
-          <DialogFooter className="justify-between border-t border-line px-4 py-3 sm:justify-between">
+          <DialogFooter className="m-0 shrink-0 justify-between border-t border-line px-4 py-3 sm:justify-between">
             <span className="text-[11px] text-faint">{t('preview.clickHint')}</span>
             <div className="flex gap-2">
-              <ShadcnButton variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, -1)} onClick={() => setActive((current) => adjacentPage(wanted, current, -1))}>{t('preview.previous')}</ShadcnButton>
-              <ShadcnButton variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, 1)} onClick={() => setActive((current) => adjacentPage(wanted, current, 1))}>{t('preview.next')}</ShadcnButton>
+              <ShadcnButton variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, -1)} onClick={() => { setActive((current) => adjacentPage(wanted, current, -1)); setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}>{t('preview.previous')}</ShadcnButton>
+              <ShadcnButton variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, 1)} onClick={() => { setActive((current) => adjacentPage(wanted, current, 1)); setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}>{t('preview.next')}</ShadcnButton>
             </div>
           </DialogFooter>
         </DialogContent>

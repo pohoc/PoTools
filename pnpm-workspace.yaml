@@ -1,3 +1,7 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+allowBuilds:
+  esbuild: true
+overrides:
+  tsx: 4.23.14

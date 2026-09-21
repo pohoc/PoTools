@@ -2,7 +2,7 @@
 
 PoTools 是本机文件处理工作台，提供文档、图片与格式转换工具。PDF 是当前最完整的工具组，此外已支持 Office、OFD、Markdown 与常见图片格式。**所有处理都在这台电脑上的 Node 子进程里完成，文件不会离开本机。**
 
-技术栈：**Vite + React 18 + TypeScript**（界面） · **Node.js sidecar**（PDF 引擎） · **Tauri 2 + Rust**（桌面壳）
+技术栈：**Vite 8 + React 19 + TypeScript**（界面） · **Node.js sidecar**（PDF 引擎） · **Tauri 2 + Rust**（桌面壳）
 
 ---
 
@@ -81,7 +81,7 @@ PoTools 是本机文件处理工作台，提供文档、图片与格式转换工
 
 ## 3. 开始使用
 
-前置：Node ≥ 20.11、pnpm 9、Rust stable（`rustup default stable`）、macOS 需 Xcode Command Line Tools。
+前置：Node 20.19+ 或 22.12+、pnpm 12、Rust stable（`rustup default stable`）、macOS 需 Xcode Command Line Tools。
 
 ```bash
 pnpm install
@@ -126,8 +126,8 @@ pnpm tauri dev         # 桌面版：Rust 启动即拉起 Node sidecar
 ## 5. 打包说明
 
 - `src-tauri/.cargo/config.toml` 把 crates.io 换成了 `rsproxy.cn` 镜像（本机网络直连 crates.io 会卡死）。删掉该文件即回到官方源。
-- 引擎 bundle（`packages/engine/dist/engine.mjs`）刻意把 `sharp` 与 `mupdf` 留作外部依赖，因为它们是原生/WASM 包。因此安装包必须连同 `node_modules` 一起提供，否则图片相关能力会返回明确错误（`error.noImageCodec` / `error.noRasterizer`，界面按 `hintKey` 翻译成中文提示）。开发模式用 `tsx` 直接跑源码，不受影响。
-- 若系统里没有 Node，设置页会显示「找不到 Node 运行时」，可用 `POTOOLS_NODE` 指定二进制，或把 Node 打进安装包（后续工作）。
+- Windows x64 安装包会从 Node.js 官方发布构建下载并校验 Node 22.20.0，随包启动引擎；macOS/Linux 仍使用系统 Node，可用 `POTOOLS_NODE` 指定路径。
+- 引擎 bundle（`packages/engine/dist/engine.mjs`）刻意把 `sharp` 与 `mupdf` 留作外部依赖，因为它们是原生/WASM 包。当前安装包没有携带这两个模块，相关图片编解码和 PDF 光栅能力会返回明确错误（`error.noImageCodec` / `error.noRasterizer`，界面按 `hintKey` 翻译成中文提示）。开发模式用 `tsx` 直接跑源码，不受影响。
 
 ## 6. 设置项
 
@@ -155,7 +155,7 @@ pnpm tauri dev         # 桌面版：Rust 启动即拉起 Node sidecar
 - **PDF 转 OFD 的文字模式**：字体小于 3 MB 时整份嵌入，否则只登记字体名（打开的机器需装有该字体）；OFD 矢量路径（PathObject）暂不导出。
 - **PDF 转图片类导出的图片**：MuPDF 的 structured text 在本 WASM 构建里不回报图片块，图片位置由内容流的 `cm ... Do` 反算，再从页面光栅中裁切；异常变换（旋转/斜切）下取包围盒。
 - **未实现**：OCR、电子签名、文档对比、添加密码——这些依赖外部二进制或额外的安全处理实现，尚未纳入。
-- 引擎以子进程方式运行，若系统里没有 Node，桌面版会在设置页显示「找不到 Node 运行时」并给出 `POTOOLS_NODE` 提示。
+- 引擎以子进程方式运行；Windows x64 安装包自带 Node，macOS/Linux 桌面版需系统 Node，或通过 `POTOOLS_NODE` 指定路径。
 
 ## 8. 版权与许可
 

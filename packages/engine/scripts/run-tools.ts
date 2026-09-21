@@ -739,26 +739,26 @@ async function main(): Promise<void> {
   const portraitRef: FileRef = { id: 'image-test-person', name: 'sample-person.png', path: portraitPath };
   const cutoutJob = await run(engine, 'image-cutout', [portraitRef]);
   const cutoutPath = cutoutJob.artifacts[0]?.path;
-  const cutoutMeta = cutoutPath ? await sharp(cutoutPath).metadata() : {};
-  record('image cutout exports transparent PNG', cutoutJob.progress.state === 'succeeded' && cutoutMeta.format === 'png' && cutoutMeta.hasAlpha === true,
-    cutoutPath ? `${cutoutMeta.format}, alpha=${cutoutMeta.hasAlpha}` : cutoutJob.error?.message ?? 'no artifact');
+  const cutoutMeta = cutoutPath ? await sharp(cutoutPath).metadata() : undefined;
+  record('image cutout exports transparent PNG', cutoutJob.progress.state === 'succeeded' && cutoutMeta?.format === 'png' && cutoutMeta.hasAlpha === true,
+    cutoutPath ? `${cutoutMeta?.format}, alpha=${cutoutMeta?.hasAlpha}` : cutoutJob.error?.message ?? 'no artifact');
   const idPhotoJob = await run(engine, 'image-id-photo', [portraitRef], { size: 'one-inch', maxFileKb: 100, printSheet: true });
   const photoPath = idPhotoJob.artifacts[0]?.path;
   const sheetPath = idPhotoJob.artifacts[1]?.path;
-  const photoMeta = photoPath ? await sharp(photoPath).metadata() : {};
-  const sheetMeta = sheetPath ? await sharp(sheetPath).metadata() : {};
+  const photoMeta = photoPath ? await sharp(photoPath).metadata() : undefined;
+  const sheetMeta = sheetPath ? await sharp(sheetPath).metadata() : undefined;
   const photoSizeKb = photoPath ? (await stat(photoPath)).size / 1024 : Number.POSITIVE_INFINITY;
-  record('ID photo meets pixel and KB limits', idPhotoJob.progress.state === 'succeeded' && photoMeta.width === 295 && photoMeta.height === 413 && photoSizeKb <= 100,
-    photoPath ? `${photoMeta.width}×${photoMeta.height}px, ${photoSizeKb.toFixed(1)} KB` : idPhotoJob.error?.message ?? 'no photo');
-  record('ID photo creates A4 print sheet', Boolean(sheetMeta.width === 2480 && sheetMeta.height === 3508),
-    sheetPath ? `${sheetMeta.width}×${sheetMeta.height}px` : 'no sheet');
+  record('ID photo meets pixel and KB limits', idPhotoJob.progress.state === 'succeeded' && photoMeta?.width === 295 && photoMeta.height === 413 && photoSizeKb <= 100,
+    photoPath ? `${photoMeta?.width}×${photoMeta?.height}px, ${photoSizeKb.toFixed(1)} KB` : idPhotoJob.error?.message ?? 'no photo');
+  record('ID photo creates A4 print sheet', Boolean(sheetMeta?.width === 2480 && sheetMeta.height === 3508),
+    sheetPath ? `${sheetMeta?.width}×${sheetMeta?.height}px` : 'no sheet');
   const printJob = await run(engine, 'image-print', [jpg], { paper: 'a4', orientation: 'portrait' });
-  const printMeta = printJob.artifacts[0]?.path ? await sharp(printJob.artifacts[0].path).metadata() : {};
-  record('image print creates A4 300 DPI output', printJob.progress.state === 'succeeded' && printMeta.width === 2480 && printMeta.height === 3508 && printMeta.density === 300,
-    `${printMeta.width ?? 0}×${printMeta.height ?? 0}px, ${printMeta.density ?? 0} DPI`);
+  const printMeta = printJob.artifacts[0]?.path ? await sharp(printJob.artifacts[0].path).metadata() : undefined;
+  record('image print creates A4 300 DPI output', printJob.progress.state === 'succeeded' && printMeta?.width === 2480 && printMeta.height === 3508 && printMeta.density === 300,
+    `${printMeta?.width ?? 0}×${printMeta?.height ?? 0}px, ${printMeta?.density ?? 0} DPI`);
   const cleanJob = await run(engine, 'image-metadata-clean', [jpg]);
-  const cleanMeta = cleanJob.artifacts[0]?.path ? await sharp(cleanJob.artifacts[0].path).metadata() : {};
-  record('image metadata cleanup removes EXIF', cleanJob.progress.state === 'succeeded' && !cleanMeta.exif && !cleanMeta.xmp,
+  const cleanMeta = cleanJob.artifacts[0]?.path ? await sharp(cleanJob.artifacts[0].path).metadata() : undefined;
+  record('image metadata cleanup removes EXIF', cleanJob.progress.state === 'succeeded' && !cleanMeta?.exif && !cleanMeta?.xmp,
     cleanJob.progress.state === 'succeeded' ? 'EXIF/GPS/XMP absent' : cleanJob.error?.message ?? 'no artifact');
   const mark = await sharp({ create: { width: 32, height: 32, channels: 3, background: '#ffffff' } }).png().toBuffer();
   const repairJob = await run(engine, 'image-watermark-clean', [jpg], { repairPng: mark.toString('base64') });
