@@ -1,0 +1,20 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "PoTools 工具箱",
+        "width": 1240,
+        "height": 820,
+        "minWidth": 860,
+        "minHeight": 580,
+        "center": true,
+        "resizable": true,
+        "dragDropEnabled": true,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ]
+  }
+}

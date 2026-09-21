@@ -1,0 +1,26 @@
+{
+  "name": "potools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "本机文件工具平台 · Vite + React + Node sidecar + Tauri",
+  "author": "pohoc <po.hoc4@gmail.com>",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @potools/engine --filter @potools/desktop dev",
+    "dev:web": "pnpm --filter @potools/desktop dev",
+    "dev:engine": "pnpm --filter @potools/engine dev",
+    "tauri": "pnpm --filter @potools/desktop tauri",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "samples": "pnpm --filter @potools/engine samples",
+    "icons": "node scripts/make-icons.mjs && pnpm --filter @potools/desktop exec tauri icon \"$PWD/apps/desktop/src-tauri/app-icon.png\"",
+    "test:tools": "pnpm --filter @potools/engine test:tools",
+    "engine:call": "pnpm --filter @potools/engine call"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

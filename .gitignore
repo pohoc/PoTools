@@ -1,0 +1,17 @@
+node_modules/
+**/dist/
+**/dist-tauri/
+**/target/
+**/.vite/
+*.tsbuildinfo
+*.log
+.env
+.env.local
+.env.*.local
+!.env.example
+.DS_Store
+.idea/
+apps/desktop/src-tauri/gen/
+samples/out/
+samples/__tmp-photo-*.jpg
+coverage/

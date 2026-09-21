@@ -1,0 +1,41 @@
+{
+  "name": "@potools/engine",
+  "version": "0.1.0",
+  "private": true,
+  "author": "pohoc <po.hoc4@gmail.com>",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "potools-engine": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts serve --http --port 8787",
+    "start": "tsx src/index.ts serve --stdio",
+    "serve:http": "tsx src/index.ts serve --http --port 8787",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/engine.mjs --external:sharp --external:mupdf",
+    "typecheck": "tsc --noEmit",
+    "selfcheck": "tsx src/index.ts selfcheck",
+    "samples": "tsx scripts/make-samples.ts",
+    "test:tools": "tsx scripts/run-tools.ts"
+  },
+  "dependencies": {
+    "@potools/core": "workspace:*",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "docx": "9",
+    "exceljs": "4",
+    "fast-xml-parser": "5",
+    "fontkit": "^2.0.4",
+    "jszip": "3",
+    "mupdf": "^1.25.2",
+    "pdf-lib": "^1.17.1",
+    "pptxgenjs": "4",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/fontkit": "^2.0.7",
+    "@types/node": "^22.7.5",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}
