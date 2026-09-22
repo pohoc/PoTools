@@ -140,14 +140,14 @@ export function SplitCanvas({
                   )
                 )}
               </Button>
-              <figure className="flex w-[86px] shrink-0 flex-col overflow-hidden rounded-[6px] border border-line bg-surface">
+              <figure className="flex w-[86px] shrink-0 flex-col overflow-hidden rounded-sm border border-line bg-surface">
                 <div className="flex aspect-[1/1.25] items-center justify-center bg-raised p-1">
                   {thumb ? (
                     <img
                       src={thumb.dataUrl}
                       alt={`p${page}`}
                       draggable={false}
-                      className="max-h-full max-w-full rounded-[3px] bg-white shadow-[0_1px_2px_rgb(15_23_42/0.16)]"
+                      className="max-h-full max-w-full rounded-xs bg-white shadow-control"
                     />
                   ) : (
                     <Icon name={loading ? 'spinner' : 'file'} size={14} className={loading ? 'animate-spin text-faint' : 'text-faint'} />

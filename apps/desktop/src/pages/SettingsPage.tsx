@@ -93,7 +93,7 @@ function Group({
   children: ReactNode;
 }) {
   return (
-    <Card className="min-w-0 rounded-card border border-line bg-surface shadow-card ring-1 ring-black/[0.02]">
+    <Card className="min-w-0 rounded-card border border-line bg-surface shadow-card">
       <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-line/70 px-5 py-4">
         <div className="min-w-0">
           <CardTitle>{title}</CardTitle>

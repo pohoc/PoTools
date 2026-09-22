@@ -192,7 +192,7 @@ export function PageGrid({
                     src={thumb.dataUrl}
                     alt={`p${slot.page}`}
                     draggable={false}
-                    className="max-h-full max-w-full rounded-[3px] bg-white shadow-[0_1px_3px_rgb(15_23_42/0.18)] transition-transform duration-200"
+                    className="max-h-full max-w-full rounded-xs bg-white shadow-control transition-transform duration-200"
                     style={{ transform: `rotate(${slot.rotation}deg) scale(${slot.rotation % 180 === 90 ? 0.78 : 1})` }}
                   />
                 ) : (
