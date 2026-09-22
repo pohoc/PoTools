@@ -96,7 +96,7 @@ pnpm tauri dev
 pnpm samples
 ```
 
-打包：`pnpm tauri build`（`beforeBuildCommand` 会先把引擎 bundle 到 `packages/engine/dist` 并作为 resource 一起装进安装包）。
+打包：`pnpm tauri build`（`beforeBuildCommand` 会把本地运行时 bundle 到 `packages/engine/dist` 并作为 resource 一起装进安装包）。如需将 Office 转换引擎也放进安装包，先准备与目标平台匹配的 ONLYOFFICE Document Builder 9.4.0 压缩包，并设置 `POTOOLS_DOCUMENTBUILDER_ARCHIVE` 指向该文件。构建脚本会校验 SHA-256；应用运行期间不下载引擎，也不会把文档发往网络。
 
 ## 4. 验证
 
@@ -150,8 +150,8 @@ pnpm tauri dev         # 桌面版：Rust 启动即拉起 Node sidecar
 - **加密**：只处理空口令文件。带真实用户口令的 PDF 会明确报错，本版本不含解密。
 - **压缩**：只重编码无透明通道的 8bit DeviceRGB/DeviceGray JPEG；带 SMask、JPX、CMYK、16bit 的图片会跳过并在结果里提示。
 - **书签/表单/注释**：合并与组织页面不迁移大纲（书签），AcroForm 字段与注释不保证保留。
-- **Office/OFD 转换是"可编辑近似版"**：纯 JS 实现，不依赖本机 LibreOffice。导出保留标题层级、列表、表格列位与图片位置，但母版、样式继承、SmartArt、批注、单元格公式不还原；导入按段落重排，不复刻 Word 的精确分页。
-- **老二进制格式不支持**：`.doc/.xls/.ppt` 不是 zip 包，会直接报「请先另存为 docx/xlsx/pptx」。
+- **Office 转换**：Word、Excel、PowerPoint 的 PDF 导出与 `.doc/.xls/.ppt` 旧格式互转通过本机 ONLYOFFICE Document Builder 处理；格式互转需将与安装包平台匹配的引擎放入应用资源。转换文件仅写入本机临时目录，完成后清理；运行时不访问网络。PDF 转 Office 仍以纯 JS 重建可编辑内容，布局精度有限。
+- **OFD 转换**：当前为本机解析/重建，复杂路径与未嵌入字体仍有边界。
 - **PDF 转 OFD 的文字模式**：字体小于 3 MB 时整份嵌入，否则只登记字体名（打开的机器需装有该字体）；OFD 矢量路径（PathObject）暂不导出。
 - **PDF 转图片类导出的图片**：MuPDF 的 structured text 在本 WASM 构建里不回报图片块，图片位置由内容流的 `cm ... Do` 反算，再从页面光栅中裁切；异常变换（旋转/斜切）下取包围盒。
 - **未实现**：OCR、电子签名、文档对比、添加密码——这些依赖外部二进制或额外的安全处理实现，尚未纳入。
@@ -161,6 +161,6 @@ pnpm tauri dev         # 桌面版：Rust 启动即拉起 Node sidecar
 
 作者 / Author：**pohoc** · 邮箱：**po.hoc4@gmail.com**
 
-本项目版权声明：`© 2026 pohoc. All rights reserved.`（已写入 `tauri.conf.json` 的 `bundle.copyright`、`Cargo.toml` 的 `authors` 与各 `package.json` 的 `author`，安装包的发布者信息同样取自这里）。
+PoTools 自有源代码采用 [MIT 许可证](LICENSE)。第三方组件和模型保留各自许可证；根目录的 MIT 许可不会改变它们的许可条件。发行版所含组件及许可边界见 [第三方许可声明](apps/desktop/public/licenses/THIRD_PARTY_NOTICES.md)。
 
-代码目前**尚未选择开源许可证**，默认保留所有权利。若要开源，需要先处理依赖授权：`pdf-lib`、`sharp`、`React`、`Tauri` 均为 MIT/Apache-2.0，可自由组合；但 **MuPDF 是 AGPL-3.0**（本工具用它做页面光栅化与损坏修复），一旦对外分发安装包就会触发 AGPL 的源码提供义务。可选路径：① 按 AGPL 开源；② 向 Artifex 购买商业授权；③ 把 MuPDF 换成 `pdfium`（Apache-2.0）或仅保留 pdf-lib 的降级渲染。确定方向后我再补 `LICENSE` 文件。
+**许可说明：**PoTools 自有代码使用 MIT；MuPDF.js 与可选的 ONLYOFFICE Document Builder 提供 AGPL 开源发行路径，也可按适用商业授权发行。包含这些组件的安装包可以按相应 AGPL 条款合规开源发布，但不能将整个安装包描述为“仅 MIT”。桌面发行前请完成 [许可发布检查](docs/LICENSING.md)。
