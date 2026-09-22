@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Button, Card, Checkbox, Icon, Input as HeroInput, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@potools/ui';
 import type { InvoiceArchiveResult, InvoiceScanEntry, InvoiceScanResult, InvoiceUndoResult } from 'core';
-import { AlertTriangle, FileText, FolderOpen, ScanText } from 'lucide-react';
-import { Button } from '../components/ui/button.tsx';
-import { Card } from '../components/ui/card.tsx';
 import { useI18n } from '../i18n/index.tsx';
 import { isTauri, nativePickDirectory } from '../lib/tauri.ts';
 import { useEngine } from '../stores/engine.ts';
@@ -127,23 +125,21 @@ export function InvoiceOrganizerPage() {
 
       {!isTauri() ? (
         <Card className="flex items-start gap-3 border-warn/40 bg-warn/5 p-4 text-[12px] leading-5 text-ink">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warn" />{t('invoice.desktopOnly')}
+          <Icon name="warning" size={16} className="mt-0.5 shrink-0 text-warn" />{t('invoice.desktopOnly')}
         </Card>
       ) : null}
       <Card className="flex items-start gap-3 border-warn/40 bg-warn/5 p-4 text-[12px] leading-5 text-ink">
-        <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warn" />{t('invoice.ocrNotice')}
+        <Icon name="warning" size={16} className="mt-0.5 shrink-0 text-warn" />{t('invoice.ocrNotice')}
       </Card>
 
       <Card className="grid gap-4 p-4 lg:grid-cols-2">
         <DirectoryField label={t('invoice.source')} value={sourceDirectory} placeholder={t('invoice.chooseSource')} onPick={() => void pickDirectory('source')} disabled={!isTauri() || busy !== null} />
         <DirectoryField label={t('invoice.target')} value={targetDirectory} placeholder={t('invoice.chooseTarget')} onPick={() => void pickDirectory('target')} disabled={!isTauri() || busy !== null} />
-        <label className="flex items-center gap-2 text-[12px] text-muted lg:col-span-2">
-          <input type="checkbox" checked={recursive} onChange={(event) => setRecursive(event.target.checked)} />{t('invoice.recursive')}
-        </label>
+        <label className="inline-flex items-center gap-2 text-[12px] lg:col-span-2"><Checkbox checked={recursive} onChange={(event) => setRecursive(event.target.checked)} />{t('invoice.recursive')}</label>
         <div className="flex items-center justify-between gap-3 border-t border-line pt-3 lg:col-span-2">
           <p className="text-[11px] leading-5 text-faint">{t('invoice.scanLimits')}</p>
           <Button disabled={!isTauri() || !sourceDirectory || busy !== null} onClick={() => void runScan()}>
-            <ScanText size={14} />{busy === 'scan' ? t('invoice.scanning') : t('invoice.scan')}
+            <Icon name="scan" size={14} />{busy === 'scan' ? t('invoice.scanning') : t('invoice.scan')}
           </Button>
         </div>
       </Card>
@@ -154,10 +150,13 @@ export function InvoiceOrganizerPage() {
             <div className="text-[12px] text-muted">{t('invoice.scanCount').replace('{count}', String(scan.files.length))}{scan.skipped.length ? ` · ${t('invoice.skippedCount').replace('{count}', String(scan.skipped.length))}` : ''}</div>
             <label className="flex items-center gap-2 text-[11.5px] text-muted">
               <span>{t('invoice.conflict')}</span>
-              <select className="h-8 rounded-control border border-line bg-surface px-2 text-ink" value={conflict} onChange={(event) => setConflict(event.target.value as 'rename' | 'skip')}>
-                <option value="rename">{t('invoice.conflictRename')}</option>
-                <option value="skip">{t('invoice.conflictSkip')}</option>
-              </select>
+              <Select value={conflict} onValueChange={(value) => setConflict(value as 'rename' | 'skip')}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rename">{t('invoice.conflictRename')}</SelectItem>
+                  <SelectItem value="skip">{t('invoice.conflictSkip')}</SelectItem>
+                </SelectContent>
+              </Select>
             </label>
           </Card>
           <Card className="grid gap-3 p-4 md:grid-cols-2">
@@ -182,7 +181,7 @@ export function InvoiceOrganizerPage() {
           <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-line bg-canvas/95 py-3 backdrop-blur">
             <p className="text-[11px] text-muted">{t('invoice.confirmHint').replace('{count}', String(selectedCount))}</p>
             <Button disabled={!isTauri() || !targetDirectory || !selectedCount || busy !== null} onClick={() => void archive()}>
-              <FileText size={14} />{busy === 'archive' ? t('invoice.archiving') : t('invoice.archive')}
+              <Icon name="file-text" size={14} />{busy === 'archive' ? t('invoice.archiving') : t('invoice.archive')}
             </Button>
           </div>
         </>
@@ -211,14 +210,14 @@ function DirectoryField({ label, value, placeholder, onPick, disabled }: { label
       <p className="mb-1.5 text-[11px] font-medium text-muted">{label}</p>
       <div className="flex min-w-0 items-center gap-2">
         <span className="min-w-0 flex-1 truncate rounded-control border border-line bg-canvas px-3 py-2 text-[11.5px] text-ink" title={value}>{value || placeholder}</span>
-        <Button variant="outline" size="sm" disabled={disabled} onClick={onPick}><FolderOpen size={14} />{label}</Button>
+        <Button variant="outline" size="sm" disabled={disabled} onClick={onPick}><Icon name="folder" size={14} />{label}</Button>
       </div>
     </div>
   );
 }
 
 function TemplateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="flex min-w-0 flex-col gap-1 text-[11px] text-muted"><span>{label}</span><input className="h-8 rounded-control border border-line bg-canvas px-2 text-[11.5px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/35" value={value} onChange={(event) => onChange(event.target.value)} /></label>;
+  return <HeroInput type="text" aria-label={label} className="min-w-0" value={value as unknown as number} onChange={(event) => onChange(String(event.target.value))} />;
 }
 
 function InvoiceCard({ entry, targetPath, checked, onCheck, onFieldChange }: { entry: InvoiceScanEntry; targetPath: string; checked: boolean; onCheck: (checked: boolean) => void; onFieldChange: (field: EditableField, value: string) => void }) {
@@ -226,7 +225,7 @@ function InvoiceCard({ entry, targetPath, checked, onCheck, onFieldChange }: { e
   return (
     <Card className="p-4">
       <div className="flex min-w-0 items-start gap-3">
-        <input className="mt-1" type="checkbox" checked={checked} onChange={(event) => onCheck(event.target.checked)} aria-label={t('invoice.include')} />
+        <Checkbox checked={checked} onChange={(event) => onCheck(event.target.checked)} aria-label={t('invoice.include')} className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <strong className="max-w-full truncate text-[12px] text-ink" title={entry.relativePath}>{entry.relativePath}</strong>
@@ -235,7 +234,7 @@ function InvoiceCard({ entry, targetPath, checked, onCheck, onFieldChange }: { e
           </div>
           {entry.error ? <p className="mt-1 text-[10.5px] text-bad">{entry.error}</p> : null}
           <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {FIELD_KEYS.map(([field, labelKey]) => <label key={field} className="flex min-w-0 flex-col gap-1 text-[10.5px] text-faint"><span>{t(labelKey)}</span><input className="h-8 min-w-0 rounded-control border border-line bg-canvas px-2 text-[11.5px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/35" value={entry.fields[field]} onChange={(event) => onFieldChange(field, event.target.value)} /></label>)}
+            {FIELD_KEYS.map(([field, labelKey]) => <HeroInput key={field} type="text" aria-label={t(labelKey)} className="min-w-0" value={entry.fields[field] as unknown as number} onChange={(event) => onFieldChange(field, String(event.target.value))} />)}
           </div>
           <p className="mt-3 break-all rounded bg-canvas px-2 py-1.5 text-[10px] leading-4 text-muted">{targetPath}</p>
           {entry.extractedText ? <details className="mt-2"><summary className="cursor-pointer text-[10.5px] text-accent">{t('invoice.nativeText')}</summary><pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-canvas p-2 text-[10px] leading-4 text-muted">{entry.extractedText.slice(0, 6000)}</pre></details> : null}

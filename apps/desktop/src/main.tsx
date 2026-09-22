@@ -1,6 +1,7 @@
 import React from 'react';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Button } from '@potools/ui';
 import { HashRouter } from 'react-router-dom';
 import { App } from './App.tsx';
 import { I18nProvider } from './i18n/index.tsx';
@@ -18,7 +19,7 @@ class ErrorReportBoundary extends Component<{ children: ReactNode }, { error: Er
   render() {
     if (!this.state.error) return this.props.children;
     const report = safeErrorReport(this.state.error);
-    return <main className="mx-auto mt-12 max-w-2xl rounded-card border border-line bg-surface p-6 text-ink"><h1 className="text-lg font-semibold">应用遇到问题</h1><p className="mt-2 text-sm text-muted">错误报告已去除本机路径。报告不包含所选文件或图片内容。</p><pre className="mt-4 max-h-64 overflow-auto whitespace-pre-wrap rounded-control bg-canvas p-3 text-xs">{report}</pre><button className="mt-4 rounded-control bg-accent px-3 py-2 text-sm text-accent-ink" onClick={() => void navigator.clipboard.writeText(report).then(() => this.setState({ copied: true }))}>{this.state.copied ? '已复制' : '复制错误报告'}</button><button className="ml-2 rounded-control border border-line px-3 py-2 text-sm" onClick={() => this.setState({ error: null, copied: false })}>重新显示应用</button></main>;
+    return <main className="mx-auto mt-12 max-w-2xl rounded-card border border-line bg-surface p-6 text-ink"><h1 className="text-lg font-semibold">应用遇到问题</h1><p className="mt-2 text-sm text-muted">错误报告已去除本机路径。报告不包含所选文件或图片内容。</p><pre className="mt-4 max-h-64 overflow-auto whitespace-pre-wrap rounded-control bg-canvas p-3 text-xs">{report}</pre><div className="mt-4 flex gap-2"><Button variant="primary" size="sm" onClick={() => void navigator.clipboard.writeText(report).then(() => this.setState({ copied: true }))}>{this.state.copied ? '已复制' : '复制错误报告'}</Button><Button variant="quiet" size="sm" onClick={() => this.setState({ error: null, copied: false })}>重新显示应用</Button></div></main>;
   }
 }
 
@@ -31,6 +32,9 @@ function safeErrorReport(error: Error) {
 }
 
 const initial = bootstrapSettings();
+// Pre-mount mirror of the stored theme so the first paint already has the
+// right class; ThemeProvider (controlled by the settings store) takes over
+// once React mounts.
 document.documentElement.classList.toggle(
   'dark',
   initial.theme === 'dark' ||

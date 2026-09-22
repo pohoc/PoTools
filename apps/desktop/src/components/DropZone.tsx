@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
-import { Icon } from './Icon.tsx';
-import { Button } from './ui/button.tsx';
+import { Icon } from '@potools/ui';
+import { Button } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { filesFromDataTransfer, pickFiles, type PickedFile } from '../lib/files.ts';
 import { isTauri, ACCEPT_EXTENSIONS } from '../lib/tauri.ts';

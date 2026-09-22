@@ -29,8 +29,20 @@ export interface Transport {
 let counter = 0;
 const nextId = (): string => `r${Date.now().toString(36)}${(counter += 1)}`;
 
-/** Injected by vite for browser development; absent in the Tauri build. */
-declare const __ENGINE_DIRECT__: string | undefined;
+/**
+ * Vite's dev proxy buffers `text/event-stream`, so browser dev reads the event
+ * stream straight from the engine origin. The dev signal is vite's injected
+ * `import.meta.hot` rather than a build-time `define`, which the running dev
+ * server may not apply to this module.
+ */
+function devEngineOrigin(): string | null {
+  if (typeof location === 'undefined' || !import.meta.hot) return null;
+  const configured = import.meta.env?.VITE_ENGINE_PORT;
+  const port = typeof configured === 'string' && configured ? configured : '8787';
+  if (location.port === port) return null;
+  const protocol = location.protocol === 'https:' ? 'https:' : 'http:';
+  return `${protocol}//${location.hostname || '127.0.0.1'}:${port}`;
+}
 
 abstract class BaseTransport implements Transport {
   abstract readonly mode: 'web' | 'tauri';
@@ -151,7 +163,8 @@ class HttpTransport extends BaseTransport {
    * straight from the engine origin when the dev server injected one.
    */
   private eventsUrl(): string {
-    if (typeof __ENGINE_DIRECT__ === 'string' && __ENGINE_DIRECT__) return `${__ENGINE_DIRECT__}/events`;
+    const direct = devEngineOrigin();
+    if (direct) return `${direct}/events`;
     return `${this.base}/events`;
   }
 

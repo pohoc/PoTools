@@ -1,8 +1,6 @@
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { Maximize2, Minimize2, Minus, X } from 'lucide-react';
 import { useI18n } from '../i18n/index.tsx';
-import { Button } from './ui/button.tsx';
-import { cn } from '../lib/utils.ts';
+import { Button, Icon, cn } from '@potools/ui';
 import { isTauri } from '../lib/tauri.ts';
 import { closeWindow, isMac, minimizeWindow, startWindowDrag, toggleMaximize, usesCustomWindowButtons, watchMaximized } from '../lib/window.ts';
 
@@ -66,13 +64,13 @@ export function TitleBar({
       {customButtons ? (
         <div className="-mr-2 ml-1 flex h-full shrink-0 items-stretch border-l border-line/70 pl-1">
           <CaptionButton label={t('window.minimize')} onClick={() => void minimizeWindow()}>
-            <Minus size={13} />
+            <Icon name="minus" size={13} />
           </CaptionButton>
           <CaptionButton label={maximized ? t('window.restore') : t('window.maximize')} onClick={() => void toggleMaximize()}>
-            {maximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            {maximized ? <Icon name="minimize" size={12} /> : <Icon name="maximize2" size={12} />}
           </CaptionButton>
           <CaptionButton label={t('window.close')} danger onClick={() => void closeWindow()}>
-            <X size={14} />
+            <Icon name="close" size={14} />
           </CaptionButton>
         </div>
       ) : null}
@@ -102,7 +100,7 @@ function CaptionButton({
       className={cn(
         'h-full w-[46px] rounded-none border-0 bg-transparent p-0 text-muted active:translate-y-0 hover:bg-raised hover:text-ink',
         'focus-visible:ring-2 focus-visible:ring-accent/35',
-        danger && 'hover:bg-[#c42b1c] hover:text-white',
+        danger && 'hover:bg-bad hover:text-white',
       )}
     >
       {children}

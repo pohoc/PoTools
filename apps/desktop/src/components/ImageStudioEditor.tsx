@@ -3,10 +3,7 @@ import type { FieldValue, ToolId } from 'core';
 import { useI18n } from '../i18n/index.tsx';
 import { toFileRef, type PickedFile } from '../lib/files.ts';
 import { useEngine } from '../stores/engine.ts';
-import { Button as ShadcnButton } from './ui/button.tsx';
-import { Button } from './ui.tsx';
-import { Card } from './ui/card.tsx';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog.tsx';
+import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@potools/ui';
 
 type Preview = { url: string; width: number; height: number };
 
@@ -202,7 +199,7 @@ export function ImageStudioEditor({
   return (
     <section className="flex flex-col gap-3" aria-label={t('imageStudio.preview')}>
       <div className="flex flex-wrap items-center gap-2">
-        {tool !== 'image-watermark-clean' ? <Button icon={busy ? 'spinner' : 'scan'} busy={busy} disabled={!source || busy} onClick={() => void prepare()}>{busyLabel}</Button> : <ShadcnButton disabled={!source || busy} onClick={() => void prepare()}>{t('imageStudio.loadImage')}</ShadcnButton>}
+        {tool !== 'image-watermark-clean' ? <Button icon={busy ? 'spinner' : 'scan'} busy={busy} disabled={!source || busy} onClick={() => void prepare()}>{busyLabel}</Button> : <Button disabled={!source || busy} onClick={() => void prepare()}>{t('imageStudio.loadImage')}</Button>}
         <span className="min-w-0 truncate text-[11.5px] text-faint" title={sourceLabel}>{sourceLabel}</span>
       </div>
       <Card className="grid min-w-0 gap-3 p-3 sm:grid-cols-2">

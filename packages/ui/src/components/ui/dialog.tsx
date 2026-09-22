@@ -1,13 +1,46 @@
 import { Modal as HeroModal } from '@heroui/react';
-import type { ComponentProps, ReactNode } from 'react';
+import { cloneElement, isValidElement, type ComponentProps, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../utils.ts';
 
 export function Dialog({ open, onOpenChange, children, ...props }: { open?: boolean; onOpenChange?: (open: boolean) => void; children: ReactNode } & Record<string, unknown>) {
   return <HeroModal.Root isOpen={open} onOpenChange={onOpenChange} {...props}>{children}</HeroModal.Root>;
 }
-export function DialogTrigger({ asChild: _asChild, children, ...props }: ComponentProps<typeof HeroModal.Trigger> & { asChild?: boolean }) { return <HeroModal.Trigger {...props}>{children}</HeroModal.Trigger>; }
-export function DialogClose({ asChild: _asChild, children, ...props }: ComponentProps<typeof HeroModal.CloseTrigger> & { asChild?: boolean }) { return <HeroModal.CloseTrigger {...props}>{children}</HeroModal.CloseTrigger>; }
+
+/** Projects the trigger onto the child element instead of wrapping it in an extra node. */
+export function DialogTrigger({ asChild = false, children, ...props }: React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }) {
+  if (asChild && isValidElement(children)) {
+    return (
+      <HeroModal.Trigger
+        {...props}
+        render={(triggerProps) =>
+          cloneElement(children, {
+            ...triggerProps,
+            className: cn(triggerProps.className, (children.props as { className?: string }).className),
+          } as never)
+        }
+      />
+    );
+  }
+  return <HeroModal.Trigger {...props}>{children}</HeroModal.Trigger>;
+}
+
+export function DialogClose({ asChild = false, children, ...props }: Omit<ComponentProps<typeof HeroModal.CloseTrigger>, 'render'> & { asChild?: boolean }) {
+  if (asChild && isValidElement(children)) {
+    return (
+      <HeroModal.CloseTrigger
+        {...props}
+        render={(closeProps) =>
+          cloneElement(children, {
+            ...closeProps,
+            className: cn(closeProps.className, (children.props as { className?: string }).className),
+          } as never)
+        }
+      />
+    );
+  }
+  return <HeroModal.CloseTrigger {...props}>{children}</HeroModal.CloseTrigger>;
+}
 export const DialogTitle = HeroModal.Heading;
 export function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) { return <p className={className} {...props} />; }
 

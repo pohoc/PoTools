@@ -1,7 +1,7 @@
+import { Icon } from '@potools/ui';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PageThumb, ProbedPdf } from 'core';
-import { Icon } from '../components/Icon.tsx';
-import { Button, EmptyState, IconButton } from '../components/ui.tsx';
+import { Button, EmptyState, IconButton } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { usePageThumbs } from '../lib/usePageThumbs.ts';
 import type { PickedFile } from '../lib/files.ts';

@@ -16,22 +16,36 @@ function resolveMode(mode: ThemeMode): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
+/**
+ * Owns the `dark` class and `color-scheme` on `<html>`.
+ *
+ * Uncontrolled by default (persists to localStorage). Pass `mode` to make it
+ * follow an external store — e.g. an app settings store — in which case
+ * persistence is the host's responsibility and `onModeChange` reports intent.
+ */
 export function ThemeProvider({
   children,
+  mode: modeProp,
+  onModeChange,
   defaultMode = 'system',
   storageKey = 'potools.ui.theme',
 }: {
   children: ReactNode;
+  mode?: ThemeMode;
+  onModeChange?: (mode: ThemeMode) => void;
   defaultMode?: ThemeMode;
   storageKey?: string;
 }) {
-  const [mode, setModeState] = useState<ThemeMode>(() => {
+  const isControlled = modeProp !== undefined;
+  const [internalMode, setModeState] = useState<ThemeMode>(() => {
+    if (isControlled) return modeProp;
     try {
       return (localStorage.getItem(storageKey) as ThemeMode | null) ?? defaultMode;
     } catch {
       return defaultMode;
     }
   });
+  const mode = isControlled ? modeProp : internalMode;
   const [resolvedMode, setResolvedMode] = useState(() => resolveMode(mode));
 
   useEffect(() => {
@@ -54,10 +68,13 @@ export function ThemeProvider({
     mode,
     resolvedMode,
     setMode: (next) => {
-      setModeState(next);
-      try { localStorage.setItem(storageKey, next); } catch { /* storage is optional */ }
+      if (!isControlled) {
+        setModeState(next);
+        try { localStorage.setItem(storageKey, next); } catch { /* storage is optional */ }
+      }
+      onModeChange?.(next);
     },
-  }), [mode, resolvedMode, storageKey]);
+  }), [mode, resolvedMode, storageKey, isControlled, onModeChange]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

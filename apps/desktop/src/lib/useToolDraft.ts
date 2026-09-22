@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { FieldValue, ProbedPdf, ToolDescriptor } from 'core';
+import type { FieldValue, ProbedPdf, TextRunResult, ToolDescriptor } from 'core';
 import { defaultOptions } from 'core';
 import { useEngine, rpcErrorMessage } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { releasePickedFileBytes, toFileRef, type PickedFile } from '../lib/files.ts';
 import { useSettings } from '../lib/settings.ts';
+
+function initialOptions(descriptor: ToolDescriptor): Record<string, FieldValue> {
+  const options = defaultOptions(descriptor.id);
+  let localZone: string | undefined;
+  try {
+    localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    localZone = undefined;
+  }
+  if (localZone) {
+    for (const field of descriptor.fields) {
+      if (field.type === 'timezone') options[field.key] = localZone;
+    }
+  }
+  return options;
+}
 
 export interface ToolDraft {
   files: PickedFile[];
@@ -21,6 +37,8 @@ export interface ToolDraft {
   runPrepared: (file: File, overrides?: Record<string, FieldValue>) => Promise<void>;
   running: boolean;
   error: string | null;
+  errorCode: string | null;
+  textResult: TextRunResult | null;
   jobId: string | null;
   probing: boolean;
 }
@@ -29,19 +47,26 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
   const call = useEngine((state) => state.call);
   const submit = useJobs((state) => state.submit);
   const namePattern = useSettings((state) => state.namePattern);
+  const locale = useSettings((state) => state.locale);
+  const fontPath = useSettings((state) => state.fontPath);
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [probes, setProbes] = useState<Record<string, ProbedPdf>>({});
-  const [options, setOptions] = useState<Record<string, FieldValue>>(() => defaultOptions(descriptor.id));
+  const [options, setOptions] = useState<Record<string, FieldValue>>(() => initialOptions(descriptor));
   const [running, setRunning] = useState(false);
   const [probing, setProbing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [textResult, setTextResult] = useState<TextRunResult | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
+  const textTool = descriptor.layout === 'text';
 
   useEffect(() => {
     setFiles([]);
     setProbes({});
-    setOptions(defaultOptions(descriptor.id));
+    setOptions(initialOptions(descriptor));
     setError(null);
+    setErrorCode(null);
+    setTextResult(null);
     setJobId(null);
   }, [descriptor.id]);
 
@@ -82,9 +107,11 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
 
   const submitFiles = useCallback(
     async (inputFiles: PickedFile[], overrides?: Record<string, FieldValue>) => {
-      if (!inputFiles.length) return;
+      const fileless = descriptor.requiresInput === false;
+      if (!inputFiles.length && !fileless) return;
       setRunning(true);
       setError(null);
+      setErrorCode(null);
       try {
         const refs = await Promise.all(inputFiles.map(toFileRef));
         for (const file of inputFiles) if (!file.path) releasePickedFileBytes(file);
@@ -99,14 +126,42 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
       } catch (issue) {
         const info = rpcErrorMessage(issue);
         setError(info.hintKey ?? info.message);
+        setErrorCode(info.code);
       } finally {
         setRunning(false);
       }
     },
-    [descriptor.id, descriptor.nameKey, namePattern, options, submit],
+    [descriptor.id, descriptor.nameKey, descriptor.requiresInput, namePattern, options, submit],
   );
 
-  const run = useCallback((overrides?: Record<string, FieldValue>) => submitFiles(files, overrides), [files, submitFiles]);
+  const runInMemory = useCallback(
+    async (overrides?: Record<string, FieldValue>) => {
+      setRunning(true);
+      setError(null);
+      setErrorCode(null);
+      setTextResult(null);
+      try {
+        const result = await call<TextRunResult>('tool.run', {
+          tool: descriptor.id,
+          options: { ...options, ...overrides },
+          globals: { locale, fontPath },
+        });
+        setTextResult(result);
+      } catch (issue) {
+        const info = rpcErrorMessage(issue);
+        setError(info.hintKey ?? info.message);
+        setErrorCode(info.code);
+      } finally {
+        setRunning(false);
+      }
+    },
+    [call, descriptor.id, fontPath, locale, options],
+  );
+
+  const run = useCallback(
+    (overrides?: Record<string, FieldValue>) => (textTool ? runInMemory(overrides) : submitFiles(files, overrides)),
+    [files, runInMemory, submitFiles, textTool],
+  );
   const runPrepared = useCallback((file: File, overrides?: Record<string, FieldValue>) => submitFiles([{
     id: `prepared-${Date.now().toString(36)}`,
     name: file.name,
@@ -121,7 +176,7 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
     options,
     setOptions,
     setOption: (key, value) => setOptions((prev) => ({ ...prev, [key]: value })),
-    resetOptions: () => setOptions(defaultOptions(descriptor.id)),
+    resetOptions: () => setOptions(initialOptions(descriptor)),
     addFiles,
     removeFile: (id) => {
       const removed = files.find((file) => file.id === id);
@@ -151,6 +206,8 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
     runPrepared,
     running,
     error,
+    errorCode,
+    textResult,
     jobId,
     probing,
   };

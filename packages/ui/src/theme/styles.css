@@ -15,46 +15,175 @@
   --color-accent-soft: rgb(var(--ui-accent-soft) / <alpha-value>);
   --color-accent-ink: rgb(var(--ui-accent-ink) / <alpha-value>);
   --color-ok: rgb(var(--ui-ok) / <alpha-value>);
+  --color-ok-ink: rgb(var(--ui-ok-ink) / <alpha-value>);
   --color-warn: rgb(var(--ui-warn) / <alpha-value>);
+  --color-warn-ink: rgb(var(--ui-warn-ink) / <alpha-value>);
   --color-bad: rgb(var(--ui-bad) / <alpha-value>);
+  --color-bad-ink: rgb(var(--ui-bad-ink) / <alpha-value>);
   --radius-card: var(--ui-radius-card);
   --radius-control: var(--ui-radius-control);
   --radius-overlay: var(--ui-radius-overlay);
   --radius-xs: var(--ui-radius-xs);
   --radius-sm: var(--ui-radius-sm);
   --radius-pill: var(--ui-radius-pill);
+  --radius-md: calc(var(--ui-radius-control) - 2px);
+  --radius-lg: var(--ui-radius-control);
   --shadow-card: var(--ui-shadow-card);
+  --shadow-control: var(--ui-shadow-control);
   --shadow-pop: var(--ui-shadow-overlay);
+  --spacing-1: var(--ui-space-1);
+  --spacing-2: var(--ui-space-2);
+  --spacing-3: var(--ui-space-3);
+  --spacing-4: var(--ui-space-4);
+  --spacing-5: var(--ui-space-5);
+  --spacing-6: var(--ui-space-6);
+  --spacing-8: var(--ui-space-8);
+  --spacing-10: var(--ui-space-10);
+  --text-label: var(--ui-font-label);
+  --text-helper: var(--ui-font-helper);
+  --text-body: var(--ui-font-body);
+  --text-caption: var(--ui-font-caption);
+  --text-micro: var(--ui-font-micro);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --animate-fade-up: fade-up 160ms ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
+/* Unlayered rules below win over HeroUI's @layer components styles, so the
+   package owns the visuals without specificity fights. */
+
+.ui-button { display:inline-flex; min-width:0; align-items:center; justify-content:center; gap:var(--ui-space-2); border-radius:var(--ui-radius-control); font-size:var(--ui-font-body); font-weight:550; line-height:var(--ui-line-height-control); outline:none; transition:background-color var(--ui-motion-fast) ease,border-color var(--ui-motion-fast) ease,color var(--ui-motion-fast) ease,box-shadow var(--ui-motion-fast) ease; }
+.ui-button-size-sm { min-height:var(--ui-control-sm); padding:0 var(--ui-space-3); font-size:var(--ui-font-caption); }
+.ui-button-size-md,.ui-button-size-default { min-height:var(--ui-control-md); padding:0 var(--ui-space-4); }
+.ui-button-size-lg { min-height:var(--ui-control-lg); padding:0 var(--ui-space-5); }
+.ui-button-size-icon,.ui-button-size-icon-sm { min-height:var(--ui-control-sm); min-width:var(--ui-control-sm); padding:0; }
+.ui-button:focus-visible { box-shadow:var(--ui-focus-ring); }
+.ui-button:disabled { cursor:not-allowed; opacity:var(--ui-disabled-opacity); }
+.ui-button-primary,.ui-button-default { border:var(--ui-border-width) solid transparent; background:rgb(var(--ui-accent)); color:rgb(var(--ui-accent-ink)); }
+.ui-button-primary:hover,.ui-button-default:hover { background:rgb(var(--ui-accent) / .88); }
+.ui-button-secondary { border:var(--ui-border-width) solid rgb(var(--ui-line)); background:rgb(var(--ui-raised)); color:rgb(var(--ui-ink)); }
+.ui-button-secondary:hover { background:rgb(var(--ui-surface)); }
+.ui-button-outline { border:var(--ui-border-width) solid rgb(var(--ui-line)); background:rgb(var(--ui-surface)); color:rgb(var(--ui-ink)); }
+.ui-button-outline:hover { background:rgb(var(--ui-raised)); }
+.ui-button-ghost,.ui-button-quiet,.ui-button-link { border:var(--ui-border-width) solid transparent; background:transparent; color:rgb(var(--ui-muted)); }
+.ui-button-ghost:hover,.ui-button-quiet:hover,.ui-button-link:hover { background:rgb(var(--ui-raised)); color:rgb(var(--ui-ink)); }
+.ui-button-danger { border:var(--ui-border-width) solid transparent; background:rgb(var(--ui-bad)); color:rgb(var(--ui-bad-ink)); }
+.ui-button-danger:hover { filter:brightness(.92); }
+
+/* Token-owned segmented control used by theme and language settings. */
+.ui-segmented {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: var(--ui-space-1);
+  overflow-x: auto;
+  border: var(--ui-border-width) solid rgb(var(--ui-line) / 0.9);
+  border-radius: var(--ui-radius-control);
+  background: rgb(var(--ui-raised) / 0.72);
+  padding: 3px;
+}
+.ui-segmented-md { min-height: 34px; }
+.ui-segmented-item {
+  flex-shrink: 0;
+  min-width: 68px;
+  border: var(--ui-border-width) solid transparent;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: rgb(var(--ui-muted));
+  padding: 4px var(--ui-space-3);
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1.35;
+  outline: none;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.ui-segmented-item:hover { background: rgb(var(--ui-surface) / 0.64); color: rgb(var(--ui-ink)); }
+.ui-segmented-item:focus-visible { box-shadow: var(--ui-focus-ring); }
+.ui-segmented-item-selected {
+  border-color: rgb(var(--ui-line));
+  background: rgb(var(--ui-surface));
+  color: rgb(var(--ui-ink));
+  font-weight: 600;
+  box-shadow: var(--ui-shadow-control);
+}
+.ui-segmented-item-sm { min-width: 0; padding: 3px var(--ui-space-2); font-size: 12px; }
+
+/* Shared field chrome: text inputs, selects, date controls and textareas use
+   the same surface/line contract. Choice controls use the same base surface. */
+.ui-field-control {
+  box-sizing: border-box;
+  min-height: var(--ui-control-md);
+  border: var(--ui-border-width) solid rgb(var(--ui-line));
+  border-radius: var(--ui-radius-control);
+  background: rgb(var(--ui-surface));
+  color: rgb(var(--ui-ink));
+  line-height: var(--ui-line-height-control);
+}
+.ui-control-sm { min-height: var(--ui-control-sm); }
+.ui-control-md { min-height: var(--ui-control-md); }
+.ui-control-lg { min-height: var(--ui-control-lg); }
+.ui-textarea-control { min-height: var(--ui-textarea-min-height); line-height: 1.45; }
+.ui-field-control:hover { background: rgb(var(--ui-surface)); }
+.ui-field-control:focus,
+.ui-field-control:focus-visible {
+  border-color: rgb(var(--ui-accent));
+  box-shadow: var(--ui-focus-ring);
+  outline: none;
+}
+.ui-field-control:disabled { cursor: not-allowed; opacity: 0.5; }
+.ui-choice-control {
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: var(--ui-border-width);
+  border-color: rgb(var(--ui-line));
+  background: rgb(var(--ui-surface));
+  accent-color: rgb(var(--ui-accent));
+}
+.ui-choice-control:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+.ui-choice-control:checked { border-color: rgb(var(--ui-accent)); }
+
+/* Map HeroUI's theme variables onto the package tokens. */
 :root {
-  /* Shared semantic palette: components consume roles, never page-specific colors. */
-  --background: oklch(0.97 0.004 286);
-  --foreground: oklch(0.18 0.012 260);
-  --surface: oklch(1 0 0);
+  --background: rgb(var(--ui-canvas));
+  --foreground: rgb(var(--ui-ink));
+  --surface: rgb(var(--ui-surface));
   --surface-foreground: var(--foreground);
-  --surface-secondary: oklch(0.95 0.006 286);
+  --surface-secondary: rgb(var(--ui-raised));
   --surface-secondary-foreground: var(--foreground);
-  --surface-tertiary: oklch(0.92 0.008 286);
-  --surface-tertiary-foreground: oklch(0.32 0.012 260);
-  --muted: oklch(0.48 0.018 260);
-  --border: oklch(0.88 0.008 286);
-  --separator: oklch(0.91 0.006 286);
+  --surface-tertiary: rgb(var(--ui-line));
+  --surface-tertiary-foreground: rgb(var(--ui-muted));
+  --muted: rgb(var(--ui-muted));
+  --border: rgb(var(--ui-line));
+  --separator: rgb(var(--ui-line));
   --field-border: var(--border);
   --link: var(--foreground);
-  --success: oklch(0.54 0.16 150);
-  --success-foreground: oklch(0.98 0 0);
-  --warning: oklch(0.62 0.14 75);
-  --warning-foreground: oklch(0.18 0.012 260);
-  --danger: oklch(0.55 0.19 25);
-  --danger-foreground: oklch(0.98 0 0);
+  --success: rgb(var(--ui-ok));
+  --success-foreground: rgb(var(--ui-ok-ink));
+  --warning: rgb(var(--ui-warn));
+  --warning-foreground: rgb(var(--ui-warn-ink));
+  --danger: rgb(var(--ui-bad));
+  --danger-foreground: rgb(var(--ui-bad-ink));
   /* HeroUI interaction tokens stay monochrome; status colors remain semantic. */
-  --accent: oklch(0.22 0 0);
-  --accent-foreground: oklch(1 0 0);
-  --accent-hover: oklch(0.30 0 0);
-  --accent-soft: oklch(0.96 0 0);
-  --accent-soft-foreground: oklch(0.22 0 0);
-  --accent-soft-hover: oklch(0.92 0 0);
+  --accent: rgb(var(--ui-accent));
+  --accent-foreground: rgb(var(--ui-accent-ink));
+  --accent-hover: rgb(var(--ui-accent) / 0.88);
+  --accent-soft: rgb(var(--ui-accent-soft));
+  --accent-soft-foreground: rgb(var(--ui-accent));
+  --accent-soft-hover: rgb(var(--ui-raised));
   --focus: var(--accent);
   /* Brand emphasis is intentionally monochrome; semantic colors remain separate. */
   --radius: var(--ui-radius-control);
@@ -62,31 +191,31 @@
 }
 
 .dark {
-  --background: oklch(0.14 0.012 260);
-  --foreground: oklch(0.94 0.006 286);
-  --surface: oklch(0.19 0.012 260);
+  --background: rgb(var(--ui-canvas));
+  --foreground: rgb(var(--ui-ink));
+  --surface: rgb(var(--ui-surface));
   --surface-foreground: var(--foreground);
-  --surface-secondary: oklch(0.23 0.012 260);
+  --surface-secondary: rgb(var(--ui-raised));
   --surface-secondary-foreground: var(--foreground);
-  --surface-tertiary: oklch(0.27 0.012 260);
-  --surface-tertiary-foreground: oklch(0.78 0.008 286);
-  --muted: oklch(0.70 0.012 260);
-  --border: oklch(0.32 0.012 260);
-  --separator: oklch(0.27 0.012 260);
+  --surface-tertiary: rgb(var(--ui-line));
+  --surface-tertiary-foreground: rgb(var(--ui-muted));
+  --muted: rgb(var(--ui-muted));
+  --border: rgb(var(--ui-line));
+  --separator: rgb(var(--ui-line));
   --field-border: var(--border);
   --link: var(--foreground);
-  --success: oklch(0.72 0.16 150);
-  --success-foreground: oklch(0.16 0.012 260);
-  --warning: oklch(0.82 0.14 85);
-  --warning-foreground: oklch(0.16 0.012 260);
-  --danger: oklch(0.72 0.18 25);
-  --danger-foreground: oklch(0.16 0.012 260);
-  --accent: oklch(0.96 0 0);
-  --accent-foreground: oklch(0.16 0 0);
-  --accent-hover: oklch(0.88 0 0);
-  --accent-soft: oklch(0.28 0 0);
-  --accent-soft-foreground: oklch(0.96 0 0);
-  --accent-soft-hover: oklch(0.34 0 0);
+  --success: rgb(var(--ui-ok));
+  --success-foreground: rgb(var(--ui-ok-ink));
+  --warning: rgb(var(--ui-warn));
+  --warning-foreground: rgb(var(--ui-warn-ink));
+  --danger: rgb(var(--ui-bad));
+  --danger-foreground: rgb(var(--ui-bad-ink));
+  --accent: rgb(var(--ui-accent));
+  --accent-foreground: rgb(var(--ui-accent-ink));
+  --accent-hover: rgb(var(--ui-accent) / 0.88);
+  --accent-soft: rgb(var(--ui-accent-soft));
+  --accent-soft-foreground: rgb(var(--ui-accent-ink));
+  --accent-soft-hover: rgb(var(--ui-raised));
   --focus: var(--accent);
   --radius: var(--ui-radius-control);
   color-scheme: dark;
@@ -108,7 +237,7 @@
   body {
     @apply bg-canvas text-ink antialiased;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-    font-size: 13px;
+    font-size: var(--ui-font-body);
     line-height: 1.5;
     font-feature-settings: 'tnum' 1;
     overscroll-behavior: none;
@@ -125,12 +254,12 @@
   }
 
   ::selection {
-    background: rgb(var(--c-accent) / 0.24);
+    background: rgb(var(--ui-accent) / 0.24);
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(var(--c-line)) transparent;
+    scrollbar-color: rgb(var(--ui-line)) transparent;
   }
 
   ::-webkit-scrollbar {
@@ -139,14 +268,14 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(var(--c-line));
+    background: rgb(var(--ui-line));
     border: 3px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background-clip: content-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--c-faint) / 0.6);
+    background: rgb(var(--ui-faint) / 0.6);
     border: 3px solid transparent;
     background-clip: content-box;
   }
@@ -166,27 +295,41 @@
   }
 
   .form-field-stack {
-    @apply flex flex-col gap-3.5;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-3);
   }
 
   .form-field {
-    @apply flex min-w-0 flex-col gap-1.5;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--ui-space-1);
   }
 
   .form-label {
-    @apply text-[12px] font-semibold leading-5 text-ink;
+    color: rgb(var(--ui-ink));
+    font-size: var(--ui-font-label);
+    font-weight: 600;
+    line-height: 1.5;
   }
 
   .form-hint {
-    @apply text-[11px] leading-4 text-faint;
+    color: rgb(var(--ui-faint));
+    font-size: var(--ui-font-helper);
+    line-height: 1.45;
   }
 
   .form-section {
-    @apply border-t border-line/80 pt-4;
+    border-top: var(--ui-border-width) solid rgb(var(--ui-line) / 0.8);
+    padding-top: var(--ui-space-4);
   }
 
   .form-section-title {
-    @apply text-[12px] font-semibold tracking-tight text-ink;
+    color: rgb(var(--ui-ink));
+    font-size: var(--ui-font-label);
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .field-label {
@@ -198,15 +341,15 @@
   }
 
   @media (max-width: 640px) {
-    .form-field-stack { @apply gap-3; }
-    .form-section { @apply pt-3.5; }
+    .form-field-stack { gap: var(--ui-space-3); }
+    .form-section { padding-top: var(--ui-space-3); }
   }
 }
 
 .drag-over {
-  outline: 2px dashed rgb(var(--c-accent) / 0.7);
+  outline: 2px dashed rgb(var(--ui-accent) / 0.7);
   outline-offset: -6px;
-  background: rgb(var(--c-accent) / 0.06);
+  background: rgb(var(--ui-accent) / 0.06);
 }
 
 .progress-stripes {
@@ -233,8 +376,9 @@
 }
 
 .page-drop-line {
-  box-shadow: inset 0 0 0 2px rgb(var(--c-accent));
+  box-shadow: inset 0 0 0 2px rgb(var(--ui-accent));
 }
+
 .checkerboard {
   background-color: rgb(var(--ui-checker-light));
   background-image: linear-gradient(45deg, rgb(var(--ui-checker-dark)) 25%, transparent 25%), linear-gradient(-45deg, rgb(var(--ui-checker-dark)) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgb(var(--ui-checker-dark)) 75%), linear-gradient(-45deg, transparent 75%, rgb(var(--ui-checker-dark)) 75%);

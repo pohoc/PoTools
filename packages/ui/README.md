@@ -16,6 +16,36 @@ PoTools 的共享 React UI 基础包。它只负责可复用的视觉语言、�
 
 形状和空间也遵循 token：输入框、按钮等控件使用 `--ui-radius-control`；卡片使用 `--ui-radius-card`；弹层使用 `--ui-radius-overlay`；状态徽章和标签使用 `--ui-radius-pill`。不要在组件中新增随意的 `rounded-[...]`、阴影或间距值，确有例外时应在主题 token 层登记。
 
+### Token 分层
+
+`tokens.css` 是唯一的设计决策来源，按以下顺序使用：
+
+1. 语义颜色：`canvas` 页面底色、`surface` 内容面、`raised` 次级容器、`line` 分隔线、`ink/muted/faint` 文本层级。
+2. 交互颜色：`accent` 主操作、`accent-soft` 次级强调；`ok/warn/bad` 只表达状态，不用于品牌主操作。
+3. 几何与空间：控件使用 `radius-control` 和 `control-sm/md/lg`，卡片和弹层分别使用 `radius-card/overlay`，布局间距使用 `space-*`。
+4. 反馈：焦点使用 `focus-ring`，禁用使用 `disabled-opacity`，动画使用 `motion-*` 并服从 reduced motion。
+
+`--ui-*` 是唯一的 token 命名空间（`--c-*` 兼容别名已移除）。HeroUI 的语义变量由 `styles.css` 映射到同一组 `--ui-*` token，不能再创建第二套颜色或圆角体系。样式基于 Tailwind v4 `@theme`；消费者不得再挂载 legacy `tailwind.config.js`，应用专属扩展（如布局尺寸）在消费端的 `@theme` 块里登记。
+
+### 组件实现边界
+
+- HeroUI 负责可访问行为、键盘交互、浮层定位和组件语义；`@potools/ui` 负责包装、默认尺寸和视觉 token。
+- 页面不应直接从 `@heroui/react` 导入核心控件，也不应复制 `packages/ui/src/components`。
+- Button 的 `primary/default` 是主操作，`secondary/outline` 是次操作，`ghost/quiet/link` 只用于低强调操作，`danger` 仅用于破坏性操作。
+- 表单控件统一使用 `surface` 背景、`line` 边框、`accent` 焦点环；不得通过页面 class 单独改成纯白、纯黑或蓝色。
+- Tooltip 只补充图标按钮、截断文案和非显而易见状态，不重复已经可见的说明文字。
+
+### 质量门槛
+
+提交前至少执行：
+
+```sh
+./node_modules/.bin/tsc -p packages/ui/tsconfig.json --noEmit --pretty false
+git diff --check -- packages/ui
+```
+
+新增组件需要同时检查浅色/深色、hover/focus/disabled、键盘操作和 `prefers-reduced-motion`；如果组件存在表单语义，还要检查 label、错误信息和 `aria-describedby` 链路。
+
 ## 消费方式
 
 ```tsx
@@ -23,7 +53,15 @@ import '@potools/ui/theme.css';
 import { Button, Card } from '@potools/ui';
 ```
 
-适配桌面端时统一从 `@potools/ui` 导入，禁止重新复制组件或绕过公共入口。
+适配桌面端时统一从 `@potools/ui` 导入，禁止重新复制组件或绕过公共入口。`toast`（sonner）与 `cn` 也从包入口导出，应用不得直接依赖 `sonner`、`clsx`、`tailwind-merge`、`lucide-react` 等底层库；图标一律通过 `Icon` 的语义名使用，新增图标先登记到 `Icon.tsx` 的映射表。
+
+### 主题
+
+`ThemeProvider` 默认自管持久化（localStorage）；宿主有自己的设置存储时传入 `mode` + `onModeChange` 切换为受控模式，持久化由宿主负责。首屏防闪烁由宿主在 React 挂载前手动镜像一次 `.dark` 类。
+
+### 状态语义
+
+`ProgressBar`（`tone: accent/ok/bad/idle` + `striped`）与 `StateBadge`（`tone: accent/ok/bad/muted` + `icon` + 文案）只认语义 tone；业务状态枚举（如任务队列的 `queued/running/...`）到 tone 与文案的映射由应用层完成。
 
 ## 表单约定
 

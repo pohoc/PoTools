@@ -1,47 +1,87 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Monitor, Moon, Sun } from 'lucide-react';
-import { Icon } from './Icon.tsx';
+import { Badge, Button, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Icon, Tooltip, TooltipContent, TooltipTrigger } from '@potools/ui';
 import { TitleBar } from './TitleBar.tsx';
-import { Badge } from './ui/badge.tsx';
-import { Button } from './ui/button.tsx';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu.tsx';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip.tsx';
+import { Status } from './Status.tsx';
 import { useI18n } from '../i18n/index.tsx';
-import { applyTheme, useSettings } from '../lib/settings.ts';
+import { useSettings } from '../lib/settings.ts';
 import { transportMode, useEngine } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { useMediaQuery } from '../lib/useMediaQuery.ts';
-import { cn } from '../lib/utils.ts';
+import { rowClass } from '../lib/rows.ts';
 import { TOOLS, type ToolId } from 'core';
+import { APP_VERSION } from '../lib/version.ts';
 
 const NAV = [
   { to: '/', key: 'nav.tools', icon: 'layout-grid', end: true },
   { to: '/queue', key: 'nav.queue', icon: 'queue' },
 ];
 
-function rowClass(rail: boolean, isActive: boolean) {
-  return cn(
-    'relative flex h-10 items-center gap-3 rounded-control px-3 text-[12.5px] transition-colors',
-    rail && 'justify-center px-0',
-    isActive ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-raised hover:text-ink',
+/**
+ * HeroUI v3's Tooltip.Trigger has no `asChild` — it always mounts a `div[role=button]`,
+ * which would add a nameless second tab stop per row. `render` projects the trigger
+ * props onto the row element instead, so a row stays one focusable control.
+ */
+function RailTip({
+  rail,
+  label,
+  children,
+}: {
+  rail: boolean;
+  label: string;
+  children: (trigger: object) => ReactNode;
+}) {
+  if (!rail) return <>{children({})}</>;
+  return (
+    <Tooltip delayDuration={400}>
+      <TooltipTrigger
+        render={(props) => {
+          const { className: _className, role: _role, children: _children, ...trigger } = props;
+          return <>{children(trigger)}</>;
+        }}
+      />
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
-const THEMES = [
-  { value: 'system', icon: Monitor },
-  { value: 'light', icon: Sun },
-  { value: 'dark', icon: Moon },
-] as const;
+function NavRow({
+  to,
+  end,
+  label,
+  icon,
+  iconSize = 17,
+  rail,
+  active,
+  children,
+}: {
+  to: string;
+  end?: boolean;
+  label: string;
+  icon: string;
+  iconSize?: number;
+  rail: boolean;
+  active: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <RailTip rail={rail} label={label}>
+      {(trigger) => (
+        <NavLink
+          {...(trigger as ComponentProps<typeof NavLink>)}
+          to={to}
+          end={end}
+          aria-label={rail ? label : undefined}
+          className={rowClass({ rail, active })}
+        >
+          <Icon name={icon} size={iconSize} className="shrink-0" />
+          {!rail ? <span className="truncate">{label}</span> : null}
+          {children}
+        </NavLink>
+      )}
+    </RailTip>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useI18n();
@@ -51,19 +91,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   const running = useJobs((state) => state.jobs.filter((job) => job.progress.state === 'running').length);
   const narrow = useMediaQuery('(max-width: 1080px)');
   const rail = settings.sidebarCollapsed || narrow;
+  /** CJK labels read badly with the Latin uppercase + wide tracking treatment. */
+  const sectionLabel = (spacing: string) =>
+    cn(
+      'px-3 font-semibold text-faint',
+      settings.locale === 'en' ? 'text-[9.5px] uppercase tracking-[.16em]' : 'text-[11px] tracking-[.02em]',
+      spacing,
+    );
   const on = (to: string, end = false) => (end ? location.pathname === to : location.pathname.startsWith(to));
-
-  useEffect(() => {
-    applyTheme(settings.theme);
-  }, [settings.theme]);
 
   useEffect(() => {
     document.documentElement.lang = settings.locale === 'en' ? 'en' : 'zh-CN';
   }, [settings.locale]);
 
-  const tone = status === 'ready' ? 'bg-ok' : status === 'connecting' ? 'bg-warn' : 'bg-bad';
-  const statusLabel =
-    status === 'ready' ? t('engine.ready') : status === 'connecting' ? t('engine.connecting') : t('engine.offline');
+  const statusColor = status === 'ready' ? 'var(--ui-ok)' : status === 'connecting' ? 'var(--ui-warn)' : 'var(--ui-bad)';
+  const statusLabel = status === 'ready' ? t('engine.ready') : t('engine.offline');
+  const nextTheme = settings.theme === 'system' ? 'light' : settings.theme === 'light' ? 'dark' : 'system';
 
   const toolMatch = /^\/tool\/([\w-]+)$/.exec(location.pathname);
   const pageTitle = toolMatch
@@ -75,7 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         : t('nav.tools');
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-canvas">
+    <div className="app-shell flex h-full w-full flex-col overflow-hidden bg-canvas">
       <TitleBar
         brand={
           <span className="flex items-center gap-2">
@@ -86,63 +129,45 @@ export function AppShell({ children }: { children: ReactNode }) {
         title={pageTitle}
         actions={
           <>
-            <Tooltip delayDuration={300}>
-              <TooltipTrigger asChild>
-                <Link
-                  to="/settings?tab=engine"
-                  aria-label={`${t('settings.engineStatus')}: ${statusLabel}`}
-                  className="flex h-8 items-center gap-2 rounded-control px-2 text-[11px] text-muted transition hover:bg-raised hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
-                  <span className={cn('h-2 w-2 shrink-0 rounded-full', tone)} />
-                  <span className="hidden sm:inline">{statusLabel}</span>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">{t('settings.engineStatus')}: {statusLabel}</TooltipContent>
-            </Tooltip>
+            <Link
+              to="/settings?tab=engine"
+              aria-label={`${t('settings.engineStatus')}: ${statusLabel}`}
+              title={`${t('settings.engineStatus')}: ${statusLabel}`}
+              className="mr-1 flex h-8 items-center gap-2 rounded-control px-2 text-[11px] text-muted transition hover:bg-raised hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <Status color={`rgb(${statusColor})`} active={status !== 'offline'} label={statusLabel} />
+              <span>{statusLabel}</span>
+            </Link>
             <Badge variant="outline" className="mr-1 hidden md:inline-flex">
               {transportMode() === 'tauri' ? t('engine.mode.tauri') : t('engine.mode.web')}
             </Badge>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label={t('settings.language')}>
-                  <Icon name="globe" size={15} />
-                </Button>
+              <DropdownMenuTrigger
+                aria-label={t('settings.language')}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-control text-muted transition hover:bg-raised hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+              >
+                <Icon name="globe" size={15} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[10rem]">
                 <DropdownMenuLabel>{t('settings.language')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup
-                  value={settings.locale}
-                  onValueChange={(value) => settings.set('locale', value as 'zh-CN' | 'en')}
-                >
-                  <DropdownMenuRadioItem value="zh-CN">简体中文</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
+                <DropdownMenuItem onAction={() => settings.set('locale', 'zh-CN')}>
+                  {settings.locale === 'zh-CN' ? '✓ ' : ''}简体中文
+                </DropdownMenuItem>
+                <DropdownMenuItem onAction={() => settings.set('locale', 'en')}>
+                  {settings.locale === 'en' ? '✓ ' : ''}English
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`${t('settings.theme')}: ${t(`settings.theme.${settings.theme}`)}`}
-                >
-                  <Icon name={settings.theme === 'dark' ? 'moon' : settings.theme === 'light' ? 'sun' : 'monitor'} size={15} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[11rem]">
-                <DropdownMenuLabel>{t('settings.theme')}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={settings.theme} onValueChange={(value) => settings.set('theme', value as 'system')}>
-                  {THEMES.map((option) => (
-                    <DropdownMenuRadioItem key={option.value} value={option.value}>
-                      <option.icon size={13} />
-                      {t(`settings.theme.${option.value}`)}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <button
+              type="button"
+              onClick={() => settings.set('theme', nextTheme)}
+              aria-label={`${t('settings.theme')}: ${t(`settings.theme.${settings.theme}`)}`}
+              title={`${t('settings.theme')}: ${t(`settings.theme.${settings.theme}`)}`}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-control text-muted transition hover:bg-raised hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+            >
+              <Icon name={settings.theme === 'dark' ? 'moon' : settings.theme === 'light' ? 'sun' : 'monitor'} size={15} />
+            </button>
           </>
         }
       />
@@ -150,78 +175,80 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-0 flex-1">
         <aside
           className={cn(
-            'flex shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-150',
+            'app-sidebar flex shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-150',
             rail ? 'w-14' : 'w-sidebar',
           )}
         >
           <nav className="flex flex-1 flex-col gap-1 px-2.5 py-3" aria-label={t('nav.tools')}>
-            {!rail ? <p className="px-2 pb-1 pt-1 text-[9.5px] font-semibold uppercase tracking-[.16em] text-faint">{t('sidebar.workspace')}</p> : null}
+            {!rail ? <p className={sectionLabel('pb-1 pt-1')}>{t('sidebar.workspace')}</p> : null}
             {NAV.map((item) => (
-              <Tooltip key={item.to} delayDuration={400}>
-                <TooltipTrigger asChild>
-                  <NavLink to={item.to} end={item.end} className={rowClass(rail, on(item.to, item.end))}>
-                    <Icon name={item.icon} size={17} className="shrink-0" />
-                    {!rail ? <span className="truncate">{t(item.key)}</span> : null}
-                    {item.to === '/queue' && running ? (
-                      <span
-                        className={cn(
-                          'shrink-0 rounded-full bg-accent px-1.5 text-[10.5px] font-semibold leading-4 text-accent-ink',
-                          rail ? 'absolute right-1 top-1' : 'ml-auto',
-                        )}
-                      >
-                        {running}
-                      </span>
-                    ) : null}
-                  </NavLink>
-                </TooltipTrigger>
-                {rail ? <TooltipContent side="right">{t(item.key)}</TooltipContent> : null}
-              </Tooltip>
+              <NavRow
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                rail={rail}
+                active={on(item.to, item.end)}
+                label={t(item.key)}
+                icon={item.icon}
+              >
+                {item.to === '/queue' && running ? (
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full bg-accent px-1.5 text-[10.5px] font-semibold leading-4 text-accent-ink',
+                      rail ? 'absolute right-1 top-1' : 'ml-auto',
+                    )}
+                  >
+                    {running}
+                  </span>
+                ) : null}
+              </NavRow>
             ))}
           </nav>
 
           <div className="border-t border-line px-2.5 py-3">
-            {!rail ? <p className="px-2 pb-2 pt-0.5 text-[9.5px] font-semibold uppercase tracking-[.16em] text-faint">{t('sidebar.system')}</p> : null}
+            {!rail ? <p className={sectionLabel('pb-2 pt-0.5')}>{t('sidebar.system')}</p> : null}
             <div className="flex flex-col gap-1">
-              <Tooltip delayDuration={400}>
-                <TooltipTrigger asChild>
-                  <NavLink to="/settings" className={rowClass(rail, on('/settings'))}>
-                    <Icon name="settings" size={16} className="shrink-0" />
-                    {!rail ? <span className="truncate">{t('nav.settings')}</span> : null}
-                  </NavLink>
-                </TooltipTrigger>
-                {rail ? <TooltipContent side="right">{t('nav.settings')}</TooltipContent> : null}
-              </Tooltip>
+              <NavRow
+                to="/settings"
+                rail={rail}
+                active={on('/settings')}
+                label={t('nav.settings')}
+                icon="settings"
+                iconSize={16}
+              />
               {!narrow ? (
-                <Button
-                  variant="ghost"
-                  size="default"
-                  type="button"
-                  onClick={() => settings.set('sidebarCollapsed', !settings.sidebarCollapsed)}
-                  className={cn(
-                    'h-9 justify-start gap-3 border-transparent bg-transparent text-[11.5px] text-muted hover:bg-raised hover:text-ink',
-                    rail ? 'justify-center px-0' : 'px-3',
+                <RailTip rail={rail} label={rail ? t('nav.expand') : t('nav.collapse')}>
+                  {(trigger) => (
+                    <button
+                      {...(trigger as ComponentProps<'button'>)}
+                      type="button"
+                      onClick={() => settings.set('sidebarCollapsed', !settings.sidebarCollapsed)}
+                      aria-expanded={!rail}
+                      aria-label={rail ? t('nav.expand') : undefined}
+                      className={rowClass({ rail })}
+                    >
+                      <Icon name="sidebar" size={16} className="shrink-0" />
+                      {!rail ? <span className="truncate">{t('nav.collapse')}</span> : null}
+                    </button>
                   )}
-                  title={rail ? t('nav.expand') : t('nav.collapse')}
-                  aria-label={rail ? t('nav.expand') : t('nav.collapse')}
-                >
-                  <Icon name="sidebar" size={16} />
-                  {!rail ? <span>{t('nav.collapse')}</span> : null}
-                </Button>
+                </RailTip>
               ) : null}
               {!rail ? (
-                <a
-                  href="mailto:po.hoc4@gmail.com"
-                  title={`${t('settings.copyright')} · pohoc <po.hoc4@gmail.com>`}
-                  className="truncate px-3 py-1 text-[10px] leading-4 text-faint transition hover:text-muted"
-                >
-                  {t('settings.copyrightShort')}
-                </a>
+                <div className="px-3 pt-2 text-center">
+                  <a
+                    href="mailto:po.hoc4@gmail.com"
+                    title={`${t('settings.copyright')} · pohoc <po.hoc4@gmail.com>`}
+                    className="inline-block text-[10px] leading-4 text-faint transition hover:text-muted"
+                  >
+                    v{APP_VERSION} · MIT · pohoc
+                  </a>
+                </div>
               ) : null}
             </div>
           </div>
         </aside>
 
-        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5">{children}</main>
+        <main className="app-main min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6 sm:py-6">{children}</main>
       </div>
     </div>
   );

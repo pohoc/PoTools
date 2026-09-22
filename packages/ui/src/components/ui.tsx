@@ -1,11 +1,10 @@
-import { Children, cloneElement, isValidElement, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, type ButtonHTMLAttributes, type ReactNode, type Ref } from 'react';
 import { Loader2 } from 'lucide-react';
-import { Button as HeroButton, Description as HeroDescription, Label as HeroLabel, Switch as HeroSwitch, Tabs as HeroTabs } from '@heroui/react';
+import { Button as HeroButton, Description as HeroDescription, Label as HeroLabel, Switch as HeroSwitch } from '@heroui/react';
 import { Icon } from './Icon';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import { cn } from '../utils';
-export type JobState = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
 type Variant = 'primary' | 'default' | 'secondary' | 'ghost' | 'quiet' | 'outline' | 'danger' | 'link';
 
@@ -20,7 +19,11 @@ const VARIANT: Record<Variant, 'danger' | 'danger-soft' | 'ghost' | 'outline' | 
   link: 'tertiary',
 };
 
-/** App-level button: shadcn Button plus an icon slot and a busy state. */
+/**
+ * App-level button: shadcn Button plus an icon slot and a busy state.
+ * HeroUI supplies the interaction model; the `.ui-button-*` classes in
+ * theme/styles.css own the visuals on the package token system.
+ */
 export function Button({
   variant = 'ghost',
   icon,
@@ -31,6 +34,7 @@ export function Button({
   children,
   className = '',
   disabled,
+  ref,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
@@ -39,20 +43,23 @@ export function Button({
   size?: 'sm' | 'md' | 'lg' | 'default' | 'icon' | 'icon-sm';
   busy?: boolean;
   asChild?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 }) {
+  const buttonClass = cn('ui-button', `ui-button-${variant}`, `ui-button-size-${size}`, className);
   const content = <>{busy ? <Loader2 size={iconSize} className="animate-spin" /> : icon ? <Icon name={icon} size={iconSize} /> : null}{children}</>;
   const child = asChild ? Children.toArray(children)[0] : null;
   if (child && isValidElement(child)) {
-    return cloneElement(child, { ...rest, className: cn(className, (child.props as { className?: string }).className) } as never);
+    return cloneElement(child, { ...rest, className: cn(buttonClass, (child.props as { className?: string }).className) } as never);
   }
   return (
     <HeroButton
       type="button"
-      variant={VARIANT[variant]}
+      variant={variant === 'outline' ? 'tertiary' : VARIANT[variant]}
       size={size === 'lg' ? 'lg' : size === 'sm' || size === 'icon-sm' ? 'sm' : 'md'}
       isIconOnly={size === 'icon' || size === 'icon-sm'}
-      className={className}
+      className={buttonClass}
       isDisabled={disabled || busy}
+      ref={ref}
       {...(rest as unknown as React.ComponentProps<typeof HeroButton>)}
     >
       {content}
@@ -111,49 +118,42 @@ export function Section({
   );
 }
 
-export function ProgressBar({ percent, state }: { percent: number; state?: JobState }) {
+/** Semantic progress coloring, decoupled from any app-specific state enum. */
+export type ProgressTone = 'accent' | 'ok' | 'bad' | 'idle';
+
+const PROGRESS_TONE: Record<ProgressTone, string> = {
+  accent: 'bg-accent',
+  ok: 'bg-ok',
+  bad: 'bg-bad',
+  idle: 'bg-faint',
+};
+
+export function ProgressBar({ percent, tone = 'accent', striped = false }: { percent: number; tone?: ProgressTone; striped?: boolean }) {
   const value = Math.max(0, Math.min(100, Math.round(percent)));
-  const tone =
-    state === 'failed'
-      ? 'bg-bad'
-      : state === 'cancelled'
-        ? 'bg-faint'
-        : state === 'succeeded'
-          ? 'bg-ok'
-          : 'bg-accent';
   return (
     <Progress
       value={value}
-      indicatorClassName={cn(tone, state === 'running' && 'progress-stripes')}
+      indicatorClassName={cn(PROGRESS_TONE[tone], striped && 'progress-stripes')}
       aria-valuenow={value}
     />
   );
 }
 
-const STATE_VARIANT: Record<JobState, 'default' | 'ok' | 'bad' | 'outline'> = {
-  queued: 'outline',
-  running: 'default',
-  succeeded: 'ok',
-  failed: 'bad',
-  cancelled: 'outline',
+/** Semantic badge coloring, decoupled from any app-specific state enum. */
+export type BadgeTone = 'accent' | 'ok' | 'bad' | 'muted';
+
+const BADGE_TONE: Record<BadgeTone, string> = {
+  accent: 'bg-accent-soft text-accent',
+  ok: 'bg-ok/12 text-ok',
+  bad: 'bg-bad/12 text-bad',
+  muted: 'bg-raised text-muted',
 };
 
-export function StateBadge({ state }: { state: JobState }) {
-  const labels: Record<JobState, string> = { queued: 'Queued', running: 'Running', succeeded: 'Completed', failed: 'Failed', cancelled: 'Cancelled' };
+export function StateBadge({ tone = 'muted', icon, children }: { tone?: BadgeTone; icon?: ReactNode; children: ReactNode }) {
   return (
-    <span
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium',
-        state === 'running' && 'bg-accent-soft text-accent',
-        state === 'succeeded' && 'bg-ok/12 text-ok',
-        state === 'failed' && 'bg-bad/12 text-bad',
-        (state === 'queued' || state === 'cancelled') && 'bg-raised text-muted',
-      )}
-    >
-      {state === 'running' ? <Loader2 size={11} className="animate-spin" /> : null}
-      {state === 'succeeded' ? <Icon name="check" size={11} /> : null}
-      {state === 'failed' ? <Icon name="warning" size={11} /> : null}
-      {labels[state]}
+    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium', BADGE_TONE[tone])}>
+      {icon}
+      {children}
     </span>
   );
 }
@@ -267,27 +267,25 @@ export function Segmented<T extends string | number>({
   onChange: (value: T) => void;
   size?: 'sm' | 'md';
 }) {
+  const groupLabel = options.map((option) => option.label).join(' / ');
   return (
-    <HeroTabs
-      selectedKey={String(value)}
-      onSelectionChange={(next) => {
-        const match = options.find((item) => String(item.value) === next);
-        if (match) onChange(match.value);
-      }}
-      variant="secondary"
-      className="w-auto"
-    >
-      <HeroTabs.List className={cn('w-fit shrink-0 self-start border border-line', size === 'sm' && 'p-[2px]')}>
-        {options.map((option) => (
-          <HeroTabs.Tab
+    <div role="tablist" aria-label={groupLabel} className={cn('ui-segmented', size === 'md' && 'ui-segmented-md')}>
+      {options.map((option) => {
+        const selected = value === option.value;
+        return (
+          <button
             key={String(option.value)}
-            id={String(option.value)}
-            className={cn('shrink-0 whitespace-nowrap', size === 'sm' && 'px-2 py-[3px] text-[12px]')}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(option.value)}
+            className={cn('ui-segmented-item', selected && 'ui-segmented-item-selected', size === 'sm' && 'ui-segmented-item-sm')}
           >
             {option.label}
-          </HeroTabs.Tab>
-        ))}
-      </HeroTabs.List>
-    </HeroTabs>
+          </button>
+        );
+      })}
+    </div>
   );
 }

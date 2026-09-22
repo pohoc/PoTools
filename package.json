@@ -1,6 +1,7 @@
 {
   "name": "potools",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "description": "本机文件工具平台 · Vite + React + Node sidecar + Tauri",
   "author": "pohoc <po.hoc4@gmail.com>",
@@ -18,6 +19,7 @@
     "package:windows:native": "pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
+    "licenses:inventory": "node scripts/generate-license-inventory.mjs",
     "samples": "pnpm --filter @potools/engine samples",
     "icons": "node scripts/make-icons.mjs && pnpm --filter @potools/desktop exec tauri icon \"$PWD/apps/desktop/src-tauri/app-icon.png\"",
     "test:tools": "pnpm --filter @potools/engine test:tools",

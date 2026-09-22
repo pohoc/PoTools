@@ -1,5 +1,6 @@
 export * from './components/Icon';
 export * from './components/ui';
+export { toast } from 'sonner';
 export {
   Badge,
   Card,
@@ -29,6 +30,7 @@ export {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
+  CONTROL_CLASS,
   Label,
   Popover,
   PopoverContent,

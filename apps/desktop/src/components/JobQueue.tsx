@@ -1,10 +1,9 @@
 import type { JobSnapshot } from 'core';
 import { TOOLS } from 'core';
-import { Icon } from './Icon.tsx';
-import { Button, EmptyState, ProgressBar, StateBadge } from './ui.tsx';
-import { Card } from './ui/card.tsx';
+import { Button, Card, EmptyState, Icon, ProgressBar, StateBadge } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { formatBytes, formatTime } from '../lib/format.ts';
+import { jobBadgeTone, jobProgress, jobStateIcon, jobStateLabelKey } from '../lib/jobState.tsx';
 import { useJobs } from '../stores/jobs.ts';
 import { useNavigate } from 'react-router-dom';
 
@@ -47,7 +46,7 @@ function JobRow({ job }: { job: JobSnapshot }) {
             </span>
             <span className="text-[11px] text-faint">{formatTime(job.createdAt)}</span>
           </div>
-          <StateBadge state={job.progress.state} />
+          <StateBadge tone={jobBadgeTone(job.progress.state)} icon={jobStateIcon(job.progress.state)}>{t(jobStateLabelKey(job.progress.state))}</StateBadge>
           <span className="flex shrink-0 items-center gap-1">
             {running ? (
               <Button size="sm" variant="quiet" icon="close" onClick={() => void cancel(job.id)}>
@@ -63,7 +62,7 @@ function JobRow({ job }: { job: JobSnapshot }) {
 
         {running ? (
           <div className="flex items-center gap-3">
-            <ProgressBar percent={job.progress.percent} state={job.progress.state} />
+            <ProgressBar percent={job.progress.percent} {...jobProgress(job.progress.state)} />
             <span className="w-[42px] shrink-0 text-right font-mono text-[11.5px] tabular-nums text-muted">
               {Math.round(job.progress.percent)}%
             </span>

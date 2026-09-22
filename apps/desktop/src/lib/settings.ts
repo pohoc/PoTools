@@ -13,6 +13,7 @@ export interface Settings {
   sidebarCollapsed: boolean;
   /** Job folders older than this are swept when the engine starts. 0 = never. */
   tempTtlDays: number;
+  cleanupTempOnClose: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,6 +26,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoOpen: false,
   sidebarCollapsed: false,
   tempTtlDays: 7,
+  cleanupTempOnClose: true,
 };
 
 interface SettingsStore extends Settings {
@@ -63,10 +65,3 @@ export const useSettings = create<SettingsStore>()(
     },
   ),
 );
-
-export function applyTheme(theme: Settings['theme']): void {
-  const dark =
-    theme === 'dark' ||
-    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.classList.toggle('dark', dark);
-}

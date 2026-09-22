@@ -1,12 +1,13 @@
+import { Icon } from '@potools/ui';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Input as HeroInput } from '@potools/ui';
 import {
   TOOL_LIST,
   type ToolDescriptor,
   type ToolFormat,
 } from 'core';
-import { Icon } from '../components/Icon.tsx';
-import { Button, Card, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/index.ts';
+import { Card, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { useEngine } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
@@ -17,7 +18,12 @@ export function Home() {
   const jobs = useJobs((state) => state.jobs);
   const [query, setQuery] = useState('');
   const [format, setFormat] = useState<ToolFormat | 'all'>('all');
-  const [activeCategory, setActiveCategory] = useState<ToolLibraryCategory>('all');
+  const [activeCategory, setActiveCategory] = useState<ToolLibraryCategory>(() => {
+    try {
+      const saved = sessionStorage.getItem('potools.lastCategory');
+      return TOOL_CATEGORIES.some((category) => category.id === saved) ? saved as ToolLibraryCategory : 'all';
+    } catch { return 'all'; }
+  });
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -57,8 +63,8 @@ export function Home() {
   }, [jobs]);
 
   return (
-    <div className="mx-auto w-full max-w-[1280px]">
-      <header className="border-b border-line pb-4">
+    <div className="page-frame">
+      <header className="page-header">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-[21px] font-semibold tracking-tight">{t('home.title')}</h1>
@@ -69,7 +75,7 @@ export function Home() {
         <div className="mt-4 flex max-w-[900px] flex-col gap-2.5 sm:flex-row">
           <label className="relative block min-w-0 flex-1">
             <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
-            <Input className="h-10 bg-surface pl-9 pr-9 text-[13px]" placeholder={t('search.placeholder')} value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t('search.placeholder')} />
+            <HeroInput className="h-10 bg-surface pl-9 pr-9 text-[13px]" placeholder={t('search.placeholder')} value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t('search.placeholder')} />
             {query ? <Button type="button" variant="ghost" size="icon-sm" className="absolute right-2.5 top-1/2 h-7 w-7 -translate-y-1/2 border-transparent bg-transparent p-0 text-faint hover:bg-raised hover:text-ink" onClick={() => setQuery('')} aria-label={t('common.close')}><Icon name="close" size={14} /></Button> : null}
           </label>
           <label className="flex shrink-0 items-center gap-2 rounded-control border border-line bg-surface px-2.5 text-[11px] text-muted">
@@ -102,7 +108,7 @@ export function Home() {
 
       <nav className="flex gap-1 overflow-x-auto border-b border-line py-2" aria-label={t('home.categories')}>
           {categoryGroups.map((category) => (
-            <Button key={category.id} type="button" variant={activeCategory === category.id ? 'secondary' : 'ghost'} aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); }} className={`h-8 shrink-0 gap-1.5 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'border-transparent bg-accent-soft font-medium text-accent hover:bg-accent-soft' : 'text-muted'}`}>
+            <Button key={category.id} type="button" variant={activeCategory === category.id ? 'secondary' : 'ghost'} aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 gap-1.5 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'border-transparent bg-accent-soft font-medium text-accent hover:bg-accent-soft' : 'text-muted'}`}>
               {t(category.label)}<span className={`text-[10px] tabular-nums ${activeCategory === category.id ? 'text-accent/70' : 'text-faint'}`}>{category.tools.length}</span>
             </Button>
           ))}
@@ -127,7 +133,7 @@ export function Home() {
   );
 }
 
-type ToolLibraryCategory = 'all' | 'pdf' | 'office' | 'finance' | 'image' | 'other';
+type ToolLibraryCategory = 'all' | 'pdf' | 'office' | 'finance' | 'image' | 'time' | 'crypto' | 'other';
 
 const TOOL_CATEGORIES: Array<{ id: ToolLibraryCategory; label: string }> = [
   { id: 'all', label: 'home.allTools' },
@@ -135,12 +141,16 @@ const TOOL_CATEGORIES: Array<{ id: ToolLibraryCategory; label: string }> = [
   { id: 'office', label: 'home.category.office' },
   { id: 'finance', label: 'home.category.finance' },
   { id: 'image', label: 'home.category.image' },
+  { id: 'time', label: 'home.category.time' },
+  { id: 'crypto', label: 'home.category.crypto' },
   { id: 'other', label: 'home.category.other' },
 ];
 
 const OFFICE_FORMATS = new Set<ToolFormat>(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']);
 
 function classifyTool(tool: ToolDescriptor): ToolLibraryCategory {
+  if (tool.workflow === 'time') return 'time';
+  if (tool.workflow === 'crypto') return 'crypto';
   if (tool.workflow === 'invoice-organizing' || tool.id === 'invoice-merge') return 'finance';
   if (tool.accept.startsWith('image/') || tool.inputFormats.includes('image') || tool.id.startsWith('image-')) return 'image';
   if ([...tool.inputFormats, ...tool.outputFormats].some((format) => OFFICE_FORMATS.has(format))) return 'office';

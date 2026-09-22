@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ProbedPdf } from 'core';
-import { Icon } from './Icon.tsx';
-import { IconButton } from './ui.tsx';
+import { Icon } from '@potools/ui';
+import { IconButton } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { formatBytes } from '../lib/format.ts';
 import type { PickedFile } from '../lib/files.ts';

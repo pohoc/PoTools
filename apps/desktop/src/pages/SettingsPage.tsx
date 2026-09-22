@@ -1,21 +1,40 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { type TempCleanResult, type TempUsage } from 'core';
-import { Icon } from '../components/Icon.tsx';
-import { Button, Section, Segmented, Toggle } from '../components/ui.tsx';
-import { Input } from '../components/ui/input.tsx';
-import { Label } from '../components/ui/label.tsx';
-import { toast } from 'sonner';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.tsx';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '../components/ui/dialog.tsx';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  cn,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Icon,
+  toast,
+  Input,
+  Label,
+  Segmented,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@potools/ui';
+import { SettingsLayout } from '../components/PageLayout.tsx';
 import { useI18n } from '../i18n/index.tsx';
 import { DEFAULT_SETTINGS, useSettings } from '../lib/settings.ts';
 import { transportMode, useEngine } from '../stores/engine.ts';
-import { nativePickDirectory } from '../lib/tauri.ts';
+import { isTauri, nativePickDirectory } from '../lib/tauri.ts';
 import { pickFiles } from '../lib/files.ts';
 import { formatBytes } from '../lib/format.ts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.tsx';
+import { APP_VERSION } from '../lib/version.ts';
 
 const PATTERN_TOKENS = ['{name}', '{tool}', '{index}', '{range}', '{date}'];
 
@@ -33,7 +52,6 @@ const TABS: { id: TabId; labelKey: string; icon: string }[] = [
 export function SettingsPage() {
   const { t } = useI18n();
   const [params, setParams] = useSearchParams();
-  const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
   const requested = params.get('tab') as TabId | null;
   const active: TabId = requested && TABS.some((tab) => tab.id === requested) ? requested : 'appearance';
@@ -45,33 +63,115 @@ export function SettingsPage() {
   };
 
   return (
-    <Tabs
-      value={active}
-      onValueChange={(next) => select(next as TabId)}
-      className="mx-auto grid w-full max-w-[1280px] grid-cols-1 gap-4 lg:grid-cols-[196px_minmax(0,1fr)] lg:gap-0"
+    <SettingsLayout
+      title={t('nav.settings')}
+      description={t('settings.aboutText')}
+      tabs={TABS.map((tab) => ({ id: tab.id, label: t(tab.labelKey), icon: tab.icon }))}
+      active={active}
+      onChange={(next) => select(next as TabId)}
     >
-      <TabsList
-        variant="vertical"
-        aria-label={t('nav.settings')}
-        className="min-w-0 flex-row items-center gap-1 overflow-x-auto border-b border-line pb-3 lg:sticky lg:top-0 lg:h-fit lg:flex-col lg:items-stretch lg:overflow-visible lg:border-b-0 lg:border-r lg:py-4 lg:pr-3"
-      >
-        {TABS.map((tab) => (
-          <TabsTrigger key={tab.id} value={tab.id} className="min-h-9 gap-2.5 px-2.5 text-left text-[11.5px] lg:w-full">
-            <Icon name={tab.icon} size={14} className="shrink-0" />
-            {t(tab.labelKey)}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+      {active === 'appearance' ? <AppearanceTab /> : null}
+      {active === 'output' ? <OutputTab /> : null}
+      {active === 'storage' ? <StorageTab /> : null}
+      {active === 'advanced' ? <AdvancedTab /> : null}
+      {active === 'engine' ? <EngineTab /> : null}
+      {active === 'about' ? <AboutTab /> : null}
+    </SettingsLayout>
+  );
+}
 
-      <div className="min-w-0 py-1 lg:py-4 lg:pl-5">
-        {active === 'appearance' ? <AppearanceTab /> : null}
-        {active === 'output' ? <OutputTab /> : null}
-        {active === 'storage' ? <StorageTab /> : null}
-        {active === 'advanced' ? <AdvancedTab /> : null}
-        {active === 'engine' ? <EngineTab /> : null}
-        {active === 'about' ? <AboutTab /> : null}
+/** One card per group: header row on top, hairline-separated settings below. */
+function Group({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="min-w-0 rounded-card border border-line bg-surface shadow-card ring-1 ring-black/[0.02]">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 border-b border-line/70 px-5 py-4">
+        <div className="min-w-0">
+          <CardTitle>{title}</CardTitle>
+          {description ? <CardDescription className="mt-0.5">{description}</CardDescription> : null}
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </CardHeader>
+      <CardContent className="flex min-w-0 flex-col gap-1 px-3 py-2">
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Label and hint on the left, control pinned to the right edge. */
+function SettingRow({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="group flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-control px-2 py-3 transition hover:bg-raised/45">
+      <div className="min-w-0 flex-1">
+        <span className="block text-[13px] leading-5 text-ink">{label}</span>
+        {hint ? <span className="mt-0.5 block text-[11.5px] leading-4 text-faint">{hint}</span> : null}
       </div>
-    </Tabs>
+      <div className="settings-row-control flex shrink-0 items-center justify-end gap-2">{children}</div>
+    </div>
+  );
+}
+
+/** Stacked row for controls that need the full width, such as text fields. */
+function FieldRow({
+  label,
+  htmlFor,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-2 rounded-control px-2 py-3">
+      <Label htmlFor={htmlFor} className="form-label">
+        {label}
+      </Label>
+      {children}
+      {hint ? <p className="form-hint">{hint}</p> : null}
+    </div>
+  );
+}
+
+/** Term/value line shared by the engine and about groups. */
+function DefinitionRow({
+  term,
+  tone,
+  title,
+  children,
+}: {
+  term: string;
+  tone?: 'ok' | 'warn' | 'bad';
+  title?: string;
+  children: ReactNode;
+}) {
+  const color = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-warn' : tone === 'bad' ? 'text-bad' : 'text-ink';
+  return (
+    <div className="flex min-w-0 items-baseline gap-3 py-2.5">
+      <dt className="w-28 shrink-0 truncate text-[11.5px] leading-5 text-faint">{term}</dt>
+      <dd className={cn('min-w-0 flex-1 truncate text-[12px] leading-5', color)} title={title}>
+        {children}
+      </dd>
+    </div>
   );
 }
 
@@ -79,9 +179,9 @@ function AppearanceTab() {
   const { t } = useI18n();
   const settings = useSettings();
   return (
-    <Section title={t('settings.tab.appearance')}>
-      <div className="flex flex-col gap-4">
-        <Row label={t('settings.theme')}>
+    <div className="flex min-w-0 flex-col gap-4">
+      <Group title={t('settings.tab.appearance')}>
+        <SettingRow label={t('settings.theme')}>
           <Segmented
             value={settings.theme}
             onChange={(value) => settings.set('theme', value)}
@@ -91,8 +191,8 @@ function AppearanceTab() {
               { value: 'dark', label: t('settings.theme.dark') },
             ]}
           />
-        </Row>
-        <Row label={t('settings.language')}>
+        </SettingRow>
+        <SettingRow label={t('settings.language')}>
           <Segmented
             value={settings.locale}
             onChange={(value) => settings.set('locale', value)}
@@ -101,16 +201,16 @@ function AppearanceTab() {
               { value: 'en', label: 'English' },
             ]}
           />
-        </Row>
-        <Row label={t('settings.sidebar')}>
-          <Toggle
+        </SettingRow>
+        <SettingRow label={t('settings.sidebar')} hint={t('settings.compactSidebar')}>
+          <Switch
             checked={settings.sidebarCollapsed}
             onChange={(value) => settings.set('sidebarCollapsed', value)}
             label={t('settings.compactSidebar')}
           />
-        </Row>
-      </div>
-    </Section>
+        </SettingRow>
+      </Group>
+    </div>
   );
 }
 
@@ -125,62 +225,66 @@ function OutputTab() {
   };
 
   return (
-    <Section title={t('settings.tab.output')}>
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="output-dir">{t('settings.outputDir')}</Label>
-          <span className="flex gap-2">
+    <div className="flex min-w-0 flex-col gap-4">
+      <Group title={t('settings.tab.output')}>
+        <FieldRow
+          label={t('settings.outputDir')}
+          htmlFor="output-dir"
+          hint={
+            transportMode() === 'tauri'
+              ? t('settings.outputDirHint')
+              : `${t('settings.outputDirHint')} · ${t('engine.mode.web')}`
+          }
+        >
+          <div className="flex min-w-0 items-center gap-2">
             <Input
               id="output-dir"
-              className="font-mono"
+              className="min-w-0 flex-1 font-mono"
               placeholder="/Users/you/Documents"
               value={settings.outputDir ?? ''}
               onChange={(event) => settings.set('outputDir', event.target.value || null)}
             />
-            <Button variant="ghost" icon="folder" className="shrink-0" onClick={() => void chooseDir()}>
+            <Button variant="primary" size="sm" icon="folder" className="h-8 shrink-0 rounded-control" disabled={!isTauri()} title={isTauri() ? undefined : t('settings.chooseDesktopOnly')} onClick={() => void chooseDir()}>
               {t('settings.choose')}
             </Button>
-          </span>
-          <span className="text-[11.5px] leading-4 text-faint">
-            {transportMode() === 'tauri'
-              ? t('settings.outputDirHint')
-              : `${t('settings.outputDirHint')} · ${t('engine.mode.web')}`}
-          </span>
+          </div>
           {info?.defaultOutputDir ? (
-            <span className="flex min-w-0 items-center gap-2 text-[11.5px] text-faint">
+            <div className="flex min-w-0 items-center gap-2 text-[11.5px] leading-5 text-faint">
               <span className="shrink-0">{t('settings.defaultDir')}</span>
-              <span className="min-w-0 truncate font-mono" title={info.defaultOutputDir}>
-                {info.defaultOutputDir}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="min-w-0 truncate font-mono" title={info.defaultOutputDir}>{info.defaultOutputDir}</span>
+                </TooltipTrigger>
+                <TooltipContent side="top">{info.defaultOutputDir}</TooltipContent>
+              </Tooltip>
               <Button
                 type="button"
-                variant="outline"
+                variant="quiet"
                 size="sm"
-                className="h-6 shrink-0 px-1.5 text-[11px]"
+                className="h-6 shrink-0 rounded-control px-1.5 text-[11px]"
                 onClick={() => settings.set('outputDir', info.defaultOutputDir)}
               >
                 {t('settings.useDefault')}
               </Button>
-            </span>
+            </div>
           ) : null}
-        </div>
+        </FieldRow>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="name-pattern">{t('settings.pattern')}</Label>
+        <FieldRow label={t('settings.pattern')} htmlFor="name-pattern" hint={t('settings.patternHint')}>
           <Input
             id="name-pattern"
             className="font-mono"
             value={settings.namePattern}
             onChange={(event) => settings.set('namePattern', event.target.value)}
           />
-          <span className="flex flex-wrap items-center gap-1">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5" aria-label={t('settings.patternTokens')}>
             {PATTERN_TOKENS.map((token) => (
               <Button
                 key={token}
                 type="button"
-                variant="outline"
+                variant="quiet"
                 size="sm"
-                className="kbd h-6 px-1.5 font-mono text-[11px]"
+                className="kbd h-6 shrink-0 px-1.5 font-mono text-[11px]"
                 onClick={() =>
                   settings.set(
                     'namePattern',
@@ -191,17 +295,18 @@ function OutputTab() {
                 {token}
               </Button>
             ))}
-          </span>
-          <span className="text-[11.5px] leading-4 text-faint">{t('settings.patternHint')}</span>
-        </div>
+          </div>
+        </FieldRow>
 
-        <Toggle
-          checked={settings.autoOpen}
-          onChange={(value) => settings.set('autoOpen', value)}
-          label={t('settings.autoOpen')}
-        />
-      </div>
-    </Section>
+        <SettingRow label={t('settings.autoOpen')}>
+          <Switch
+            checked={settings.autoOpen}
+            onChange={(value) => settings.set('autoOpen', value)}
+            label={t('settings.autoOpen')}
+          />
+        </SettingRow>
+      </Group>
+    </div>
   );
 }
 
@@ -240,60 +345,64 @@ function StorageTab() {
   };
 
   return (
-    <Section
-      title={t('settings.tab.storage')}
-      aside={
-        <Button size="sm" variant="quiet" icon="refresh" onClick={refresh}>
-          {t('settings.reconnect')}
-        </Button>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <span className="field-label">{t('settings.tempDir')}</span>
-          <span className="truncate rounded-control bg-raised px-2.5 py-1.5 font-mono text-[12px] text-ink" title={info?.tempDir ?? ''}>
+    <div className="flex min-w-0 flex-col gap-4">
+      <Group
+        title={t('settings.tab.storage')}
+        action={
+          <Button size="sm" variant="quiet" icon="refresh" className="rounded-control" onClick={refresh}>
+            {t('settings.refresh')}
+          </Button>
+        }
+      >
+        <FieldRow label={t('settings.tempDir')}>
+          <div className="min-w-0 truncate rounded-control bg-raised px-2.5 py-1.5 font-mono text-[12px] leading-5 text-ink" title={info?.tempDir ?? ''}>
             {info?.tempDir ?? '—'}
-          </span>
-        </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Stat label={t('settings.statJobs')} value={String(usage?.jobs ?? '—')} />
+            <Stat label={t('settings.statFiles')} value={String(usage?.files ?? '—')} />
+            <Stat label={t('settings.statBytes')} value={usage ? formatBytes(usage.bytes) : '—'} />
+            <Stat
+              label={t('settings.statAge')}
+              value={usage?.oldestAt ? `${Math.max(0, Math.round((Date.now() - usage.oldestAt) / 86_400_000))}d` : '—'}
+            />
+          </div>
+        </FieldRow>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label={t('settings.statJobs')} value={String(usage?.jobs ?? '—')} />
-          <Stat label={t('settings.statFiles')} value={String(usage?.files ?? '—')} />
-          <Stat label={t('settings.statBytes')} value={usage ? formatBytes(usage.bytes) : '—'} />
-          <Stat
-            label={t('settings.statAge')}
-            value={usage?.oldestAt ? `${Math.max(0, Math.round((Date.now() - usage.oldestAt) / 86_400_000))}d` : '—'}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <span className="field-label">{t('settings.tempTtl')}</span>
+        <SettingRow label={t('settings.tempTtl')} hint={t('settings.tempTtlHint')}>
           <Segmented
             value={settings.tempTtlDays}
             onChange={(value) => settings.set('tempTtlDays', value)}
             options={[0, 1, 7, 30].map((value) => ({ value, label: value === 0 ? t('settings.off') : `${value}` }))}
           />
-          <span className="text-[11.5px] leading-4 text-faint">{t('settings.tempTtlHint')}</span>
-        </div>
+        </SettingRow>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" icon="trash" onClick={() => void clean(settings.tempTtlDays || 7)}>
-            {t('settings.cleanNow')}
+        <SettingRow label={t('settings.cleanupOnClose')} hint={t('settings.cleanupOnCloseHint')}>
+          <Switch
+            checked={settings.cleanupTempOnClose}
+            onChange={(value) => settings.set('cleanupTempOnClose', value)}
+            label={t('settings.cleanupOnClose')}
+          />
+        </SettingRow>
+
+        <SettingRow label={t('settings.cleanNow')}>
+          <Button variant="outline" size="sm" icon="trash" className="rounded-control" onClick={() => void clean(settings.tempTtlDays || 7)}>
+            {tf('settings.cleanOlder', { days: settings.tempTtlDays || 7 })}
           </Button>
-          <Button variant="quiet" onClick={() => void clean(0)}>
+          <Button variant="danger" size="sm" className="rounded-control" onClick={() => void clean(0)}>
             {t('settings.cleanAll')}
           </Button>
-        </div>
-      </div>
-    </Section>
+        </SettingRow>
+      </Group>
+    </div>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-control border border-line bg-surface px-2.5 py-2">
+    <div className="min-w-0 rounded-control border border-line bg-surface px-2.5 py-2">
       <div className="truncate font-mono text-[15px] leading-5 text-ink">{value}</div>
-      <div className="truncate text-[11px] text-faint" title={label}>
+      <div className="truncate text-[11px] leading-4 text-faint" title={label}>
         {label}
       </div>
     </div>
@@ -312,35 +421,32 @@ function AdvancedTab() {
   };
 
   return (
-    <Section title={t('settings.tab.advanced')}>
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <span className="field-label">{t('settings.concurrency')}</span>
+    <div className="flex min-w-0 flex-col gap-4">
+      <Group title={t('settings.tab.advanced')}>
+        <SettingRow label={t('settings.concurrency')} hint={t('settings.concurrencyHint')}>
           <Segmented
             value={settings.concurrency}
             onChange={(value) => settings.set('concurrency', value)}
             options={[1, 2, 3, 4].map((value) => ({ value, label: String(value) }))}
           />
-          <span className="text-[11.5px] leading-4 text-faint">{t('settings.concurrencyHint')}</span>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="font-path">{t('settings.font')}</Label>
-          <span className="flex gap-2">
+        </SettingRow>
+
+        <FieldRow label={t('settings.font')} htmlFor="font-path" hint={t('settings.fontHint')}>
+          <div className="flex min-w-0 items-center gap-2">
             <Input
               id="font-path"
-              className="font-mono"
+              className="min-w-0 flex-1 font-mono"
               placeholder={info?.features.cjkFont ?? '/System/Library/Fonts/…'}
               value={settings.fontPath ?? ''}
               onChange={(event) => settings.set('fontPath', event.target.value || null)}
             />
-            <Button variant="ghost" icon="file" className="shrink-0" onClick={() => void chooseFont()}>
+            <Button variant="outline" size="sm" icon="file" className="h-8 shrink-0 rounded-control" onClick={() => void chooseFont()}>
               {t('drop.browse')}
             </Button>
-          </span>
-          <span className="text-[11.5px] leading-4 text-faint">{t('settings.fontHint')}</span>
-        </div>
-      </div>
-    </Section>
+          </div>
+        </FieldRow>
+      </Group>
+    </div>
   );
 }
 
@@ -357,65 +463,59 @@ function EngineTab() {
   const platform =
     info?.platform === 'darwin' ? 'macOS' : info?.platform === 'win32' ? 'Windows' : info?.platform ?? '—';
 
-  const statusLabel = status === 'ready'
-    ? t('settings.engineStatus.ready')
-    : status === 'connecting'
-      ? t('settings.engineStatus.connecting')
-      : t('settings.engineStatus.offline');
-  const statusTone = status === 'ready' ? 'ok' : status === 'connecting' ? 'warn' : 'bad';
+  const statusLabel = status === 'ready' ? t('settings.engineStatus.ready') : t('settings.engineStatus.offline');
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <CardTitle>{t('settings.engineConnection')}</CardTitle>
-            <CardDescription>{t('settings.engineProtocolHint')}</CardDescription>
-          </div>
-          <Button size="sm" variant="quiet" icon="refresh" onClick={() => void reconnect()}>{t('settings.reconnect')}</Button>
-        </CardHeader>
-        <CardContent className="px-4 pb-3">
-          <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-            <Info label={t('settings.engineStatus')} value={statusLabel} tone={statusTone} />
-            <Info label={t('settings.runMode')} value={transportMode() === 'tauri' ? t('settings.engineMode.tauri') : t('settings.engineMode.web')} />
-          </dl>
-          {status !== 'ready' ? <p className={`mt-2 break-words text-[11.5px] leading-5 ${error ? 'text-bad' : 'text-muted'}`}>{error ?? t('engine.offlineHint')}</p> : null}
-        </CardContent>
-      </Card>
+    <div className="flex min-w-0 flex-col gap-4">
+      <Group
+        title={t('settings.engineConnection')}
+        action={
+          <Button size="sm" variant="quiet" icon="refresh" className="rounded-control" onClick={() => void reconnect()}>
+            {t('settings.reconnect')}
+          </Button>
+        }
+      >
+        <dl className="flex min-w-0 flex-col">
+          <DefinitionRow term={t('settings.engineStatus')} tone={status === 'ready' ? 'ok' : 'bad'}>
+            {statusLabel}
+          </DefinitionRow>
+          <DefinitionRow term={t('settings.runMode')}>
+            {transportMode() === 'tauri' ? t('settings.engineMode.tauri') : t('settings.engineMode.web')}
+          </DefinitionRow>
+        </dl>
+        {status !== 'ready' ? (
+          <p className={cn('pb-2 text-[11.5px] leading-5', error ? 'text-bad' : 'text-muted')}>
+            {error ?? t('engine.offlineHint')}
+          </p>
+        ) : null}
+      </Group>
 
-      <Card>
-        <CardHeader className="px-4 py-3">
-          <CardTitle>{t('settings.engineRuntime')}</CardTitle>
-          <CardDescription>{t('settings.engineRuntimeHint')}</CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pb-3">
-          <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-            <Info label={t('settings.engineVersion')} value={info ? `${info.name} ${info.version}` : '—'} />
-            <Info label={t('settings.engineNode')} value={info?.nodeVersion ?? '—'} />
-            <Info label={t('settings.engineProtocol')} value={info ? `JSON-RPC v${info.protocol}` : '—'} />
-            <Info label={t('settings.enginePid')} value={info ? String(info.pid) : '—'} />
-            <Info label={t('settings.platform')} value={platform} />
-          </dl>
-        </CardContent>
-      </Card>
+      <Group title={t('settings.engineRuntime')}>
+        <dl className="flex min-w-0 flex-col">
+          <DefinitionRow term={t('settings.engineVersion')}>{info ? `${info.name} ${info.version}` : '—'}</DefinitionRow>
+          <DefinitionRow term={t('settings.engineNode')}>{info?.nodeVersion ?? '—'}</DefinitionRow>
+          <DefinitionRow term={t('settings.engineProtocol')}>{info ? `JSON-RPC v${info.protocol}` : '—'}</DefinitionRow>
+          <DefinitionRow term={t('settings.enginePid')}>{info ? String(info.pid) : '—'}</DefinitionRow>
+          <DefinitionRow term={t('settings.platform')}>{platform}</DefinitionRow>
+        </dl>
+      </Group>
 
-      <Card>
-        <CardHeader className="px-4 py-3">
-          <CardTitle>{t('settings.engineCapabilities')}</CardTitle>
-          <CardDescription>{t('settings.engineCapabilitiesHint')}</CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pb-3">
-          <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-            <Info label={t('settings.rasterizer')} value={rasterOk ? t('settings.engineRaster.mupdf') : t('settings.engineRaster.none')} tone={rasterOk ? 'ok' : 'warn'} />
-            <Info label={t('settings.imageCodec')} value={codecOk ? t('settings.engineCodec.sharp') : t('settings.engineCodec.none')} tone={codecOk ? 'ok' : 'warn'} />
-            <Info label={t('settings.detectedFont')} value={fontPath ? t('settings.engineFont.ok') : t('settings.engineFont.none')} tone={fontPath ? 'ok' : 'warn'} />
-            <div className="grid min-w-0 grid-cols-[minmax(5.5rem,7rem)_minmax(0,1fr)] items-baseline gap-2 border-b border-line/70 py-1.5 sm:col-span-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
-              <dt className="text-[11.5px] text-faint">{t('settings.fontPath')}</dt>
-              <dd className="min-w-0 break-all font-mono text-[11.5px] text-muted" title={fontPath ?? ''}>{fontPath ?? '—'}</dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+      <Group title={t('settings.engineCapabilities')}>
+        <dl className="flex min-w-0 flex-col">
+          <DefinitionRow term={t('settings.rasterizer')} tone={rasterOk ? 'ok' : 'warn'}>
+            {rasterOk ? t('settings.engineRaster.mupdf') : t('settings.engineRaster.none')}
+          </DefinitionRow>
+          <DefinitionRow term={t('settings.imageCodec')} tone={codecOk ? 'ok' : 'warn'}>
+            {codecOk ? t('settings.engineCodec.sharp') : t('settings.engineCodec.none')}
+          </DefinitionRow>
+          <DefinitionRow term={t('settings.detectedFont')} tone={fontPath ? 'ok' : 'warn'}>
+            {fontPath ? t('settings.engineFont.ok') : t('settings.engineFont.none')}
+          </DefinitionRow>
+          <DefinitionRow term={t('settings.fontPath')} title={fontPath ?? ''}>
+            <span className="font-mono">{fontPath ?? '—'}</span>
+          </DefinitionRow>
+        </dl>
+      </Group>
     </div>
   );
 }
@@ -423,46 +523,55 @@ function EngineTab() {
 function AboutTab() {
   const { t } = useI18n();
   const info = useEngine((state) => state.info);
+  const securityItems = [
+    { key: 'local', icon: 'shield' },
+    { key: 'temporary', icon: 'trash' },
+    { key: 'sharing', icon: 'folder' },
+  ] as const;
+
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader className="px-4 py-3">
-          <CardTitle>{t('settings.security')}</CardTitle>
-          <CardDescription>{t('settings.securityHint')}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-          {(['local', 'temporary', 'sharing'] as const).map((item, index) => (
-            <div key={item} className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent"><Icon name={index === 0 ? 'shield' : index === 1 ? 'trash' : 'folder'} size={13} /></span>
-              <p className="text-[11.5px] leading-5 text-muted">{t(`settings.security.${item}`)}</p>
+    <div className="flex min-w-0 flex-col gap-4">
+      <Group title={t('settings.security')} description={t('settings.securityHint')}>
+        <div className="flex min-w-0 flex-col">
+          {securityItems.map(({ key, icon }) => (
+            <div key={key} className="flex min-w-0 items-center gap-2.5 py-2.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+                <Icon name={icon} size={13} />
+              </span>
+              <p className="min-w-0 flex-1 truncate text-[12px] leading-5 text-muted" title={t(`settings.security.${key}`)}>
+                {t(`settings.security.${key}`)}
+              </p>
             </div>
           ))}
-        </CardContent>
-      </Card>
-
-      <Section title={t('settings.about')}>
-        <div className="flex flex-col gap-3">
-          <dl className="divide-y divide-line/70 rounded-control bg-raised px-3 sm:px-4">
-            <AboutRow label={t('settings.author')}><span>pohoc</span></AboutRow>
-            <AboutRow label={t('settings.contact')}><a href="mailto:po.hoc4@gmail.com" className="break-all text-accent hover:underline">po.hoc4@gmail.com</a></AboutRow>
-            <AboutRow label={t('settings.version')}><span className="break-words font-mono">app 0.1.0 · engine {info?.version ?? '0.1.0'}</span></AboutRow>
-            <AboutRow label={t('settings.runMode')}><span className="break-words">{transportMode() === 'tauri' ? t('settings.engineMode.tauri') : t('settings.engineMode.web')}</span></AboutRow>
-          </dl>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-[11px] text-faint">{t('settings.copyright')}</span>
-            <ResetDialog />
-          </div>
         </div>
-      </Section>
-    </div>
-  );
-}
+      </Group>
 
-function AboutRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid min-w-0 grid-cols-[minmax(5.5rem,7rem)_minmax(0,1fr)] items-center gap-3 py-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
-      <dt className="text-[11.5px] text-faint">{label}</dt>
-      <dd className="min-w-0 text-right text-[12px] text-ink">{children}</dd>
+      <Group title={t('settings.about')}>
+        <dl className="flex min-w-0 flex-col">
+          <DefinitionRow term={t('settings.author')}>pohoc</DefinitionRow>
+          <DefinitionRow term={t('settings.contact')}>
+            <a href="mailto:po.hoc4@gmail.com" className="text-accent hover:underline">
+              po.hoc4@gmail.com
+            </a>
+          </DefinitionRow>
+          <DefinitionRow term={t('settings.license')}>
+            {t('settings.license.own')} ·{' '}
+            <a href="/licenses/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+              {t('settings.license.thirdParty')}
+            </a>
+          </DefinitionRow>
+          <DefinitionRow term={t('settings.version')}>
+            <span className="font-mono">app {APP_VERSION} · engine {info?.version ?? '—'}</span>
+          </DefinitionRow>
+          <DefinitionRow term={t('settings.runMode')}>
+            {transportMode() === 'tauri' ? t('settings.engineMode.tauri') : t('settings.engineMode.web')}
+          </DefinitionRow>
+        </dl>
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-3">
+          <span className="text-[11px] leading-4 text-faint">{t('settings.copyright')}</span>
+          <ResetDialog />
+        </div>
+      </Group>
     </div>
   );
 }
@@ -504,36 +613,5 @@ function ResetDialog() {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <span className="text-[13px] text-ink">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function Info({
-  label,
-  value,
-  tone,
-  wide,
-}: {
-  label: string;
-  value: string;
-  tone?: 'ok' | 'warn' | 'bad';
-  wide?: boolean;
-}) {
-  const color = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-warn' : tone === 'bad' ? 'text-bad' : 'text-ink';
-  return (
-    <div className={`grid min-w-0 grid-cols-[minmax(5.5rem,7rem)_minmax(0,1fr)] items-baseline gap-2 border-b border-line/70 py-1.5 sm:grid-cols-[8rem_minmax(0,1fr)] ${wide ? 'col-span-full' : ''}`}>
-      <dt className="text-[11.5px] text-faint">{label}</dt>
-      <dd className={`min-w-0 break-words text-[12px] ${color}`} title={value}>
-        {value}
-      </dd>
-    </div>
   );
 }

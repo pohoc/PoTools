@@ -1,12 +1,16 @@
 import { Tooltip as HeroTooltip } from '@heroui/react';
-import type { ComponentProps } from 'react';
+import { cloneElement, isValidElement, type ComponentProps } from 'react';
 import { cn } from '../../utils.ts';
 
 export const TooltipProvider = ({ children, delayDuration: _delayDuration }: { children: React.ReactNode; delayDuration?: number }) => <>{children}</>;
 export function Tooltip({ children, delayDuration, ...props }: ComponentProps<typeof HeroTooltip.Root> & { delayDuration?: number }) {
   return <HeroTooltip.Root delay={delayDuration} {...props}>{children}</HeroTooltip.Root>;
 }
-export function TooltipTrigger({ asChild: _asChild, delayDuration: _delayDuration, children, ...props }: ComponentProps<typeof HeroTooltip.Trigger> & { asChild?: boolean; delayDuration?: number }) {
+export function TooltipTrigger({ asChild = false, delayDuration: _delayDuration, children, ...props }: ComponentProps<typeof HeroTooltip.Trigger> & { asChild?: boolean; delayDuration?: number }) {
+  if (asChild && isValidElement(children)) {
+    const Trigger = HeroTooltip.Trigger as unknown as React.ComponentType<any>;
+    return <Trigger {...props} render={(triggerProps: React.HTMLAttributes<HTMLElement>) => cloneElement(children, { ...triggerProps, className: cn(triggerProps.className, (children.props as { className?: string }).className) } as never)} />;
+  }
   return <HeroTooltip.Trigger {...props}>{children}</HeroTooltip.Trigger>;
 }
 

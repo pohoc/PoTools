@@ -1,10 +1,15 @@
 import { Dropdown as HeroDropdown } from '@heroui/react';
-import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
+import { cloneElement, createContext, isValidElement, useContext, type ComponentProps, type ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../utils.ts';
 
 export const DropdownMenu = HeroDropdown.Root;
-export function DropdownMenuTrigger({ asChild: _asChild, children, ...props }: ComponentProps<typeof HeroDropdown.Trigger> & { asChild?: boolean }) { return <HeroDropdown.Trigger {...props}>{children}</HeroDropdown.Trigger>; }
+export function DropdownMenuTrigger({ asChild = false, children, ...props }: ComponentProps<typeof HeroDropdown.Trigger> & { asChild?: boolean }) {
+  if (asChild && isValidElement(children)) {
+    return <HeroDropdown.Trigger {...props} render={(triggerProps) => cloneElement(children, { ...triggerProps, className: cn(triggerProps.className, (children.props as { className?: string }).className) } as never)} />;
+  }
+  return <HeroDropdown.Trigger {...props}>{children}</HeroDropdown.Trigger>;
+}
 export const DropdownMenuGroup = ({ children }: { children: ReactNode }) => <>{children}</>;
 const RadioContext = createContext<{ value?: string; onValueChange?: (value: string) => void }>({});
 export function DropdownMenuRadioGroup({ value, onValueChange, children }: { value?: string; onValueChange?: (value: string) => void; children: ReactNode }) { return <RadioContext.Provider value={{ value, onValueChange }}>{children}</RadioContext.Provider>; }
@@ -26,15 +31,15 @@ export function DropdownMenuContent({
           className,
         )}
         {...props}
-      ><HeroDropdown.Menu>{children}</HeroDropdown.Menu></HeroDropdown.Popover>
+      ><div role="menu" className="outline-none">{children}</div></HeroDropdown.Popover>
   );
 }
 
 const itemClass =
   'relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-[12.5px] text-ink outline-none transition data-[highlighted]:bg-raised data-[disabled]:pointer-events-none data-[disabled]:opacity-45';
 
-export function DropdownMenuItem({ className, ...props }: ComponentProps<typeof HeroDropdown.Item>) {
-  return <HeroDropdown.Item className={cn(itemClass, className)} {...props} />;
+export function DropdownMenuItem({ className, onAction, ...props }: Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> & { onAction?: () => void; className?: string }) {
+  return <button type="button" role="menuitem" className={cn(itemClass, className)} onClick={() => onAction?.()} {...props} />;
 }
 
 export function DropdownMenuRadioItem({

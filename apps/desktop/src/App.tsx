@@ -1,8 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell.tsx';
-import { TooltipProvider } from './components/ui/tooltip.tsx';
-import { Toaster } from './components/ui/sonner.tsx';
+import { Button, Icon, ThemeProvider, Toaster, TooltipProvider } from '@potools/ui';
 import { Home } from './pages/Home.tsx';
 import { ToolPage } from './pages/ToolPage.tsx';
 import { QueuePage } from './pages/QueuePage.tsx';
@@ -11,10 +10,9 @@ import { useEngine } from './stores/engine.ts';
 import { useJobs } from './stores/jobs.ts';
 import { useI18n } from './i18n/index.tsx';
 import { useSettings } from './lib/settings.ts';
-import { Button } from './components/ui/button.tsx';
 import { TitleBar } from './components/TitleBar.tsx';
-import { Check, Clipboard, LoaderCircle, RotateCcw, ServerCrash } from 'lucide-react';
-import { useState } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { isTauri } from './lib/tauri.ts';
 
 export function App() {
   const boot = useEngine((state) => state.boot);
@@ -23,6 +21,7 @@ export function App() {
   const error = useEngine((state) => state.error);
   const attach = useJobs((state) => state.attach);
   const locale = useSettings((state) => state.locale);
+  const theme = useSettings((state) => state.theme);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -38,6 +37,18 @@ export function App() {
   }, [boot, attach]);
 
   useEffect(() => {
+    if (!isTauri()) return;
+    let disposed = false;
+    let stop: (() => void) | undefined;
+    void getCurrentWindow().onCloseRequested(async () => {
+      if (disposed || !useSettings.getState().cleanupTempOnClose) return;
+      const ttl = useSettings.getState().tempTtlDays;
+      await useEngine.getState().call('temp.clean', { olderThanDays: ttl || 7, keepJobs: 1 }).catch(() => undefined);
+    }).then((unlisten) => { stop = unlisten; });
+    return () => { disposed = true; stop?.(); };
+  }, []);
+
+  useEffect(() => {
     document.title = t('app.name');
   }, [locale, t]);
 
@@ -46,7 +57,8 @@ export function App() {
   }
 
   return (
-    <TooltipProvider delayDuration={250}>
+    <ThemeProvider mode={theme} onModeChange={(mode) => useSettings.getState().set('theme', mode)}>
+      <TooltipProvider delayDuration={250}>
       <AppShell>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -57,7 +69,8 @@ export function App() {
         </Routes>
       </AppShell>
       <Toaster />
-    </TooltipProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   );
 }
 
@@ -78,11 +91,11 @@ function EngineStartupScreen({ error, retry }: { error: string | null; retry: ()
         title={t('startup.title')}
       />
       <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-6 py-10">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(ellipse_at_52%_42%,rgb(var(--c-accent)/.09),transparent_46%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(ellipse_at_52%_42%,rgb(var(--ui-accent)/.09),transparent_46%)]" />
         <section className="relative w-full max-w-[460px]">
           <div className="mb-8 flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-2xl border border-accent/20 bg-accent-soft text-accent shadow-sm">
-              {error ? <ServerCrash size={22} /> : <LoaderCircle size={22} className="animate-spin motion-reduce:animate-none" />}
+              {error ? <Icon name="serverCrash" size={22} /> : <Icon name="spinner" size={22} className="animate-spin motion-reduce:animate-none" />}
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[.16em] text-accent">PoTools · Local processing</p>
@@ -97,8 +110,8 @@ function EngineStartupScreen({ error, retry }: { error: string | null; retry: ()
             <>
               <pre className="mt-6 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-surface/80 p-4 font-mono text-[11px] leading-5 text-muted">{report}</pre>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button onClick={retry}><RotateCcw size={14} />{t('startup.retry')}</Button>
-                <Button variant="secondary" onClick={() => void copyReport()}>{copied ? <Check size={14} /> : <Clipboard size={14} />}{copied ? t('startup.copied') : t('startup.copy')}</Button>
+                <Button onClick={retry}><Icon name="reset" size={14} />{t('startup.retry')}</Button>
+                <Button variant="secondary" onClick={() => void copyReport()}>{copied ? <Icon name="check" size={14} /> : <Icon name="clipboard" size={14} />}{copied ? t('startup.copied') : t('startup.copy')}</Button>
               </div>
               <p className="mt-4 text-[11px] leading-5 text-muted">{t('startup.privacy')}</p>
             </>

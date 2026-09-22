@@ -7,13 +7,11 @@ const enginePort = process.env.POTOOLS_ENGINE_PORT ?? '8787';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  define: {
-    // The dev proxy buffers SSE, so the event stream dials the engine directly.
-    __ENGINE_DIRECT__: JSON.stringify(`http://127.0.0.1:${enginePort}`),
-  },
   resolve: {
     alias: {
       core: fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
+      '@napi-rs/canvas': fileURLToPath(new URL('./src/shims/optional-canvas.ts', import.meta.url)),
+      '@napi-rs/canvas-darwin-x64': fileURLToPath(new URL('./src/shims/optional-canvas.ts', import.meta.url)),
     },
   },
   server: {

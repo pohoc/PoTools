@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ProbedPdf } from 'core';
-import { Icon } from '../components/Icon.tsx';
-import { Button } from '../components/ui.tsx';
-import { Button as ShadcnButton } from '../components/ui/button.tsx';
+import { Button, Icon } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { usePageThumbs } from '../lib/usePageThumbs.ts';
 import type { PickedFile } from '../lib/files.ts';
@@ -104,7 +102,7 @@ export function SplitCanvas({
           const cutBefore = cuts.includes(page - 1) && page > 1;
           return (
             <div key={page} className="flex items-stretch">
-              <ShadcnButton
+              <Button
                 type="button"
                 variant="ghost"
                 aria-label={t('split.cutHere')}
@@ -141,7 +139,7 @@ export function SplitCanvas({
                     </span>
                   )
                 )}
-              </ShadcnButton>
+              </Button>
               <figure className="flex w-[86px] shrink-0 flex-col overflow-hidden rounded-[6px] border border-line bg-surface">
                 <div className="flex aspect-[1/1.25] items-center justify-center bg-raised p-1">
                   {thumb ? (

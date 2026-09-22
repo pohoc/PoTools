@@ -1,9 +1,13 @@
 import { Popover as HeroPopover } from '@heroui/react';
-import type { ComponentProps, ReactNode } from 'react';
+import { cloneElement, isValidElement, type ComponentProps, type ReactNode } from 'react';
 import { cn } from '../../utils.ts';
 
 export const Popover = HeroPopover.Root;
-export function PopoverTrigger({ className, children, asChild: _asChild, ...props }: ComponentProps<typeof HeroPopover.Trigger> & { asChild?: boolean }) {
+export function PopoverTrigger({ className, children, asChild = false, ...props }: ComponentProps<typeof HeroPopover.Trigger> & { asChild?: boolean }) {
+  if (asChild && isValidElement(children)) {
+    const Trigger = HeroPopover.Trigger as unknown as React.ComponentType<any>;
+    return <Trigger {...props} render={(triggerProps: React.HTMLAttributes<HTMLElement>) => cloneElement(children, { ...triggerProps, className: cn(triggerProps.className, (children.props as { className?: string }).className) } as never)} />;
+  }
   return <HeroPopover.Trigger className={className} {...props}>{children}</HeroPopover.Trigger>;
 }
 

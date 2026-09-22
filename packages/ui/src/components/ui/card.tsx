@@ -3,7 +3,7 @@ import { Card as HeroCard, CardHeader as HeroCardHeader, CardContent as HeroCard
 import { cn } from '../../utils.ts';
 
 export const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <HeroCard ref={ref} className={className} {...(props as unknown as React.ComponentProps<typeof HeroCard>)} />
+  <HeroCard ref={ref} className={cn('rounded-card border border-line bg-surface text-ink shadow-card', className)} {...(props as unknown as React.ComponentProps<typeof HeroCard>)} />
 ));
 Card.displayName = 'Card';
 

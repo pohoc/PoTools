@@ -1,17 +1,13 @@
+import { Icon } from '@potools/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, Link } from 'react-router-dom';
 import type { JobSnapshot, ToolDescriptor, ToolId } from 'core';
 import { TOOLS } from 'core';
-import { Icon } from '../components/Icon.tsx';
-import { Button, Section } from '../components/ui.tsx';
-import { Button as ShadcnButton } from '../components/ui/button.tsx';
-import { Badge } from '../components/ui/badge.tsx';
-import { Card } from '../components/ui/card.tsx';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.tsx';
+import { Button, Section, Badge, Card, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@potools/ui';
 import { DropZone } from '../components/DropZone.tsx';
 import { FileList } from '../components/FileList.tsx';
 import { areOptionsValid, OptionForm } from '../components/OptionForm.tsx';
-import { ResultPanel } from '../components/ResultPanel.tsx';
+import { ResultPanel, TextRunPanel } from '../components/ResultPanel.tsx';
 import { PageGrid, slotsFromProbes, type Slot } from './PageGrid.tsx';
 import { SplitCanvas, groupsFromCuts } from './SplitCanvas.tsx';
 import { useI18n } from '../i18n/index.tsx';
@@ -22,11 +18,11 @@ import { useSettings } from '../lib/settings.ts';
 import { formatBytes } from '../lib/format.ts';
 import { kindFor } from '../lib/files.ts';
 import { usePageThumbs } from '../lib/usePageThumbs.ts';
-import { Minus, Plus, RotateCcw, RotateCw, Maximize2 } from 'lucide-react';
 import { ImageStudioEditor } from '../components/ImageStudioEditor.tsx';
 import type { PickedFile } from '../lib/files.ts';
 import type { ProbedPdf } from 'core';
 import { InvoiceOrganizerPage } from './InvoiceOrganizerPage.tsx';
+import { ToolWorkspaceLayout } from '../components/PageLayout.tsx';
 
 export function ToolPage() {
   const { toolId } = useParams<{ toolId: string }>();
@@ -40,6 +36,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   const { t, tf } = useI18n();
   const draft = useToolDraft(descriptor);
   const status = useEngine((state) => state.status);
+  const info = useEngine((state) => state.info);
   const reconnect = useEngine((state) => state.reconnect);
   const jobs = useJobs((state) => state.jobs);
   const settings = useSettings();
@@ -51,6 +48,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
 
   const organizer = descriptor.layout === 'organizer';
   const splitter = descriptor.layout === 'splitter';
+  const needsFiles = descriptor.requiresInput !== false;
   const [cuts, setCuts] = useState<number[]>([]);
   const total = useMemo(
     () => Object.values(draft.probes).reduce((sum, probe) => sum + probe.pageCount, 0),
@@ -83,7 +81,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
     return draft.options.rangesAsOne ? 1 : Math.max(1, ranges);
   }, [descriptor.layout, draft.options, total]);
 
-  const canRun = draft.files.length > 0 && status === 'ready' && areOptionsValid(descriptor.fields, draft.options) && (!organizer || slots.length > 0) && (!imageStudio || preparedPortrait !== null);
+  const canRun = (!needsFiles || draft.files.length > 0) && status === 'ready' && areOptionsValid(descriptor.fields, draft.options) && (!organizer || slots.length > 0) && (!imageStudio || preparedPortrait !== null);
 
   const onRun = async () => {
     if (organizer) {
@@ -106,78 +104,173 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   };
 
   const error = draft.error ? describeError(draft.error, t) : null;
+  const textLayout = descriptor.layout === 'text';
+  const outputDir = settings.outputDir ?? info?.defaultOutputDir ?? '';
+
+  const header = (
+    <div className="flex min-w-0 items-start gap-3">
+      <Button asChild variant="outline" size="icon" className="mt-0.5">
+        <Link
+          to="/"
+          title={t('nav.tools')}
+          aria-label={t('nav.tools')}
+        >
+          <Icon name="chevronRight" size={15} className="rotate-180" />
+        </Link>
+      </Button>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-[16px] font-semibold tracking-tight">{t(descriptor.nameKey)}</h2>
+          <Badge variant="outline">{t(`workflow.${descriptor.workflow}`)}</Badge>
+          {descriptor.multiFile ? <Badge variant="outline">{t('run.multiHint')}</Badge> : null}
+        </div>
+        <p className="mt-0.5 text-[12.5px] leading-5 text-muted">{t(descriptor.descKey)}</p>
+      </div>
+    </div>
+  );
+
+  const engineNotice = status !== 'ready' ? (
+    <Card className="flex flex-wrap items-center gap-3 border-bad/40 bg-bad/5 px-4 py-3">
+      <Icon name="warning" size={16} className="text-bad" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium text-ink">{t('engine.offline')}</p>
+        <p className="text-[11.5px] leading-5 text-muted">{t('engine.offlineHint')}</p>
+      </div>
+      <Button variant="ghost" icon="refresh" onClick={() => void reconnect()}>
+        {t('settings.reconnect')}
+      </Button>
+    </Card>
+  ) : null;
+
+  const optionsSection = (
+    <Section
+      title={t('tool.options')}
+      aside={
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto shrink-0 p-0 text-[11.5px] text-faint hover:text-ink"
+          onClick={draft.resetOptions}
+        >
+          {t('common.reset')}
+        </Button>
+      }
+    >
+      <OptionForm fields={descriptor.fields} values={draft.options} onChange={draft.setOption} />
+      {splitPreview ? (
+        <p className="mt-3 rounded-control bg-raised px-2.5 py-2 text-[11.5px] text-muted">
+          {tf('result.artifacts', { count: splitPreview })}
+          {total ? ` · ${tf('organizer.pages', { count: total })}` : ''}
+        </p>
+      ) : null}
+    </Section>
+  );
+
+  const runPanel = (
+    <div className="flex flex-col gap-2">
+      {error && !textLayout ? (
+        <p className="flex items-start gap-1.5 rounded-control bg-bad/10 px-2.5 py-2 text-[12px] leading-5 text-ink">
+          <Icon name="warning" size={13} className="mt-[3px] shrink-0 text-bad" />
+          {error}
+        </p>
+      ) : null}
+      <Button
+        variant="primary"
+        size="lg"
+        icon="play"
+        busy={draft.running}
+        disabled={!canRun}
+        className="w-full"
+        onClick={() => void onRun()}
+      >
+        {draft.running ? t('run.running') : t('run.button')}
+      </Button>
+      {imageStudio && !preparedPortrait ? <p className="text-center text-[11px] leading-4 text-faint">{t('imageStudio.needFile')}</p> : null}
+      {textLayout ? (
+        <p className="text-center text-[11px] leading-4 text-faint">{t('result.textOnlyHint')}</p>
+      ) : (
+        <p className="text-center text-[11px] leading-4 text-faint">
+          {settings.outputDir ? (
+            <>
+              {t('result.outputDir')} ·{' '}
+              <span className="font-mono" title={settings.outputDir}>
+                {shorten(settings.outputDir)}
+              </span>
+            </>
+          ) : (
+            t('result.noDir')
+          )}
+        </p>
+      )}
+    </div>
+  );
+
+  const resultPanel = textLayout ? (
+    <TextRunPanel
+      defaultName={`${descriptor.id}.txt`}
+      result={draft.textResult}
+      error={error}
+      errorCode={draft.errorCode}
+      running={draft.running}
+      onRetry={() => void onRun()}
+    />
+  ) : (
+    <ResultPanel job={job} onRetry={() => void onRun()} />
+  );
+
+  if (textLayout) {
+    return (
+      <ToolWorkspaceLayout header={header} width="text">
+        {engineNotice}
+        {optionsSection}
+        {runPanel}
+        {resultPanel}
+      </ToolWorkspaceLayout>
+    );
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
-      <div className="flex min-w-0 items-start gap-3">
-        <ShadcnButton asChild variant="outline" size="icon" className="mt-0.5">
-          <Link
-            to="/"
-            title={t('nav.tools')}
-            aria-label={t('nav.tools')}
-          >
-            <Icon name="chevronRight" size={15} className="rotate-180" />
-          </Link>
-        </ShadcnButton>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[16px] font-semibold tracking-tight">{t(descriptor.nameKey)}</h2>
-            <Badge variant="outline">{t(`workflow.${descriptor.workflow}`)}</Badge>
-            {descriptor.multiFile ? <Badge variant="outline">{t('run.multiHint')}</Badge> : null}
-          </div>
-          <p className="mt-0.5 text-[12.5px] leading-5 text-muted">{t(descriptor.descKey)}</p>
-        </div>
-      </div>
-
-      {status !== 'ready' ? (
-        <Card className="flex flex-wrap items-center gap-3 border-bad/40 bg-bad/5 px-4 py-3">
-          <Icon name="warning" size={16} className="text-bad" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-medium text-ink">{t('engine.offline')}</p>
-            <p className="text-[11.5px] leading-5 text-muted">{t('engine.offlineHint')}</p>
-          </div>
-          <Button variant="ghost" icon="refresh" onClick={() => void reconnect()}>
-            {t('settings.reconnect')}
-          </Button>
-        </Card>
-      ) : null}
+    <ToolWorkspaceLayout header={header}>
+      {engineNotice}
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_336px]">
         <div className="flex min-w-0 flex-col gap-4">
-          <Section
-            title={t('drop.title')}
-            aside={
-              draft.files.length ? (
-                <span className="flex shrink-0 items-center gap-2 text-[11.5px] text-faint">
-                  {tf('file.count', { count: draft.files.length })}
-                  {total ? ` · ${tf('organizer.pages', { count: total })}` : ''}
-                  <Button variant="link" size="sm" className="h-auto p-0 text-[11.5px]" onClick={draft.clear}>
-                    {t('common.reset')}
-                  </Button>
-                </span>
-              ) : null
-            }
-          >
-            <div className="flex flex-col gap-3">
-              <DropZone
-                accept={kindFor(descriptor.accept)}
-                multiple={descriptor.multiFile}
-                compact={draft.files.length > 0}
-                busy={draft.probing}
-                onFiles={(files) => draft.addFiles(files)}
-              />
-              {draft.files.length ? (
-                <FileList
-                  files={draft.files}
-                  probes={draft.probes}
-                  probing={draft.probing}
-                  orderSensitive={descriptor.orderSensitive}
-                  onReorder={draft.reorder}
-                  onRemove={draft.removeFile}
+          {needsFiles ? (
+            <Section
+              title={t('drop.title')}
+              aside={
+                draft.files.length ? (
+                  <span className="flex shrink-0 items-center gap-2 text-[11.5px] text-faint">
+                    {tf('file.count', { count: draft.files.length })}
+                    {total ? ` · ${tf('organizer.pages', { count: total })}` : ''}
+                    <Button variant="link" size="sm" className="h-auto p-0 text-[11.5px]" onClick={draft.clear}>
+                      {t('common.reset')}
+                    </Button>
+                  </span>
+                ) : null
+              }
+            >
+              <div className="flex flex-col gap-3">
+                <DropZone
+                  accept={kindFor(descriptor.accept)}
+                  multiple={descriptor.multiFile}
+                  compact={draft.files.length > 0}
+                  busy={draft.probing}
+                  onFiles={(files) => draft.addFiles(files)}
                 />
-              ) : null}
-            </div>
-          </Section>
+                {draft.files.length ? (
+                  <FileList
+                    files={draft.files}
+                    probes={draft.probes}
+                    probing={draft.probing}
+                    orderSensitive={descriptor.orderSensitive}
+                    onReorder={draft.reorder}
+                    onRemove={draft.removeFile}
+                  />
+                ) : null}
+              </div>
+            </Section>
+          ) : null}
 
           {imageStudio ? (
             <Section title={t('imageStudio.preview')}>
@@ -219,67 +312,15 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
             />
           ) : null}
 
-          <ResultPanel job={job} onRetry={() => void onRun()} />
+          {resultPanel}
         </div>
 
-        <div className="flex flex-col gap-3 lg:sticky lg:top-0">
-          <Section
-            title={t('tool.options')}
-            aside={
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto shrink-0 p-0 text-[11.5px] text-faint hover:text-ink"
-                onClick={draft.resetOptions}
-              >
-                {t('common.reset')}
-              </Button>
-            }
-          >
-            <OptionForm fields={descriptor.fields} values={draft.options} onChange={draft.setOption} />
-            {splitPreview ? (
-              <p className="mt-3 rounded-control bg-raised px-2.5 py-2 text-[11.5px] text-muted">
-                {tf('result.artifacts', { count: splitPreview })}
-                {total ? ` · ${tf('organizer.pages', { count: total })}` : ''}
-              </p>
-            ) : null}
-          </Section>
-
-          <div className="flex flex-col gap-2">
-            {error ? (
-              <p className="flex items-start gap-1.5 rounded-control bg-bad/10 px-2.5 py-2 text-[12px] leading-5 text-ink">
-                <Icon name="warning" size={13} className="mt-[3px] shrink-0 text-bad" />
-                {error}
-              </p>
-            ) : null}
-            <Button
-              variant="primary"
-              size="lg"
-              icon="play"
-              busy={draft.running}
-              disabled={!canRun}
-              className="w-full"
-              onClick={() => void onRun()}
-            >
-              {draft.running ? t('run.running') : t('run.button')}
-            </Button>
-            {imageStudio && !preparedPortrait ? <p className="text-center text-[11px] leading-4 text-faint">{t('imageStudio.needFile')}</p> : null}
-            <p className="text-center text-[11px] leading-4 text-faint">
-              {settings.outputDir ? (
-                <>
-                  {t('result.outputDir')} ·{' '}
-                  <span className="font-mono" title={settings.outputDir}>
-                    {shorten(settings.outputDir)}
-                  </span>
-                </>
-              ) : (
-                t('result.noDir')
-              )}
-            </p>
-          </div>
+        <div className="flex flex-col gap-3 lg:sticky lg:top-4">
+          {optionsSection}
+          {runPanel}
         </div>
       </div>
-    </div>
+    </ToolWorkspaceLayout>
   );
 }
 
@@ -353,13 +394,13 @@ function InputPreview({
           </DialogHeader>
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-3 py-2">
             <div className="flex items-center gap-1">
-              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.zoomOut')} title={t('preview.zoomOut')} disabled={zoom <= 0.25} onClick={() => setZoom((value) => Math.max(0.25, Math.round((value - 0.25) * 100) / 100))}><Minus size={14} /></ShadcnButton>
+              <Button variant="outline" size="icon-sm" aria-label={t('preview.zoomOut')} title={t('preview.zoomOut')} disabled={zoom <= 0.25} onClick={() => setZoom((value) => Math.max(0.25, Math.round((value - 0.25) * 100) / 100))}><Icon name="minus" size={14} /></Button>
               <span className="w-12 text-center text-[11px] tabular-nums text-muted">{Math.round(zoom * 100)}%</span>
-              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.zoomIn')} title={t('preview.zoomIn')} disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, Math.round((value + 0.25) * 100) / 100))}><Plus size={14} /></ShadcnButton>
-              <ShadcnButton variant="outline" size="sm" className="ml-1" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>{t('preview.fit')}</ShadcnButton>
-              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.rotateLeft')} title={t('preview.rotateLeft')} onClick={() => setRotation((value) => value - 90)}><RotateCcw size={14} /></ShadcnButton>
-              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.rotateRight')} title={t('preview.rotateRight')} onClick={() => setRotation((value) => value + 90)}><RotateCw size={14} /></ShadcnButton>
-              <ShadcnButton variant="outline" size="icon-sm" aria-label={t('preview.reset')} title={t('preview.reset')} onClick={() => { setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}><Maximize2 size={14} /></ShadcnButton>
+              <Button variant="outline" size="icon-sm" aria-label={t('preview.zoomIn')} title={t('preview.zoomIn')} disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, Math.round((value + 0.25) * 100) / 100))}><Icon name="plus" size={14} /></Button>
+              <Button variant="outline" size="sm" className="ml-1" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>{t('preview.fit')}</Button>
+              <Button variant="outline" size="icon-sm" aria-label={t('preview.rotateLeft')} title={t('preview.rotateLeft')} onClick={() => setRotation((value) => value - 90)}><Icon name="reset" size={14} /></Button>
+              <Button variant="outline" size="icon-sm" aria-label={t('preview.rotateRight')} title={t('preview.rotateRight')} onClick={() => setRotation((value) => value + 90)}><Icon name="rotate-cw" size={14} /></Button>
+              <Button variant="outline" size="icon-sm" aria-label={t('preview.reset')} title={t('preview.reset')} onClick={() => { setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}><Icon name="maximize2" size={14} /></Button>
             </div>
             <span className="hidden text-[11px] text-faint sm:inline">{t('preview.zoomHint')}</span>
           </div>
@@ -397,8 +438,8 @@ function InputPreview({
           <DialogFooter className="m-0 shrink-0 justify-between border-t border-line px-4 py-3 sm:justify-between">
             <span className="text-[11px] text-faint">{t('preview.clickHint')}</span>
             <div className="flex gap-2">
-              <ShadcnButton variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, -1)} onClick={() => { setActive((current) => adjacentPage(wanted, current, -1)); setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}>{t('preview.previous')}</ShadcnButton>
-              <ShadcnButton variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, 1)} onClick={() => { setActive((current) => adjacentPage(wanted, current, 1)); setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}>{t('preview.next')}</ShadcnButton>
+              <Button variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, -1)} onClick={() => { setActive((current) => adjacentPage(wanted, current, -1)); setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}>{t('preview.previous')}</Button>
+              <Button variant="outline" size="sm" disabled={!active || !hasAdjacentPage(wanted, active, 1)} onClick={() => { setActive((current) => adjacentPage(wanted, current, 1)); setZoom(1); setRotation(0); setPan({ x: 0, y: 0 }); }}>{t('preview.next')}</Button>
             </div>
           </DialogFooter>
         </DialogContent>

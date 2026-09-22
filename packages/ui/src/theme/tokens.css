@@ -1,8 +1,8 @@
 /* Public semantic tokens. Components must consume roles, never these raw values directly. */
 :root {
-  --ui-canvas: 246 247 250;
+  --ui-canvas: 244 244 246;
   --ui-surface: 255 255 255;
-  --ui-raised: 240 242 246;
+  --ui-raised: 235 235 238;
   --ui-line: 224 227 234;
   --ui-ink: 23 27 36;
   --ui-muted: 96 104 119;
@@ -11,8 +11,11 @@
   --ui-accent-soft: 243 244 246;
   --ui-accent-ink: 255 255 255;
   --ui-ok: 21 128 61;
+  --ui-ok-ink: 255 255 255;
   --ui-warn: 180 83 9;
+  --ui-warn-ink: 255 255 255;
   --ui-bad: 190 18 60;
+  --ui-bad-ink: 255 255 255;
   --ui-checker-light: 255 255 255;
   --ui-checker-dark: 229 231 235;
   /* Shape scale: controls < fields < cards < overlays < pills. */
@@ -34,31 +37,32 @@
   --ui-space-10: 40px;
   /* Semantic elevation and motion. */
   --ui-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+  --ui-shadow-control: 0 1px 2px rgb(15 23 42 / 0.08);
   --ui-shadow-overlay: 0 12px 40px -12px rgb(15 23 42 / 0.28);
+  --ui-overlay-backdrop: rgb(15 23 42 / 0.24);
+  --ui-focus-ring: 0 0 0 2px rgb(var(--ui-accent) / 0.28);
+  --ui-focus-ring-strong: 0 0 0 3px rgb(var(--ui-accent) / 0.22);
+  --ui-border-width: 1px;
+  --ui-control-sm: 32px;
+  --ui-control-md: 36px;
+  --ui-control-lg: 40px;
+  --ui-textarea-min-height: 80px;
+  --ui-disabled-opacity: 0.5;
+  --ui-font-label: 12px;
+  --ui-font-helper: 11.5px;
+  --ui-font-body: 13px;
+  --ui-font-caption: 12px;
+  --ui-font-micro: 11px;
+  --ui-line-height-control: 1.25;
   --ui-motion-fast: 120ms;
   --ui-motion-normal: 180ms;
   --ui-motion-slow: 260ms;
-
-  /* Compatibility aliases for the current Tailwind utility vocabulary. */
-  --c-canvas: var(--ui-canvas);
-  --c-surface: var(--ui-surface);
-  --c-raised: var(--ui-raised);
-  --c-line: var(--ui-line);
-  --c-ink: var(--ui-ink);
-  --c-muted: var(--ui-muted);
-  --c-faint: var(--ui-faint);
-  --c-accent: var(--ui-accent);
-  --c-accent-soft: var(--ui-accent-soft);
-  --c-accent-ink: var(--ui-accent-ink);
-  --c-ok: var(--ui-ok);
-  --c-warn: var(--ui-warn);
-  --c-bad: var(--ui-bad);
 }
 
 .dark {
-  --ui-canvas: 16 18 23;
+  --ui-canvas: 18 21 27;
   --ui-surface: 25 28 35;
-  --ui-raised: 35 39 48;
+  --ui-raised: 38 43 52;
   --ui-line: 47 52 64;
   --ui-ink: 232 235 240;
   --ui-muted: 154 162 176;
@@ -67,12 +71,19 @@
   --ui-accent-soft: 39 39 42;
   --ui-accent-ink: 17 24 39;
   --ui-ok: 74 222 128;
+  --ui-ok-ink: 17 24 39;
   --ui-warn: 251 191 36;
+  --ui-warn-ink: 17 24 39;
   --ui-bad: 248 113 113;
+  --ui-bad-ink: 17 24 39;
   --ui-checker-light: 25 28 35;
   --ui-checker-dark: 47 52 64;
   --ui-shadow-card: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 24px -12px rgb(0 0 0 / 0.45);
+  --ui-shadow-control: 0 1px 2px rgb(0 0 0 / 0.22);
   --ui-shadow-overlay: 0 16px 48px -16px rgb(0 0 0 / 0.65);
+  --ui-overlay-backdrop: rgb(0 0 0 / 0.52);
+  --ui-focus-ring: 0 0 0 2px rgb(var(--ui-accent) / 0.42);
+  --ui-focus-ring-strong: 0 0 0 3px rgb(var(--ui-accent) / 0.34);
 }
 
 @media (prefers-reduced-motion: reduce) {
