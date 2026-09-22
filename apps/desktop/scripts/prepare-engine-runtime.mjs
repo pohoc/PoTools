@@ -212,6 +212,10 @@ else console.log(`[engine-runtime] no bundled Node download required for ${platf
 
 if (targetPlatform === 'windows' || targetPlatform === 'macos') {
   await stageRuntimeModules();
+  await cp(
+    fileURLToPath(new URL('../public/licenses/Node.js-22.20.0.txt', import.meta.url)),
+    join(engineDist, 'node-runtime-LICENSE.txt'),
+  );
 } else {
   console.log(`[engine-runtime] skipping native runtime module staging for ${platform ?? 'unknown platform'}`);
 }

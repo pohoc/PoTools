@@ -1,24 +1,19 @@
 import { dirname, join, basename } from 'node:path';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { pathToFileURL } from 'node:url';
 import JSZip from 'jszip';
-import { rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import { baseName, renderName } from '../lib/naming.ts';
 import { bool, num, str } from '../lib/options.ts';
 import { createDocument, sizePreset } from '../lib/pdf.ts';
-import { textFont } from '../lib/fonts.ts';
-import { readDocx, readPptx, readXlsx } from '../lib/office.ts';
+import { resolveFontPath, textFont } from '../lib/fonts.ts';
+import { readXlsx } from '../lib/office.ts';
+import { convertOfficeLocally } from '../lib/document-builder.ts';
 import { mmToPt, readOfd } from '../lib/ofd.ts';
 import { parseMarkdown } from '../lib/textfmt.ts';
 import { Typesetter, wrapText, type TypesetImage } from '../lib/typesetter.ts';
 import { EngineError } from '../errors.ts';
 import type { ToolContext, ToolImpl } from '../types.ts';
-
-const execFileAsync = promisify(execFile);
 
 async function saveAndEmit(
   ctx: ToolContext,
@@ -36,24 +31,20 @@ const wordToPdf: ToolImpl = {
   async run(ctx) {
     let pages = 0;
     for (const [index, input] of ctx.inputs.entries()) {
-      const { blocks, images } = await readDocx(input.bytes);
-      if (!blocks.length) throw new EngineError('empty_selection', `${input.name} 没有可导入的段落`);
-      const box = sizePreset(str(ctx.options, 'pageSize')) ?? { width: 595.28, height: 841.89 };
-      const out = await createDocument();
-      const typesetter = new Typesetter(out, box, num(ctx.options, 'margin'), undefined, ctx.globals.fontPath);
-      await typesetter.block(blocks, {
-        imageFor: (block): TypesetImage | null => {
-          const key = block.src?.split('/').pop();
-          const bytes = key ? images.get(key) : undefined;
-          return bytes ? { bytes } : null;
-        },
+      if (!input.name.toLowerCase().endsWith('.docx')) {
+        throw new EngineError('bad_request', `${input.name} 格式不匹配；此工具只接受 .docx 文件。`);
+      }
+      await validateOfficeContainer(input.bytes, 'docx', input.name);
+      const bytes = await convertOfficeLocally(input.bytes, 'docx', 'pdf', {
+        mode: 'word-to-pdf',
+        pageSize: str(ctx.options, 'pageSize') || 'a4',
+        marginPt: num(ctx.options, 'margin'),
+        fontPath: resolveFontPath(ctx.globals.fontPath),
       });
-      pages += await saveAndEmit(
-        ctx,
-        out,
-        renderName(ctx.namePattern, { name: baseName(input.name), tool: 'word-pdf' }, 'pdf'),
-        input.id,
-      );
+      const pdf = await PDFDocument.load(bytes);
+      if (pdf.getPageCount() === 0) throw new EngineError('empty_selection', `${input.name} 没有可导出的页面`);
+      pages += pdf.getPageCount();
+      await ctx.emitPdf(renderName(ctx.namePattern, { name: baseName(input.name), tool: 'word-pdf' }, 'pdf'), bytes, input.id);
       ctx.report({ percent: Math.round(((index + 1) / ctx.inputs.length) * 100), current: index + 1, total: ctx.inputs.length });
     }
     return { pageCountOut: pages };
@@ -61,10 +52,10 @@ const wordToPdf: ToolImpl = {
 };
 
 /**
- * Converts only paired legacy/OOXML formats. LibreOffice performs the feature
- * mapping; basic CFB signatures or the required OOXML/OPC package parts are
- * checked before a result is exposed to the user. This does not claim full
- * schema validation or lossless preservation of every Office feature.
+ * Converts paired legacy/OOXML formats in a local Document Builder process.
+ * Basic CFB signatures or required OOXML/OPC package parts are checked before
+ * output is exposed. Full schema validation or lossless feature preservation
+ * is not claimed.
  */
 const OFFICE_PAIRS = [
   { id: 'doc-to-docx', from: 'doc', to: 'docx', kind: 'docx' },
@@ -75,79 +66,24 @@ const OFFICE_PAIRS = [
   { id: 'pptx-to-ppt', from: 'pptx', to: 'ppt', kind: 'ppt' },
 ] as const;
 
-const OFFICE_EXECUTABLES = process.platform === 'win32'
-  ? ['soffice.exe', 'soffice']
-  : process.platform === 'darwin'
-    ? ['/Applications/LibreOffice.app/Contents/MacOS/soffice', 'soffice', 'libreoffice']
-    : ['soffice', 'libreoffice'];
-
-async function findOfficeExecutable(): Promise<string | null> {
-  for (const candidate of OFFICE_EXECUTABLES) {
-    try {
-      await execFileAsync(candidate, ['--version'], { timeout: 8_000, windowsHide: true });
-      return candidate;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') return candidate;
-    }
-  }
-  return null;
-}
-
 function officePairTool(pair: (typeof OFFICE_PAIRS)[number]): ToolImpl {
   return {
     id: pair.id,
     async run(ctx) {
-      const executable = await findOfficeExecutable();
-      if (!executable) {
-        throw new EngineError('unsupported', '此类格式转换需要在本机安装 LibreOffice。');
-      }
-      const root = await mkdtemp(join(tmpdir(), 'potools-office-'));
-      const inputDir = join(root, 'input');
-      const outputDir = join(root, 'output');
-      const profileDir = join(root, 'profile');
-      const { mkdir } = await import('node:fs/promises');
-      await Promise.all([mkdir(inputDir), mkdir(outputDir), mkdir(profileDir)]);
-      try {
-        for (const [index, input] of ctx.inputs.entries()) {
-          if (!input.name.toLowerCase().endsWith(`.${pair.from}`)) {
-            throw new EngineError('bad_request', `${input.name} 格式不匹配；此工具只接受 .${pair.from} 文件。`);
-          }
-          await validateOfficeContainer(input.bytes, pair.from, input.name);
-          const cleanName = basename(input.name).replace(/[\\/:*?"<>|]/g, '_').replace(/\.${pair.from}$/i, '') || `file-${index + 1}`;
-          const source = join(inputDir, `${index + 1}-${cleanName}.${pair.from}`);
-          const output = join(outputDir, `${index + 1}-${cleanName}.${pair.to}`);
-          await writeFile(source, input.bytes);
-          try {
-            await execFileAsync(
-              executable,
-              [
-                '--headless', '--nologo', '--nodefault', '--nolockcheck', '--norestore',
-                `-env:UserInstallation=${pathToFileURL(profileDir).href}`,
-                '--convert-to', pair.to, '--outdir', outputDir, source,
-              ],
-              { timeout: 120_000, maxBuffer: 8 * 1024 * 1024, windowsHide: true },
-            );
-          } catch (error) {
-            const detail = error instanceof Error ? error.message : String(error);
-            throw new EngineError('unreadable_file', `无法转换 ${input.name}：${detail}`);
-          }
-          let bytes: Uint8Array;
-          try {
-            bytes = new Uint8Array(await readFile(output));
-          } catch {
-            throw new EngineError('unreadable_file', `${input.name} 转换失败；请确认文件未损坏并可由 LibreOffice 打开。`);
-          }
-          await validateOfficeContainer(bytes, pair.to, `${input.name} 转换结果`);
-          await ctx.emit({
-            name: renderName(ctx.namePattern, { name: baseName(input.name), tool: pair.to }, pair.to),
-            kind: pair.kind,
-            bytes,
-            sourceFileId: input.id,
-          });
-          ctx.report({ percent: Math.round(((index + 1) / ctx.inputs.length) * 100), current: index + 1, total: ctx.inputs.length });
+      for (const [index, input] of ctx.inputs.entries()) {
+        if (!input.name.toLowerCase().endsWith(`.${pair.from}`)) {
+          throw new EngineError('bad_request', `${input.name} 格式不匹配；此工具只接受 .${pair.from} 文件。`);
         }
-      } finally {
-        await rm(root, { recursive: true, force: true });
+        await validateOfficeContainer(input.bytes, pair.from, input.name);
+        const bytes = await convertOfficeLocally(input.bytes, pair.from, pair.to);
+        await validateOfficeContainer(bytes, pair.to, `${input.name} 转换结果`);
+        await ctx.emit({
+          name: renderName(ctx.namePattern, { name: baseName(input.name), tool: pair.to }, pair.to),
+          kind: pair.kind,
+          bytes,
+          sourceFileId: input.id,
+        });
+        ctx.report({ percent: Math.round(((index + 1) / ctx.inputs.length) * 100), current: index + 1, total: ctx.inputs.length });
       }
       return { pageCountOut: ctx.inputs.length };
     },
@@ -190,117 +126,29 @@ async function validateOfficeContainer(bytes: Uint8Array, extension: string, lab
 
 const officeFormatTools = OFFICE_PAIRS.map(officePairTool);
 
-const CELL_SIZE = 8.5;
-
 const excelToPdf: ToolImpl = {
   id: 'excel-to-pdf',
   async run(ctx) {
-    const preset = str(ctx.options, 'pageSize');
-    const orientation = str(ctx.options, 'orientation');
-    const repeatHeader = bool(ctx.options, 'repeatHeader');
-    const margin = 34;
     let pages = 0;
     let sheets = 0;
-
-    for (const input of ctx.inputs) {
-      const data = await readXlsx(input.bytes);
-      if (!data.length) throw new EngineError('empty_selection', `${input.name} 没有非空工作表`);
-      const out = await createDocument();
-      const latinFont = (await textFont(out, 'Revenue 0', { fontPath: ctx.globals.fontPath })).font;
-      const cjkFont = (await textFont(out, '收入零', { fontPath: ctx.globals.fontPath })).font;
-      const cellWidth = (value: string): number => {
-        const font = /[\u3000-\u30ff\u4e00-\u9fff\uff00-\uff60]/.test(value) ? cjkFont : latinFont;
-        return font.widthOfTextAtSize(String(value ?? ''), CELL_SIZE);
-      };
-      let base = sizePreset(preset) ?? { width: 595.28, height: 841.89 };
-      let page = out.addPage([base.width, base.height]);
-      let y = base.height - margin;
-      let fresh = true;
-
-      const startPage = (): void => {
-        if (fresh) {
-          fresh = false;
-          return;
-        }
-        page = out.addPage([base.width, base.height]);
-        y = base.height - margin;
-        pages += 1;
-      };
-
-      let headerRef: string[] = [];
-      const drawRow = async (cells: string[], bold: boolean, columns: number[]): Promise<void> => {
-        const font = (await textFont(out, cells.join(' ') || 'x', { fontPath: ctx.globals.fontPath })).font;
-        const lineHeight = CELL_SIZE * 1.35;
-        const wrapped = cells.map((cell, column) =>
-          wrapText(String(cell ?? ''), font, CELL_SIZE, Math.max(20, (columns[column] ?? 60) - 6)),
-        );
-        const height = Math.max(...wrapped.map((lines) => lines.length), 1) * lineHeight + 4;
-        if (y - height < margin) {
-          startPage();
-          if (repeatHeader && !bold) await drawRow(headerRef, true, columns);
-        }
-        let x = margin;
-        for (const [column, lines] of wrapped.entries()) {
-          const width = columns[column] ?? 60;
-          page.drawRectangle({
-            x,
-            y: y - height,
-            width,
-            height,
-            borderColor: rgb(0.78, 0.81, 0.86),
-            borderWidth: 0.4,
-            color: bold ? rgb(0.93, 0.95, 0.99) : undefined,
-          });
-          lines.forEach((line, lineIndex) => {
-            if (!line.trim()) return;
-            page.drawText(line, {
-              x: x + 3,
-              y: y - height + 3 + (lines.length - 1 - lineIndex) * lineHeight,
-              size: CELL_SIZE,
-              font,
-              color: rgb(0.1, 0.12, 0.16),
-            });
-          });
-          x += width;
-        }
-        y -= height;
-      };
-
-      for (const sheetData of data) {
-        const natural = sheetData.rows.reduce((widest, row) => Math.max(widest, row.length), 1);
-        const widths: number[] = [];
-        for (let column = 0; column < natural; column += 1) {
-          // Measure the widest cell so numbers and CJK words are not split.
-          const measured = Math.max(...sheetData.rows.map((row) => cellWidth(row[column] ?? '')));
-          const declared = (sheetData.colWidths[column] ?? 0) * 5.2;
-          widths.push(Math.min(260, Math.max(34, Math.max(measured, declared) + 10)));
-        }
-        const total = widths.reduce((sum, value) => sum + value, 0);
-        const wantsLandscape =
-          orientation === 'landscape' || (orientation === 'auto' && total > base.width - margin * 2);
-        base = wantsLandscape
-          ? { width: Math.max(base.width, base.height), height: Math.min(base.width, base.height) }
-          : { width: Math.min(base.width, base.height), height: Math.max(base.width, base.height) };
-        const available = base.width - margin * 2;
-        const scale = Math.min(1, available / Math.max(total, 1));
-        const columns = widths.map((value) => value * scale);
-
-        startPage();
-        const heading = (await textFont(out, sheetData.name, { fontPath: ctx.globals.fontPath })).font;
-        page.drawText(sheetData.name, { x: margin, y, size: 12, font: heading, color: rgb(0.2, 0.25, 0.35) });
-        y -= 18;
-        const [header, ...body] = sheetData.rows;
-        headerRef = header ?? [];
-        if (header) await drawRow(header, true, columns);
-        for (const row of body) await drawRow(row, false, columns);
-        sheets += 1;
+    for (const [index, input] of ctx.inputs.entries()) {
+      if (!input.name.toLowerCase().endsWith('.xlsx')) {
+        throw new EngineError('bad_request', `${input.name} 格式不匹配；此工具只接受 .xlsx 文件。`);
       }
-      await saveAndEmit(
-        ctx,
-        out,
-        renderName(ctx.namePattern, { name: baseName(input.name), tool: 'excel-pdf' }, 'pdf'),
-        input.id,
-      );
+      await validateOfficeContainer(input.bytes, 'xlsx', input.name);
+      const bytes = await convertOfficeLocally(input.bytes, 'xlsx', 'pdf', {
+        mode: 'excel-to-pdf',
+        pageSize: str(ctx.options, 'pageSize') || 'a4',
+        orientation: str(ctx.options, 'orientation') || 'auto',
+        repeatHeader: bool(ctx.options, 'repeatHeader'),
+        fontPath: resolveFontPath(ctx.globals.fontPath),
+      });
+      const pdf = await PDFDocument.load(bytes);
+      if (pdf.getPageCount() === 0) throw new EngineError('empty_selection', `${input.name} 没有可导出的页面`);
+      pages += pdf.getPageCount();
+      sheets += (await readXlsx(input.bytes)).length;
+      await ctx.emitPdf(renderName(ctx.namePattern, { name: baseName(input.name), tool: 'excel-pdf' }, 'pdf'), bytes, input.id);
+      ctx.report({ percent: Math.round(((index + 1) / ctx.inputs.length) * 100), current: index + 1, total: ctx.inputs.length });
     }
     return { pageCountOut: pages, extra: { sheets } };
   },
@@ -309,59 +157,35 @@ const excelToPdf: ToolImpl = {
 const pptToPdf: ToolImpl = {
   id: 'ppt-to-pdf',
   async run(ctx) {
-    const toA4 = str(ctx.options, 'pageSize') === 'a4';
     let pages = 0;
-    for (const input of ctx.inputs) {
-      const { slides, widthIn, heightIn } = await readPptx(input.bytes);
-      if (!slides.length) throw new EngineError('empty_selection', `${input.name} 没有幻灯片`);
-      const out = await createDocument();
-      const a4 = { width: 595.28, height: 841.89 };
-      const slide = { width: widthIn * 72, height: heightIn * 72 };
-      const scale = toA4 ? Math.min(a4.width / slide.width, a4.height / slide.height) : 1;
-      const box = { width: slide.width * scale, height: slide.height * scale };
-      for (const [index, item] of slides.entries()) {
-        const page = out.addPage([box.width, box.height]);
-        pages += 1;
-        for (const bytes of item.images) {
-          try {
-            const embedded =
-              bytes[0] === 0xff && bytes[1] === 0xd8 ? await out.embedJpg(bytes) : await out.embedPng(bytes);
-            const fit = Math.min(box.width / embedded.width, box.height / embedded.height, 1);
-            page.drawImage(embedded, {
-              x: (box.width - embedded.width * fit) / 2,
-              y: (box.height - embedded.height * fit) / 2,
-              width: embedded.width * fit,
-              height: embedded.height * fit,
-            });
-          } catch {
-            ctx.warnings.push(`${baseName(input.name)}：第 ${index + 1} 页有无法解码的图片，已跳过`);
-          }
-        }
-        for (const text of item.texts) {
-          const font = (await textFont(out, text.text, { fontPath: ctx.globals.fontPath })).font;
-          const size = Math.max(5, text.size * scale);
-          const width = Math.max(24, text.wIn * 72 * scale);
-          const lines = wrapText(text.text, font, size, width);
-          const top = box.height - text.yIn * 72 * scale;
-          lines.forEach((line, lineIndex) => {
-            if (!line.trim()) return;
-            page.drawText(line, {
-              x: text.xIn * 72 * scale,
-              y: top - size * 1.25 * (lineIndex + 1),
-              size,
-              font,
-              color: rgb(0.12, 0.14, 0.2),
-            });
-          });
-        }
-        ctx.report({ percent: Math.round(((index + 1) / slides.length) * 95) });
+    for (const [inputIndex, input] of ctx.inputs.entries()) {
+      if (!input.name.toLowerCase().endsWith('.pptx')) {
+        throw new EngineError('bad_request', `${input.name} 格式不匹配；此工具只接受 .pptx 文件。`);
       }
-      await saveAndEmit(
-        ctx,
-        out,
-        renderName(ctx.namePattern, { name: baseName(input.name), tool: 'ppt-pdf' }, 'pdf'),
-        input.id,
-      );
+      await validateOfficeContainer(input.bytes, 'pptx', input.name);
+      const converted = await convertOfficeLocally(input.bytes, 'pptx', 'pdf', {
+        fontPath: resolveFontPath(ctx.globals.fontPath),
+      });
+      let bytes = converted;
+      if (str(ctx.options, 'pageSize') === 'a4') {
+        const source = await PDFDocument.load(converted);
+        const destination = await PDFDocument.create();
+        for (const sourcePage of source.getPages()) {
+          const embedded = await destination.embedPage(sourcePage);
+          const box = { width: 595.28, height: 841.89 };
+          const scale = Math.min(box.width / embedded.width, box.height / embedded.height);
+          const width = embedded.width * scale;
+          const height = embedded.height * scale;
+          const page = destination.addPage([box.width, box.height]);
+          page.drawPage(embedded, { x: (box.width - width) / 2, y: (box.height - height) / 2, width, height });
+        }
+        bytes = await destination.save({ useObjectStreams: true, addDefaultPage: false });
+      }
+      const pdf = await PDFDocument.load(bytes);
+      if (pdf.getPageCount() === 0) throw new EngineError('empty_selection', `${input.name} 没有幻灯片`);
+      pages += pdf.getPageCount();
+      await ctx.emitPdf(renderName(ctx.namePattern, { name: baseName(input.name), tool: 'ppt-pdf' }, 'pdf'), bytes, input.id);
+      ctx.report({ percent: Math.round(((inputIndex + 1) / ctx.inputs.length) * 100), current: inputIndex + 1, total: ctx.inputs.length });
     }
     return { pageCountOut: pages };
   },

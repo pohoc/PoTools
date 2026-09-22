@@ -67,14 +67,17 @@ export class JobManager {
   submit(request: JobRequest): JobSnapshot {
     if (!TOOLS[request.tool]) throw new EngineError('unknown_tool', `未知工具：${request.tool}`);
     if (!this.tools[request.tool]) throw new EngineError('unknown_tool', `引擎未实现：${request.tool}`);
-    if (!request.files?.length) throw new EngineError('bad_request', '请先添加文件');
+    const files = request.files ?? [];
+    if (TOOLS[request.tool]?.requiresInput !== false && !files.length) {
+      throw new EngineError('bad_request', '请先添加文件');
+    }
     if (this.records.has(request.id)) request.id = `${request.id}-${Date.now() % 10000}`;
 
     const snapshot: JobSnapshot = {
       id: request.id,
       tool: request.tool,
       label: request.label,
-      fileNames: request.files.map((file) => file.name),
+      fileNames: files.map((file) => file.name),
       createdAt: request.createdAt ?? Date.now(),
       progress: { state: 'queued', percent: 0 },
       artifacts: [],
@@ -128,7 +131,7 @@ export class JobManager {
 
     let inputs: ResolvedInput[] = [];
     try {
-      inputs = await Promise.all(request.files.map((file) => readInput(file, request.id)));
+      inputs = await Promise.all((request.files ?? []).map((file) => readInput(file, request.id)));
       const warnings: string[] = [];
       const jobDir = tempJobDir(request.id);
       await ensureDir(jobDir);

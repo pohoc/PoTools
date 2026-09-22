@@ -1,6 +1,7 @@
 {
   "name": "@potools/core",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "author": "pohoc <po.hoc4@gmail.com>",
   "type": "module",

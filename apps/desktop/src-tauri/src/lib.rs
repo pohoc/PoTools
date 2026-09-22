@@ -341,6 +341,7 @@ fn start_engine(
         command.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
     if let Some(dir) = cwd {
+        command.env("POTOOLS_ENGINE_DIR", &dir);
         command.current_dir(dir);
     }
     // Release unused glibc arenas after large document jobs on Linux.

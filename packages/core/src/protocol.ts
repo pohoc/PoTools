@@ -56,7 +56,31 @@ export type ToolId =
   | 'image-print'
   | 'image-watermark-clean'
   | 'extract-images'
-  | 'extract-text';
+  | 'extract-text'
+  | 'timestamp'
+  | 'date-diff'
+  | 'date-math'
+  | 'workdays'
+  | 'timezone-board'
+  | 'duration'
+  | 'cron'
+  | 'date-format'
+  | 'relative-time'
+  | 'hash'
+  | 'hmac'
+  | 'file-checksum'
+  | 'base64'
+  | 'radix'
+  | 'hex'
+  | 'url-codec'
+  | 'unicode-escape'
+  | 'jwt'
+  | 'aes'
+  | 'rsa'
+  | 'totp'
+  | 'x509'
+  | 'password-gen'
+  | 'uuid-gen';
 
 export type ToolCategory =
   | 'organize'
@@ -244,10 +268,20 @@ export interface TempCleanResult {
   keptJobs: number;
 }
 
+/** Reply of `tool.run`: a text tool executed in memory, nothing written to disk. */
+export interface TextRunResult {
+  text: string;
+  artifacts: Array<{ name: string; kind: FileKind; sizeBytes: number; dataBase64: string }>;
+  warnings: string[];
+  extra?: Record<string, number | string>;
+  ms: number;
+}
+
 export type RpcMethodName =
   | 'engine.info'
   | 'engine.ping'
   | 'tools.list'
+  | 'tool.run'
   | 'job.submit'
   | 'job.cancel'
   | 'job.list'
@@ -276,6 +310,7 @@ export interface RpcParamsMap {
   'engine.info': Record<string, never>;
   'engine.ping': Record<string, never>;
   'tools.list': Record<string, never>;
+  'tool.run': { tool: ToolId; options: Record<string, unknown>; globals?: JobGlobals };
   'job.submit': { job: JobRequest };
   'job.cancel': { jobId: string };
   'job.list': Record<string, never>;
@@ -290,7 +325,7 @@ export interface RpcParamsMap {
     quality?: number;
   };
   'page.list': { file: FileRef };
-  'file.write': { jobId?: string; artifactId?: string; from?: string; dir?: string; name?: string };
+  'file.write': { jobId?: string; artifactId?: string; from?: string; dir?: string; name?: string; dataBase64?: string };
   'shell.reveal': { path: string; open?: boolean };
   'shell.print': { path: string };
   'temp.stat': Record<string, never>;

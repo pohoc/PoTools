@@ -17,6 +17,7 @@ import { chapterize, writeEpub, type EpubImage } from '../lib/epub.ts';
 import { ptToMm, writeOfd, type OfdFontInput, type OfdPageInput } from '../lib/ofd.ts';
 import { resolveFontPath } from '../lib/fonts.ts';
 import { openRaster, type RasterHandle } from '../lib/render.ts';
+import { recognizePaddlePage } from '../lib/ocr.ts';
 import type { ResolvedInput, ToolImpl } from '../types.ts';
 
 interface Source {
@@ -60,12 +61,46 @@ const pdfToWord: ToolImpl = {
       const source = await openSource(input, ctx.globals, bool(ctx.options, 'pageBreaks'));
       const crops = wantImages ? await cropAll(source, 150) : new Map();
       const first = source.model.pages[0];
+      // A scanned PDF has no text blocks. Previously this produced a valid but
+      // completely empty DOCX when includeImages was disabled. Preserve each
+      // textless page as a full-page image so the conversion never loses the
+      // visible document content.
+      const fallbackImages = new Map<FlowBlock, { bytes: Uint8Array; width: number; height: number }>();
+      const blocks: FlowBlock[] = [];
+      for (const [pageIndex, page] of source.model.pages.entries()) {
+        if (bool(ctx.options, 'pageBreaks') && pageIndex > 0) blocks.push({ kind: 'pageBreak' });
+        blocks.push(...source.flow.filter((block) => 'page' in block && block.page === page.page));
+        if (page.lines.length > 0) continue;
+        try {
+          const ocr = await recognizePaddlePage(source.raster.renderPng({ page: page.page, dpi: 200 }));
+          const recognized = (ocr.lines.length ? ocr.lines.map((line) => line.text) : ocr.text.split(/\r?\n/))
+            .map((line) => line.trim())
+            .filter(Boolean);
+          if (recognized.length) {
+            blocks.push({ kind: 'paragraph', text: recognized.join('\n'), page: page.page, bold: false });
+            continue;
+          }
+        } catch (error) {
+          if (!(error instanceof EngineError) || error.code !== 'unsupported') throw error;
+        }
+        const block: FlowBlock = {
+          kind: 'image',
+          page: page.page,
+          box: { x: 0, y: 0, w: page.width, h: page.height },
+        };
+        blocks.push(block);
+        fallbackImages.set(block, {
+          bytes: source.raster.renderPng({ page: page.page, dpi: 150 }),
+          width: page.width,
+          height: page.height,
+        });
+      }
       const bytes = await writeDocx({
         title: baseName(input.name),
-        blocks: source.flow,
+        blocks,
         pageBreaks: bool(ctx.options, 'pageBreaks'),
         contentWidth: Math.max(200, (first?.width ?? 595) - 144),
-        imageFor: (block) => crops.get(block) ?? null,
+        imageFor: (block) => crops.get(block) ?? fallbackImages.get(block) ?? null,
       });
       await ctx.emit({
         name: renderName(ctx.namePattern, { name: baseName(input.name), tool: 'word' }, 'docx'),

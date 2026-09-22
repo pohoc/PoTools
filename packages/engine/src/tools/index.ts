@@ -10,6 +10,8 @@ import { invoiceTools } from './invoice.ts';
 import { exportTools } from './export.ts';
 import { importTools } from './import.ts';
 import { imageTools } from './image.ts';
+import { timeTools } from './time.ts';
+import { cryptoTools } from './crypto.ts';
 
 export const TOOL_IMPLS: ToolImpl[] = [
   ...pageTools,
@@ -22,6 +24,8 @@ export const TOOL_IMPLS: ToolImpl[] = [
   ...exportTools,
   ...importTools,
   ...imageTools,
+  ...timeTools,
+  ...cryptoTools,
 ];
 
 export const TOOL_IMPL_MAP = TOOL_IMPLS.reduce(

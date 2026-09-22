@@ -45,6 +45,14 @@ function coerceValue(field: ToolField, value: unknown): FieldValue {
       const text = String(value);
       return /^#[0-9a-fA-F]{6}$/.test(text) ? text.toLowerCase() : field.default;
     }
+    case 'timezone':
+      return String(value).trim();
+    case 'dateTime':
+      return String(value);
+    case 'textarea': {
+      const text = String(value);
+      return field.maxLength === undefined ? text : text.slice(0, field.maxLength);
+    }
     default:
       return String(value);
   }

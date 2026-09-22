@@ -27,6 +27,8 @@ const CANDIDATES: Record<string, string[]> = {
     'simfang.ttf',
     'simkai.ttf',
     'Deng.ttf',
+    'Dengb.ttf',
+    'Dengl.ttf',
     'msjh.ttc',
     'mingliu.ttc',
   ],
@@ -39,13 +41,21 @@ const CANDIDATES: Record<string, string[]> = {
   ],
 };
 
-const CJK_FONT_NAME = /(?:yahei|simsun|simhei|simkai|simfang|dengxian|mingliu|pmingliu|jhenghei|noto.*cjk|source han|wenquanyi|ar pl|微软雅黑|宋体|黑体|楷体|仿宋|等线|細明體|正黑體)/i;
+const CJK_FONT_NAME = /(?:yahei|simsun|simhei|simkai|simfang|dengxian|mingliu|pmingliu|jhenghei|arial unicode|noto.*(?:cjk|sc|tc|jp|kr)|source han|wenquanyi|ar pl|微软雅黑|宋体|黑体|楷体|仿宋|等线|細明體|正黑體)/i;
 const WINDOWS_FONT_REGISTRY_KEYS = [
   'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts',
   'HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts',
 ];
 const bytesCache = new Map<string, Promise<Uint8Array>>();
+type FontFace = ReturnType<typeof fontkitAdaptor.create>;
+const fontFacesCache = new Map<string, Promise<FontFace[]>>();
 let windowsCandidates: string[] | null = null;
+let validatedDefaultFontPath: string | null = null;
+
+function environmentValue(name: string): string | undefined {
+  const normalized = name.toLowerCase();
+  return Object.entries(process.env).find(([key]) => key.toLowerCase() === normalized)?.[1];
+}
 
 function windowsFontDirectories(): string[] {
   const systemRoot = process.env.SystemRoot ?? process.env.WINDIR ?? 'C:\\Windows';
@@ -79,7 +89,11 @@ function registeredCjkFontPaths(directories: string[]): string[] {
       const [, fontName, rawValue] = entry ?? [];
       if (!fontName || !rawValue || !CJK_FONT_NAME.test(fontName)) continue;
 
-      const value = rawValue.replace(/%([^%]+)%/g, (match, variable: string) => process.env[variable] ?? match);
+      const value = rawValue
+        .trim()
+        .replace(/^"(.*)"$/, '$1')
+        .replace(/^\\\\\?\\/, '')
+        .replace(/%([^%]+)%/g, (match, variable: string) => environmentValue(variable) ?? match);
       if (winPath.isAbsolute(value)) {
         paths.push(value);
       } else {
@@ -103,7 +117,13 @@ function discoverWindowsFontCandidates(): string[] {
 export function cjkFontCandidates(): string[] {
   const list = CANDIDATES[process.platform] ?? [];
   const platformCandidates = process.platform === 'win32' ? discoverWindowsFontCandidates() : list;
-  return [...new Set([...platformCandidates, ...(CANDIDATES.default ?? [])])];
+  const configured = process.env.POTOOLS_FONT ? [process.env.POTOOLS_FONT] : [];
+  return [...new Set([
+    ...configured,
+    ...(validatedDefaultFontPath ? [validatedDefaultFontPath] : []),
+    ...platformCandidates,
+    ...(CANDIDATES.default ?? []),
+  ])];
 }
 
 /** First usable font able to render `text`, or null when only Latin is needed. */
@@ -112,6 +132,7 @@ export function resolveFontPath(explicit?: string | null): string | null {
   if (explicit) logger.warn('configured font path not found', { explicit });
   const env = process.env.POTOOLS_FONT;
   if (env && existsSync(env)) return env;
+  if (validatedDefaultFontPath && existsSync(validatedDefaultFontPath)) return validatedDefaultFontPath;
   return cjkFontCandidates().find((path) => existsSync(path)) ?? null;
 }
 
@@ -122,6 +143,31 @@ function loadBytes(path: string): Promise<Uint8Array> {
     bytesCache.set(path, cached);
   }
   return cached;
+}
+
+function loadFontFaces(path: string): Promise<FontFace[]> {
+  let cached = fontFacesCache.get(path);
+  if (!cached) {
+    cached = loadBytes(path).then((bytes) => {
+      const parsed = fontkitAdaptor.create(bytes) as FontFace & { fonts?: FontFace[] };
+      return parsed.fonts?.length ? parsed.fonts : [parsed];
+    });
+    fontFacesCache.set(path, cached);
+  }
+  return cached;
+}
+
+function fontFaceForText(faces: FontFace[], text: string): FontFace {
+  const codePoints = [...text]
+    .filter((character) => !/\s/u.test(character))
+    .map((character) => character.codePointAt(0)!)
+    .filter((codePoint, index, all) => all.indexOf(codePoint) === index);
+  const face = faces.find((candidate) => codePoints.every((codePoint) => candidate.hasGlyphForCodePoint(codePoint)));
+  if (face) return face;
+
+  const missing = codePoints.find((codePoint) => !faces.some((candidate) => candidate.hasGlyphForCodePoint(codePoint)));
+  const sample = missing === undefined ? text.slice(0, 20) : String.fromCodePoint(missing);
+  throw new Error(`字体不包含所需字形：${sample}`);
 }
 
 /**
@@ -141,29 +187,48 @@ export async function textFont(
     // falls through to the embedded font below
   }
 
-  const fontPath = resolveFontPath(globals.fontPath);
-  if (!fontPath) {
+  const candidates = [...new Set([
+    resolveFontPath(globals.fontPath),
+    ...cjkFontCandidates(),
+  ].filter((path): path is string => Boolean(path)))].filter((path) => existsSync(path));
+  if (!candidates.length) {
     throw new EngineError(
       'no_cjk_font',
       `文本 "${text.slice(0, 20)}" 需要嵌入字体，但未找到可用的系统字体文件`,
       'error.noFont',
     );
   }
-  doc.registerFontkit(fontkitAdaptor);
-  const bytes = await loadBytes(fontPath);
-  const font = await doc.embedFont(bytes, { subset: true });
-  return { font, embedded: true, fontPath };
+
+  let lastError: unknown;
+  for (const fontPath of candidates) {
+    try {
+      const [bytes, faces] = await Promise.all([loadBytes(fontPath), loadFontFaces(fontPath)]);
+      const selectedFace = fontFaceForText(faces, text);
+      doc.registerFontkit({ create: () => selectedFace });
+      const font = await doc.embedFont(bytes, { subset: true });
+      if (!globals.fontPath) validatedDefaultFontPath = fontPath;
+      return { font, embedded: true, fontPath };
+    } catch (error) {
+      lastError = error;
+      logger.warn('CJK font candidate cannot render requested text', { path: fontPath, error: String(error) });
+    }
+  }
+
+  throw new EngineError(
+    'no_cjk_font',
+    `文本 "${text.slice(0, 20)}" 需要嵌入字体，但已找到的系统字体都无法完整显示这些字符${lastError instanceof Error ? `：${lastError.message}` : ''}`,
+    'error.noFont',
+  );
 }
 
 export async function selfCheckFont(): Promise<string | null> {
-  const path = resolveFontPath(null);
-  if (!path) return null;
   try {
     const doc = await PDFDocument.create();
-    await textFont(doc, '中文字形检查 漢字', {});
-    return path;
+    const result = await textFont(doc, '中文字形检查 漢字', {});
+    validatedDefaultFontPath = result.fontPath;
+    return result.fontPath;
   } catch (error) {
-    logger.warn('font self-check failed', { path, error: String(error) });
+    logger.warn('font self-check failed', { error: String(error) });
     return null;
   }
 }

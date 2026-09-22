@@ -1,6 +1,7 @@
 [package]
 name = "potools"
 version = "0.1.0"
+license = "MIT"
 description = "PoTools 本机文件处理工作台"
 authors = ["pohoc <po.hoc4@gmail.com>"]
 edition = "2021"

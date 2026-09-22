@@ -162,7 +162,10 @@ export async function writePptx(input: PptxInput): Promise<Uint8Array> {
           w: line.wIn,
           h: line.hIn,
           color: 'FFFFFF',
-          transparency: 100,
+          // Keep generated text as real, visible slide content so Office
+          // conversions preserve searchable text instead of flattening it
+          // into an invisible annotation.
+          transparency: 0,
           valign: 'top',
           fit: 'shrink',
         },

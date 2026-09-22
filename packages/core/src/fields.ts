@@ -29,6 +29,15 @@ export type ToolField =
       required?: boolean;
     })
   | (FieldCommon & {
+      type: 'textarea';
+      default: string;
+      placeholderKey?: string;
+      mono?: boolean;
+      rows?: number;
+      maxLength?: number;
+      required?: boolean;
+    })
+  | (FieldCommon & {
       type: 'number';
       default: number;
       min?: number;
@@ -61,6 +70,20 @@ export type ToolField =
       presets?: Array<{ value: number; labelKey: string }>;
     })
   | (FieldCommon & { type: 'color'; default: string })
+  | (FieldCommon & {
+      type: 'timezone';
+      default: string;
+    })
+  | (FieldCommon & {
+      type: 'dateTime';
+      default: string;
+      placeholderKey?: string;
+      mono?: boolean;
+      required?: boolean;
+      presets?: string[];
+      /** False when the tool only reads the calendar part of the value. */
+      allowTime?: boolean;
+    })
   | (FieldCommon & {
       type: 'pageRanges';
       default: string;

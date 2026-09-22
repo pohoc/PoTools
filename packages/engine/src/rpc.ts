@@ -1,14 +1,15 @@
 import { spawn } from 'node:child_process';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { copyFile, stat } from 'node:fs/promises';
+import { copyFile, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve, sep } from 'node:path';
 import { platform } from 'node:os';
-import type { EngineInfo, FileRef, PageThumb, ProbedPdf, RpcMethodName } from '@potools/core';
+import type { EngineInfo, FileRef, JobGlobals, PageThumb, ProbedPdf, RpcMethodName, ToolId } from '@potools/core';
 import { PROTOCOL_VERSION, TOOL_LIST } from '@potools/core';
 import { JobManager } from './jobs.ts';
 import { TOOL_IMPL_MAP } from './tools/index.ts';
 import { loadPdf, readInput, TEMP_ROOT } from './lib/files.ts';
+import { runTextTool } from './lib/text-run.ts';
 import { cleanTemp, tempUsage } from './lib/temp.ts';
 import { defaultOutputDir } from './lib/platform.ts';
 import { hasUniformSize, pagesInfo, readMetadata } from './lib/pdf.ts';
@@ -19,6 +20,7 @@ import { selfCheckFont } from './lib/fonts.ts';
 import { archiveInvoiceFiles, scanInvoiceDirectory, undoInvoiceArchive } from './lib/invoice-organizer.ts';
 import { EngineError } from './errors.ts';
 import { logger } from './logger.ts';
+import packageJson from '../package.json';
 
 export interface Engine {
   manager: JobManager;
@@ -38,7 +40,7 @@ export async function createEngine(options: { concurrency?: number } = {}): Prom
 
   const base: EngineInfo = {
     name: '@potools/engine',
-    version: '0.1.0',
+    version: packageJson.version,
     protocol: PROTOCOL_VERSION,
     platform: platform(),
     nodeVersion: process.version,
@@ -80,6 +82,12 @@ async function dispatch(
       return info();
     case 'tools.list':
       return TOOL_LIST;
+    case 'tool.run':
+      return runTextTool({
+        tool: params.tool as ToolId,
+        options: (params.options ?? {}) as Record<string, unknown>,
+        globals: params.globals as JobGlobals | undefined,
+      });
     case 'job.submit':
       return manager.submit(params.job as never);
     case 'job.cancel':
@@ -209,6 +217,19 @@ async function thumbs(file: FileRef, params: Record<string, unknown>): Promise<P
 }
 
 async function saveArtifact(manager: JobManager, params: Record<string, unknown>) {
+  if (typeof params.dataBase64 === 'string') {
+    const dir = params.dir ? String(params.dir) : '';
+    if (!dir) throw new EngineError('bad_request', '直接写入内容时必须提供目录');
+    await stat(dir).catch(() => {
+      throw new EngineError('write_failed', `目录不存在：${dir}`);
+    });
+    const bytes = Buffer.from(params.dataBase64, 'base64');
+    const name = dedupeName(String(params.name ?? '') || 'output.txt');
+    const target = await freePath(dir, name);
+    await writeFile(target, bytes);
+    logger.info('text saved', { dir, name, sizeBytes: bytes.byteLength });
+    return { path: target, name: basename(target) };
+  }
   const jobId = String(params.jobId ?? '');
   const artifactId = String(params.artifactId ?? '');
   const staged =
