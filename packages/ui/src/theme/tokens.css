@@ -1,0 +1,85 @@
+/* Public semantic tokens. Components must consume roles, never these raw values directly. */
+:root {
+  --ui-canvas: 246 247 250;
+  --ui-surface: 255 255 255;
+  --ui-raised: 240 242 246;
+  --ui-line: 224 227 234;
+  --ui-ink: 23 27 36;
+  --ui-muted: 96 104 119;
+  --ui-faint: 145 152 166;
+  --ui-accent: 17 24 39;
+  --ui-accent-soft: 243 244 246;
+  --ui-accent-ink: 255 255 255;
+  --ui-ok: 21 128 61;
+  --ui-warn: 180 83 9;
+  --ui-bad: 190 18 60;
+  --ui-checker-light: 255 255 255;
+  --ui-checker-dark: 229 231 235;
+  /* Shape scale: controls < fields < cards < overlays < pills. */
+  --ui-radius-xs: 4px;
+  --ui-radius-sm: 6px;
+  --ui-radius-control: 9px;
+  --ui-radius-card: 14px;
+  --ui-radius-overlay: 16px;
+  --ui-radius-pill: 999px;
+  --ui-radius: var(--ui-radius-control);
+  /* Spacing scale for component and layout composition. */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  /* Semantic elevation and motion. */
+  --ui-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+  --ui-shadow-overlay: 0 12px 40px -12px rgb(15 23 42 / 0.28);
+  --ui-motion-fast: 120ms;
+  --ui-motion-normal: 180ms;
+  --ui-motion-slow: 260ms;
+
+  /* Compatibility aliases for the current Tailwind utility vocabulary. */
+  --c-canvas: var(--ui-canvas);
+  --c-surface: var(--ui-surface);
+  --c-raised: var(--ui-raised);
+  --c-line: var(--ui-line);
+  --c-ink: var(--ui-ink);
+  --c-muted: var(--ui-muted);
+  --c-faint: var(--ui-faint);
+  --c-accent: var(--ui-accent);
+  --c-accent-soft: var(--ui-accent-soft);
+  --c-accent-ink: var(--ui-accent-ink);
+  --c-ok: var(--ui-ok);
+  --c-warn: var(--ui-warn);
+  --c-bad: var(--ui-bad);
+}
+
+.dark {
+  --ui-canvas: 16 18 23;
+  --ui-surface: 25 28 35;
+  --ui-raised: 35 39 48;
+  --ui-line: 47 52 64;
+  --ui-ink: 232 235 240;
+  --ui-muted: 154 162 176;
+  --ui-faint: 112 120 135;
+  --ui-accent: 245 245 245;
+  --ui-accent-soft: 39 39 42;
+  --ui-accent-ink: 17 24 39;
+  --ui-ok: 74 222 128;
+  --ui-warn: 251 191 36;
+  --ui-bad: 248 113 113;
+  --ui-checker-light: 25 28 35;
+  --ui-checker-dark: 47 52 64;
+  --ui-shadow-card: 0 1px 2px rgb(0 0 0 / 0.18), 0 8px 24px -12px rgb(0 0 0 / 0.45);
+  --ui-shadow-overlay: 0 16px 48px -16px rgb(0 0 0 / 0.65);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
