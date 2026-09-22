@@ -193,7 +193,7 @@ async function officeSamples(): Promise<void> {
           widthIn: box.width / 72,
           heightIn: box.height / 72,
           image: png,
-          lines: [{ text: '本地化转换测试', xIn: 0.6, yIn: 0.5, wIn: 6, hIn: 0.8, size: 26, bold: true }],
+          lines: [{ text: '本地化转换测试', xIn: 0.6, yIn: 0.5, wIn: 6, hIn: 0.8, size: 26, bold: true, color: '000000' }],
         },
       ],
     }),

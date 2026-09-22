@@ -173,12 +173,10 @@ export function OptionForm({
       ) : null}
       {advanced.length ? (
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="form-section pt-3">
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="group h-auto w-full justify-start gap-1.5 border-transparent bg-transparent px-1 py-1 text-[12.5px] font-medium text-muted hover:bg-transparent hover:text-ink">
-              <Icon name="chevronRight" size={13} className="transition-transform group-data-[state=open]:rotate-90" />
-              <span>{t('opt.section.advanced')}</span>
-              <span className="ml-auto rounded-full bg-raised px-1.5 text-[11px] text-faint">{advanced.length}</span>
-            </Button>
+          <CollapsibleTrigger className="group h-auto w-full justify-start gap-1.5 border-transparent bg-transparent px-1 py-1 text-[12.5px] font-medium text-muted hover:bg-transparent hover:text-ink">
+            <Icon name="chevronRight" size={13} className="transition-transform group-data-[state=open]:rotate-90" />
+            <span>{t('opt.section.advanced')}</span>
+            <span className="ml-auto rounded-full bg-raised px-1.5 text-[11px] text-faint">{advanced.length}</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="overflow-hidden data-[state=closed]:hidden">
             <div className="flex flex-col gap-2.5 pt-2.5">
@@ -275,8 +273,8 @@ function Field({
 
   return (
     <div className="form-field">
-      <Label htmlFor={id} className="form-label">{label}{(field.type === 'text' || field.type === 'textarea' || field.type === 'dateTime') && field.required ? <span className="ml-1 text-bad">*</span> : null}</Label>
-      <Control id={id} field={field} value={value} values={values} onChange={onChange} />
+      <Label id={`${id}-label`} htmlFor={id} className="form-label">{label}{(field.type === 'text' || field.type === 'textarea' || field.type === 'dateTime') && field.required ? <span className="ml-1 text-bad">*</span> : null}</Label>
+      <Control id={id} labelId={`${id}-label`} field={field} value={value} values={values} onChange={onChange} />
       {helpText ? <p className="form-hint">{helpText}</p> : null}
       {errorText ? <p className="text-[11px] leading-4 text-bad" role="alert">{errorText}</p> : null}
     </div>
@@ -285,12 +283,14 @@ function Field({
 
 function Control({
   id,
+  labelId,
   field,
   value,
   values,
   onChange,
 }: {
   id: string;
+  labelId: string;
   field: ToolField;
   value: FieldValue | undefined;
   values: Values;
@@ -315,6 +315,7 @@ function Control({
             max={max}
             step={step}
             value={String(current)}
+            aria-labelledby={labelId}
             aria-invalid={fieldError(field, value) !== null}
             onChange={(event) => {
               const raw = event.target.value;
@@ -411,9 +412,10 @@ function Control({
       return (
         <Select
           value={String(current)}
+          aria-labelledby={labelId}
           onValueChange={choose}
         >
-          <SelectTrigger id={id} aria-invalid={fieldError(field, value) !== null}>
+          <SelectTrigger id={id} aria-labelledby={labelId} aria-invalid={fieldError(field, value) !== null}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -498,11 +500,11 @@ function Control({
       );
     }
     case 'pageRanges':
-      return <PageRangesField id={id} field={field} value={String(value ?? field.default)} onChange={onChange} />;
+      return <PageRangesField id={id} labelId={labelId} field={field} value={String(value ?? field.default)} onChange={onChange} />;
     case 'timezone':
-      return <TimezoneField id={id} field={field} value={String(value ?? field.default)} onChange={onChange} />;
+      return <TimezoneField id={id} labelId={labelId} field={field} value={String(value ?? field.default)} onChange={onChange} />;
     case 'dateTime':
-      return <DateTimeField id={id} field={field} value={String(value ?? field.default)} onChange={onChange} />;
+      return <DateTimeField id={id} labelId={labelId} field={field} value={String(value ?? field.default)} onChange={onChange} />;
     case 'textarea':
       return <span className="flex flex-col gap-1.5">
         <HeroTextarea
@@ -516,6 +518,7 @@ function Control({
           value={field.default === 'now' && value === 'now' ? '' : String(value ?? field.default)}
           maxLength={field.maxLength}
           required={field.required}
+          aria-labelledby={labelId}
           aria-invalid={fieldError(field, value) !== null}
           placeholder={field.placeholderKey ? t(field.placeholderKey) : undefined}
           onChange={(event) => onChange(field.key, event.target.value)}
@@ -533,6 +536,7 @@ function Control({
           value={String(value ?? field.default)}
           maxLength={field.type === 'text' ? field.maxLength : undefined}
           required={field.type === 'text' ? field.required : undefined}
+          aria-labelledby={labelId}
           aria-invalid={fieldError(field, value) !== null}
           placeholder={field.type === 'text' && field.placeholderKey ? t(field.placeholderKey) : undefined}
           onChange={(event) => onChange(field.key, event.target.value)}
@@ -555,8 +559,8 @@ function TimestampPicker({ value, onChange }: { value: string; onChange: (value:
     const current = value.trim();
     onChange(current && current !== 'now' ? `${current}\n${next}` : next);
   };
-  const select = (current: string, set: (value: number) => void, options: number[]) => (
-    <Select value={current} onValueChange={(next) => set(Number(next))}>
+  const select = (label: string, current: string, set: (value: number) => void, options: number[]) => (
+    <Select aria-label={label} value={current} onValueChange={(next) => set(Number(next))}>
       <SelectTrigger className="h-8 min-w-[4.5rem] text-[11px]"><SelectValue /></SelectTrigger>
       <SelectContent className="max-h-56">{options.map((option) => <SelectItem key={option} value={String(option)}>{String(option).padStart(2, '0')}</SelectItem>)}</SelectContent>
     </Select>
@@ -567,12 +571,12 @@ function TimestampPicker({ value, onChange }: { value: string; onChange: (value:
       <PopoverContent className="w-[19rem]">
         <p className="mb-2 text-[11px] text-muted">{t('date.picker.addHint')}</p>
         <div className="grid grid-cols-3 gap-1.5">
-          {select(String(year), setYear, Array.from({ length: 11 }, (_, index) => now.getFullYear() - 5 + index))}
-          {select(String(month), setMonth, Array.from({ length: 12 }, (_, index) => index + 1))}
-          {select(String(day), setDay, Array.from({ length: 31 }, (_, index) => index + 1))}
-          {select(String(hour), setHour, Array.from({ length: 24 }, (_, index) => index))}
-          {select(String(minute), setMinute, Array.from({ length: 60 }, (_, index) => index))}
-          {select(String(second), setSecond, Array.from({ length: 60 }, (_, index) => index))}
+          {select(t('date.picker.year'), String(year), setYear, Array.from({ length: 11 }, (_, index) => now.getFullYear() - 5 + index))}
+          {select(t('date.picker.month'), String(month), setMonth, Array.from({ length: 12 }, (_, index) => index + 1))}
+          {select(t('date.picker.day'), String(day), setDay, Array.from({ length: 31 }, (_, index) => index + 1))}
+          {select(t('date.picker.hour'), String(hour), setHour, Array.from({ length: 24 }, (_, index) => index))}
+          {select(t('date.picker.minute'), String(minute), setMinute, Array.from({ length: 60 }, (_, index) => index))}
+          {select(t('date.picker.second'), String(second), setSecond, Array.from({ length: 60 }, (_, index) => index))}
         </div>
         <Button type="button" size="sm" className="mt-3 w-full" onClick={commit}>{t('date.picker.confirm')}</Button>
       </PopoverContent>
@@ -582,11 +586,13 @@ function TimestampPicker({ value, onChange }: { value: string; onChange: (value:
 
 function PageRangesField({
   id,
+  labelId,
   field,
   value,
   onChange,
 }: {
   id: string;
+  labelId: string;
   field: ToolField;
   value: string;
   onChange: (key: string, value: FieldValue) => void;
@@ -605,6 +611,7 @@ function PageRangesField({
         <HeroInput
           type="text"
           id={id}
+          aria-labelledby={labelId}
           className={cn('font-mono', invalid && 'border-bad focus:border-bad focus:ring-bad/25')}
           aria-invalid={invalid}
           aria-describedby={invalid ? `${id}-error` : undefined}
@@ -638,11 +645,13 @@ type DateTimeInput = Extract<ToolField, { type: 'dateTime' }>;
 
 function TimezoneField({
   id,
+  labelId,
   field,
   value,
   onChange,
 }: {
   id: string;
+  labelId: string;
   field: TimezoneInput;
   value: string;
   onChange: (key: string, value: FieldValue) => void;
@@ -655,8 +664,8 @@ function TimezoneField({
   const choices = zones ?? COMMON_ZONES;
   return (
     <span className="flex min-w-0 flex-col gap-1.5">
-      <Select value={normalized} onValueChange={(next) => onChange(field.key, next)}>
-        <SelectTrigger id={id} aria-invalid={invalid} className={invalid ? 'border-bad focus-visible:ring-bad/25' : undefined}>
+      <Select aria-label={t(field.labelKey)} value={normalized} onValueChange={(next) => onChange(field.key, next)}>
+        <SelectTrigger id={id} aria-labelledby={labelId} aria-invalid={invalid} className={invalid ? 'border-bad focus-visible:ring-bad/25' : undefined}>
           <SelectValue placeholder={t('timezone.placeholder')} />
         </SelectTrigger>
         <SelectContent className="max-h-[22rem]">
@@ -679,11 +688,13 @@ function TimezoneField({
 
 function DateTimeField({
   id,
+  labelId,
   field,
   value,
   onChange,
 }: {
   id: string;
+  labelId: string;
   field: DateTimeInput;
   value: string;
   onChange: (key: string, value: FieldValue) => void;
@@ -697,6 +708,7 @@ function DateTimeField({
       <HeroInput
         type="text"
         id={id}
+        aria-labelledby={labelId}
         spellCheck={false}
         value={isNow ? '' : value}
         required={field.required}

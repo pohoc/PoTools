@@ -91,7 +91,6 @@ function EngineStartupScreen({ error, retry }: { error: string | null; retry: ()
         title={t('startup.title')}
       />
       <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-6 py-10">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-60 [background-image:radial-gradient(ellipse_at_52%_42%,rgb(var(--ui-accent)/.09),transparent_46%)]" />
         <section className="relative w-full max-w-[460px]">
           <div className="mb-8 flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-2xl border border-accent/20 bg-accent-soft text-accent shadow-sm">

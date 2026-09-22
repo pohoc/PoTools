@@ -170,6 +170,9 @@ const pdfToPpt: ToolImpl = {
                 hIn: Math.max(0.12, line.h / 72),
                 size: line.size,
                 bold: line.weight === 'bold' || /bold/i.test(line.font),
+                // The slide image is the visual background; keep the extracted
+                // text searchable and visible as a normal black overlay.
+                color: '000000',
               }))
             : [],
         });

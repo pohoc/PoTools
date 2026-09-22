@@ -50,7 +50,7 @@ export function TitleBar({
       onPointerDown={beginDrag}
       onDoubleClick={onDoubleClick}
       className={cn(
-        'flex h-titlebar shrink-0 select-none items-center gap-3 border-b border-line bg-surface pr-2',
+        'app-titlebar flex h-titlebar shrink-0 select-none items-center gap-3 border-b border-line bg-surface pr-2',
         isMac() ? 'pl-[78px]' : 'pl-3',
         className,
       )}

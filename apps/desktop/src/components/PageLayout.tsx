@@ -87,7 +87,7 @@ export function SettingsLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="page-frame mx-auto flex w-full max-w-[1180px] flex-col gap-5">
+    <div className="settings-page page-frame mx-auto flex w-full max-w-[1180px] flex-col gap-5">
       <header className="page-header flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-[20px] font-semibold tracking-tight text-ink">{title}</h1>

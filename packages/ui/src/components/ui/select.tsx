@@ -15,6 +15,8 @@ export function Select({
   onValueChange,
   disabled,
   className,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   children,
 }: {
   value?: string;
@@ -22,6 +24,8 @@ export function Select({
   onValueChange?: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
   children: ReactNode;
 }) {
   return (
@@ -31,6 +35,8 @@ export function Select({
       onSelectionChange={(key) => onValueChange?.(String(key))}
       isDisabled={disabled}
       className={className}
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
     >
       {children}
     </HeroSelect>

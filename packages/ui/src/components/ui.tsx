@@ -242,6 +242,7 @@ export function Toggle({
       id={id}
       isSelected={checked}
       onChange={onChange}
+      aria-label={label}
       size="sm"
       className="flex cursor-pointer flex-col gap-0.5"
     >

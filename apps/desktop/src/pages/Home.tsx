@@ -63,8 +63,8 @@ export function Home() {
   }, [jobs]);
 
   return (
-    <div className="page-frame">
-      <header className="page-header">
+    <div className="home-page page-frame">
+      <header className="home-header page-header">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-[21px] font-semibold tracking-tight">{t('home.title')}</h1>
@@ -72,16 +72,16 @@ export function Home() {
           </div>
           {status !== 'ready' ? <span className="flex items-center gap-1.5 text-[12px] text-bad"><span className="h-1.5 w-1.5 rounded-full bg-bad" />{t('engine.offline')}</span> : null}
         </div>
-        <div className="mt-4 flex max-w-[900px] flex-col gap-2.5 sm:flex-row">
+        <div className="home-search mt-4 flex max-w-[900px] flex-col gap-2.5 sm:flex-row">
           <label className="relative block min-w-0 flex-1">
             <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
             <HeroInput className="h-10 bg-surface pl-9 pr-9 text-[13px]" placeholder={t('search.placeholder')} value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t('search.placeholder')} />
             {query ? <Button type="button" variant="ghost" size="icon-sm" className="absolute right-2.5 top-1/2 h-7 w-7 -translate-y-1/2 border-transparent bg-transparent p-0 text-faint hover:bg-raised hover:text-ink" onClick={() => setQuery('')} aria-label={t('common.close')}><Icon name="close" size={14} /></Button> : null}
           </label>
           <label className="flex shrink-0 items-center gap-2 rounded-control border border-line bg-surface px-2.5 text-[11px] text-muted">
-            <span>{t('home.format')}</span>
-            <Select value={format} onValueChange={(value) => setFormat(value as ToolFormat | 'all')}>
-              <SelectTrigger aria-label={t('home.format')} className="h-8 w-[132px] border-0 bg-transparent px-1.5 shadow-none hover:bg-transparent focus-visible:ring-0">
+            <span id="home-format-label">{t('home.format')}</span>
+            <Select aria-labelledby="home-format-label" value={format} onValueChange={(value) => setFormat(value as ToolFormat | 'all')}>
+              <SelectTrigger aria-labelledby="home-format-label" className="h-8 w-[132px] border-0 bg-transparent px-1.5 shadow-none hover:bg-transparent focus-visible:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="end">
@@ -106,7 +106,7 @@ export function Home() {
         </section>
       ) : null}
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-line py-2" aria-label={t('home.categories')}>
+      <nav className="home-categories flex gap-1 overflow-x-auto border-b border-line py-2" aria-label={t('home.categories')}>
           {categoryGroups.map((category) => (
             <Button key={category.id} type="button" variant={activeCategory === category.id ? 'secondary' : 'ghost'} aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 gap-1.5 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'border-transparent bg-accent-soft font-medium text-accent hover:bg-accent-soft' : 'text-muted'}`}>
               {t(category.label)}<span className={`text-[10px] tabular-nums ${activeCategory === category.id ? 'text-accent/70' : 'text-faint'}`}>{category.tools.length}</span>
@@ -121,8 +121,8 @@ export function Home() {
           {sections.length ? <div className="flex flex-col gap-5">
             {sections.map((section) => (
               <section key={section.id} className="min-w-0" aria-labelledby={`tool-category-heading-${section.id}`}>
-                {query.trim() && sections.length > 1 ? <h3 id={`tool-category-heading-${section.id}`} className="mb-2 text-[12px] font-semibold text-muted">{t(section.label)}</h3> : null}
-                <div className="grid grid-cols-1 items-stretch gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                <h3 id={`tool-category-heading-${section.id}`} className={query.trim() && sections.length > 1 ? 'mb-2 text-[12px] font-semibold text-muted' : 'sr-only'}>{t(section.label)}</h3>
+                <div className="tool-card-grid grid grid-cols-1 items-stretch gap-3 lg:grid-cols-2 xl:grid-cols-3">
                   {section.tools.map((tool) => <ToolCard key={tool.id} tool={tool} />)}
                 </div>
               </section>

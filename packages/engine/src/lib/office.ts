@@ -129,7 +129,7 @@ export interface PptxInput {
     widthIn: number;
     heightIn: number;
     image: Uint8Array;
-    lines: Array<{ text: string; xIn: number; yIn: number; wIn: number; hIn: number; size: number; bold: boolean }>;
+    lines: Array<{ text: string; xIn: number; yIn: number; wIn: number; hIn: number; size: number; bold: boolean; color?: string }>;
   }>;
   title: string;
 }
@@ -161,7 +161,7 @@ export async function writePptx(input: PptxInput): Promise<Uint8Array> {
           y: line.yIn,
           w: line.wIn,
           h: line.hIn,
-          color: 'FFFFFF',
+          color: line.color ?? '000000',
           // Keep generated text as real, visible slide content so Office
           // conversions preserve searchable text instead of flattening it
           // into an invisible annotation.

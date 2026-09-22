@@ -6,7 +6,14 @@ export const Popover = HeroPopover.Root;
 export function PopoverTrigger({ className, children, asChild = false, ...props }: ComponentProps<typeof HeroPopover.Trigger> & { asChild?: boolean }) {
   if (asChild && isValidElement(children)) {
     const Trigger = HeroPopover.Trigger as unknown as React.ComponentType<any>;
-    return <Trigger {...props} render={(triggerProps: React.HTMLAttributes<HTMLElement>) => cloneElement(children, { ...triggerProps, className: cn(triggerProps.className, (children.props as { className?: string }).className) } as never)} />;
+    const childProps = children.props as { children?: ReactNode; className?: string };
+    return <Trigger {...props} render={(triggerProps: React.HTMLAttributes<HTMLElement>) => cloneElement(children, {
+      ...triggerProps,
+      // The render callback can include an undefined children slot. Preserve the
+      // authored child content so an asChild trigger never becomes icon/textless.
+      children: childProps.children,
+      className: cn(triggerProps.className, childProps.className),
+    } as never)} />;
   }
   return <HeroPopover.Trigger className={className} {...props}>{children}</HeroPopover.Trigger>;
 }

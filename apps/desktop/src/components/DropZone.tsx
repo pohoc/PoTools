@@ -9,7 +9,7 @@ import type { AcceptKind } from '../lib/tauri.ts';
 
 export function useNativeDrop(enabled: boolean, onPaths: (paths: string[]) => void): void {
   useEffect(() => {
-    if (!enabled || !isTauri) return;
+    if (!enabled || !isTauri()) return;
     let disposed = false;
     let unlisten: (() => void) | undefined;
     void (async () => {
@@ -65,7 +65,7 @@ export function DropZone({
     <div
       onDragOver={(event) => {
         event.preventDefault();
-        if (!isTauri) setOver(true);
+        if (!isTauri()) setOver(true);
       }}
       onDragLeave={() => setOver(false)}
       onDrop={handleDrop}

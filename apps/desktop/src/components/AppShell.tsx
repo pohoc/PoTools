@@ -90,7 +90,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const status = useEngine((state) => state.status);
   const running = useJobs((state) => state.jobs.filter((job) => job.progress.state === 'running').length);
   const narrow = useMediaQuery('(max-width: 1080px)');
-  const rail = settings.sidebarCollapsed || narrow;
+  const compact = useMediaQuery('(max-width: 760px)');
+  // Keep labels available in the compact top navigation. The rail is useful
+  // in a medium desktop window, but icon-only navigation is too ambiguous at
+  // the smallest supported window size.
+  const rail = !compact && (settings.sidebarCollapsed || narrow);
   /** CJK labels read badly with the Latin uppercase + wide tracking treatment. */
   const sectionLabel = (spacing: string) =>
     cn(
@@ -136,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="mr-1 flex h-8 items-center gap-2 rounded-control px-2 text-[11px] text-muted transition hover:bg-raised hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Status color={`rgb(${statusColor})`} active={status !== 'offline'} label={statusLabel} />
-              <span>{statusLabel}</span>
+              <span className="titlebar-status-label">{statusLabel}</span>
             </Link>
             <Badge variant="outline" className="mr-1 hidden md:inline-flex">
               {transportMode() === 'tauri' ? t('engine.mode.tauri') : t('engine.mode.web')}
@@ -237,8 +241,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="px-3 pt-2 text-center">
                   <a
                     href="mailto:po.hoc4@gmail.com"
+                    className="sidebar-copyright inline-block text-[10px] leading-4 text-faint transition hover:text-muted"
                     title={`${t('settings.copyright')} · pohoc <po.hoc4@gmail.com>`}
-                    className="inline-block text-[10px] leading-4 text-faint transition hover:text-muted"
                   >
                     v{APP_VERSION} · MIT · pohoc
                   </a>

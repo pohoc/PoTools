@@ -3,7 +3,7 @@ import type { FieldValue, ToolId } from 'core';
 import { useI18n } from '../i18n/index.tsx';
 import { toFileRef, type PickedFile } from '../lib/files.ts';
 import { useEngine } from '../stores/engine.ts';
-import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@potools/ui';
+import { Button, Card, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@potools/ui';
 
 type Preview = { url: string; width: number; height: number };
 
@@ -216,7 +216,13 @@ export function ImageStudioEditor({
         <p>{t(tool === 'image-watermark-clean' ? 'imageStudio.watermarkLimit' : 'imageStudio.modelLimit')}</p>
       </div>
       {error ? <p role="alert" className="rounded-control bg-bad/10 px-3 py-2 text-[12px] leading-5 text-ink">{error}</p> : null}
-      <Dialog open={large} onOpenChange={setLarge}>
+      {large ? <Dialog open onOpenChange={setLarge}>
+        {/* HeroUI's controlled dialog still needs a trigger in its compound tree. */}
+        <DialogTrigger asChild>
+          <Button type="button" variant="ghost" size="sm" tabIndex={-1} aria-label={t('imageStudio.previewOpen')} className="sr-only">
+            {t('imageStudio.previewOpen')}
+          </Button>
+        </DialogTrigger>
         <DialogContent className="w-[min(94vw,72rem)] max-w-none p-0" aria-describedby="image-studio-preview-description">
           <DialogHeader className="border-b border-line px-5 py-4 pr-12">
             <DialogTitle className="text-[14px]">{t('imageStudio.preview')}</DialogTitle>
@@ -226,7 +232,7 @@ export function ImageStudioEditor({
             {preview ? <img src={compare ? sourceUrl : repairedPreviewUrl || preview.url} alt={t('imageStudio.outputLabel')} className="max-h-[70vh] max-w-full object-contain shadow-pop" /> : sourceUrl ? <img src={sourceUrl} alt={sourceLabel} className="max-h-[70vh] max-w-full object-contain shadow-pop" /> : null}
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog> : null}
     </section>
   );
 }

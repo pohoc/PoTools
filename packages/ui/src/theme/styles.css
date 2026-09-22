@@ -4,22 +4,25 @@
 @source "../components";
 
 @theme {
-  --color-canvas: rgb(var(--ui-canvas) / <alpha-value>);
-  --color-surface: rgb(var(--ui-surface) / <alpha-value>);
-  --color-raised: rgb(var(--ui-raised) / <alpha-value>);
-  --color-line: rgb(var(--ui-line) / <alpha-value>);
-  --color-ink: rgb(var(--ui-ink) / <alpha-value>);
-  --color-muted: rgb(var(--ui-muted) / <alpha-value>);
-  --color-faint: rgb(var(--ui-faint) / <alpha-value>);
-  --color-accent: rgb(var(--ui-accent) / <alpha-value>);
-  --color-accent-soft: rgb(var(--ui-accent-soft) / <alpha-value>);
-  --color-accent-ink: rgb(var(--ui-accent-ink) / <alpha-value>);
-  --color-ok: rgb(var(--ui-ok) / <alpha-value>);
-  --color-ok-ink: rgb(var(--ui-ok-ink) / <alpha-value>);
-  --color-warn: rgb(var(--ui-warn) / <alpha-value>);
-  --color-warn-ink: rgb(var(--ui-warn-ink) / <alpha-value>);
-  --color-bad: rgb(var(--ui-bad) / <alpha-value>);
-  --color-bad-ink: rgb(var(--ui-bad-ink) / <alpha-value>);
+  /* Tailwind 4 applies opacity modifiers with color-mix. Keeping the legacy
+     alpha placeholder in the base color makes it invalid at runtime, so
+     borders fall back to currentColor and surfaces become transparent. */
+  --color-canvas: rgb(var(--ui-canvas));
+  --color-surface: rgb(var(--ui-surface));
+  --color-raised: rgb(var(--ui-raised));
+  --color-line: rgb(var(--ui-line));
+  --color-ink: rgb(var(--ui-ink));
+  --color-muted: rgb(var(--ui-muted));
+  --color-faint: rgb(var(--ui-faint));
+  --color-accent: rgb(var(--ui-accent));
+  --color-accent-soft: rgb(var(--ui-accent-soft));
+  --color-accent-ink: rgb(var(--ui-accent-ink));
+  --color-ok: rgb(var(--ui-ok));
+  --color-ok-ink: rgb(var(--ui-ok-ink));
+  --color-warn: rgb(var(--ui-warn));
+  --color-warn-ink: rgb(var(--ui-warn-ink));
+  --color-bad: rgb(var(--ui-bad));
+  --color-bad-ink: rgb(var(--ui-bad-ink));
   --radius-card: var(--ui-radius-card);
   --radius-control: var(--ui-radius-control);
   --radius-overlay: var(--ui-radius-overlay);
@@ -63,12 +66,13 @@
 /* Unlayered rules below win over HeroUI's @layer components styles, so the
    package owns the visuals without specificity fights. */
 
-.ui-button { display:inline-flex; min-width:0; align-items:center; justify-content:center; gap:var(--ui-space-2); border-radius:var(--ui-radius-control); font-size:var(--ui-font-body); font-weight:550; line-height:var(--ui-line-height-control); outline:none; transition:background-color var(--ui-motion-fast) ease,border-color var(--ui-motion-fast) ease,color var(--ui-motion-fast) ease,box-shadow var(--ui-motion-fast) ease; }
+.ui-button { display:inline-flex; min-width:0; align-items:center; justify-content:center; gap:var(--ui-space-2); border-radius:var(--ui-radius-control); font-size:var(--ui-font-body); font-weight:550; line-height:var(--ui-line-height-control); outline:none; transition:background-color var(--ui-motion-fast) ease,border-color var(--ui-motion-fast) ease,color var(--ui-motion-fast) ease,box-shadow var(--ui-motion-fast) ease,transform var(--ui-motion-fast) ease; }
 .ui-button-size-sm { min-height:var(--ui-control-sm); padding:0 var(--ui-space-3); font-size:var(--ui-font-caption); }
 .ui-button-size-md,.ui-button-size-default { min-height:var(--ui-control-md); padding:0 var(--ui-space-4); }
 .ui-button-size-lg { min-height:var(--ui-control-lg); padding:0 var(--ui-space-5); }
 .ui-button-size-icon,.ui-button-size-icon-sm { min-height:var(--ui-control-sm); min-width:var(--ui-control-sm); padding:0; }
 .ui-button:focus-visible { box-shadow:var(--ui-focus-ring); }
+.ui-button:active:not(:disabled) { transform:translateY(1px); }
 .ui-button:disabled { cursor:not-allowed; opacity:var(--ui-disabled-opacity); }
 .ui-button-primary,.ui-button-default { border:var(--ui-border-width) solid transparent; background:rgb(var(--ui-accent)); color:rgb(var(--ui-accent-ink)); }
 .ui-button-primary:hover,.ui-button-default:hover { background:rgb(var(--ui-accent) / .88); }
@@ -80,6 +84,10 @@
 .ui-button-ghost:hover,.ui-button-quiet:hover,.ui-button-link:hover { background:rgb(var(--ui-raised)); color:rgb(var(--ui-ink)); }
 .ui-button-danger { border:var(--ui-border-width) solid transparent; background:rgb(var(--ui-bad)); color:rgb(var(--ui-bad-ink)); }
 .ui-button-danger:hover { filter:brightness(.92); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-button { transition-property: background-color, border-color, color, box-shadow; }
+}
 
 /* Token-owned segmented control used by theme and language settings. */
 .ui-segmented {

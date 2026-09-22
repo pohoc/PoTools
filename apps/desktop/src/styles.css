@@ -3,7 +3,135 @@
 /* App-layout extensions on top of the shared design tokens. */
 @theme {
   --spacing-sidebar: 232px;
-  --spacing-titlebar: 40px;
+  --spacing-titlebar: 42px;
+}
+
+/* The desktop shell has three useful densities: a full navigation sidebar,
+   an icon rail for medium windows, and a labelled top bar for compact ones. */
+.app-titlebar {
+  min-height: var(--spacing-titlebar);
+}
+
+.app-sidebar {
+  min-width: 0;
+}
+
+.app-main {
+  min-width: 0;
+  background: rgb(var(--ui-canvas));
+}
+
+.page-frame {
+  padding-inline: 2px;
+}
+
+.page-header {
+  min-width: 0;
+}
+
+.tool-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tool-run-column {
+  min-width: 0;
+}
+
+@media (min-width: 1200px) {
+  .tool-workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 336px;
+  }
+
+  .tool-run-column {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell > .flex.min-h-0.flex-1 {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100% !important;
+    height: 53px;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid rgb(var(--ui-line));
+  }
+
+  .app-sidebar > nav {
+    min-width: 0;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 6px 8px;
+  }
+
+  .app-sidebar > nav > a {
+    width: auto;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding-inline: 12px;
+  }
+
+  .app-sidebar > nav > p,
+  .app-sidebar > div > p,
+  .app-sidebar .sidebar-copyright {
+    display: none;
+  }
+
+  .app-sidebar > div:last-child {
+    border-top: 0;
+    padding: 6px 8px;
+  }
+
+  .app-sidebar > div:last-child > div {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .app-sidebar > div:last-child a[title*="copyright"] {
+    display: none;
+  }
+
+  .app-main {
+    padding: 16px 12px;
+  }
+
+  .titlebar-status-label {
+    display: none;
+  }
+
+  .app-titlebar {
+    gap: 8px;
+  }
+
+  .home-header {
+    padding-bottom: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-titlebar {
+    padding-right: 4px;
+  }
+
+  .app-titlebar [data-tauri-drag-region] {
+    min-width: 0;
+  }
+
+  .app-titlebar .titlebar-status-label,
+  .app-titlebar .ui-badge {
+    display: none;
+  }
+
+  .page-frame {
+    padding-inline: 0;
+  }
 }
 
 /* Engine status pill in the title bar. */
@@ -46,6 +174,48 @@
 
 .settings-row-control {
   min-width: 180px;
+}
+
+/* Home is a tool launcher, so density comes from a quiet grid and clear
+   format metadata rather than oversized promotional cards. */
+.home-page .home-header {
+  padding-top: 2px;
+}
+
+.home-page .home-search input {
+  box-shadow: var(--ui-shadow-control);
+}
+
+.home-page .tool-card-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.home-page .tool-card-grid > * {
+  min-height: 142px;
+}
+
+.home-page .tool-card-grid a:active {
+  background: rgb(var(--ui-accent) / 0.04);
+}
+
+.home-page .home-categories {
+  scrollbar-width: none;
+}
+
+.home-page .home-categories::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 860px) {
+  .home-page .tool-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1260px) {
+  .home-page .tool-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {

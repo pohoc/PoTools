@@ -81,7 +81,21 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
     return draft.options.rangesAsOne ? 1 : Math.max(1, ranges);
   }, [descriptor.layout, draft.options, total]);
 
-  const canRun = (!needsFiles || draft.files.length > 0) && status === 'ready' && areOptionsValid(descriptor.fields, draft.options) && (!organizer || slots.length > 0) && (!imageStudio || preparedPortrait !== null);
+  const optionsValid = areOptionsValid(descriptor.fields, draft.options);
+  const canRun = !draft.running && (!needsFiles || draft.files.length > 0) && status === 'ready' && optionsValid && (!organizer || slots.length > 0) && (!imageStudio || preparedPortrait !== null);
+  const runDisabledReason = draft.running
+    ? null
+    : status !== 'ready'
+      ? t('run.disabled.engine')
+      : needsFiles && draft.files.length === 0
+        ? t('run.needsFiles')
+        : !optionsValid
+          ? t('run.disabled.options')
+          : organizer && slots.length === 0
+            ? t('run.disabled.organizer')
+            : imageStudio && !preparedPortrait
+              ? t('run.disabled.image')
+              : null;
 
   const onRun = async () => {
     if (organizer) {
@@ -182,9 +196,15 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
         disabled={!canRun}
         className="w-full"
         onClick={() => void onRun()}
+        aria-describedby={runDisabledReason ? 'run-disabled-reason' : undefined}
       >
         {draft.running ? t('run.running') : t('run.button')}
       </Button>
+      {runDisabledReason ? (
+        <p id="run-disabled-reason" className="text-center text-[11px] leading-4 text-faint" role="status">
+          {runDisabledReason}
+        </p>
+      ) : null}
       {imageStudio && !preparedPortrait ? <p className="text-center text-[11px] leading-4 text-faint">{t('imageStudio.needFile')}</p> : null}
       {textLayout ? (
         <p className="text-center text-[11px] leading-4 text-faint">{t('result.textOnlyHint')}</p>
@@ -233,7 +253,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
     <ToolWorkspaceLayout header={header}>
       {engineNotice}
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_336px]">
+      <div className="tool-workspace-grid items-start gap-4">
         <div className="flex min-w-0 flex-col gap-4">
           {needsFiles ? (
             <Section
@@ -315,7 +335,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
           {resultPanel}
         </div>
 
-        <div className="flex flex-col gap-3 lg:sticky lg:top-4">
+        <div className="tool-run-column flex flex-col gap-3">
           {optionsSection}
           {runPanel}
         </div>

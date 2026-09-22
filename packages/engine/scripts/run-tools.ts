@@ -2,7 +2,7 @@
  * End-to-end harness: drives every registered tool through the real engine and
  * asserts the artifacts on disk. Run after `make-samples`.
  */
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -380,6 +380,68 @@ async function main(): Promise<void> {
       bounds ? `${Math.round(bounds.width)}x${Math.round(bounds.height)} pt` : 'no ink found',
     );
   }
+
+  // invoice-organize is intentionally RPC-backed rather than a queued ToolImpl.
+  // Exercise the same scan → preview payload → archive → undo contract used by
+  // InvoiceOrganizerPage so it is covered as a product tool, not as a runner gap.
+  let invoiceOrganizerCoverage = false;
+  const invoiceOrganizerRoot = await mkdtemp(join(tmpdir(), 'potools-invoice-organizer-'));
+  const invoiceSource = join(invoiceOrganizerRoot, 'source');
+  const invoiceTarget = join(invoiceOrganizerRoot, 'target');
+  try {
+    await mkdir(invoiceSource, { recursive: true });
+    const invoiceSourceFile = join(invoiceSource, 'sample-invoice.pdf');
+    await writeFile(invoiceSourceFile, await readFile(resolve(SAMPLES, 'sample-invoice.pdf')));
+    const canonicalSource = await realpath(invoiceSource);
+    const canonicalSourceFile = await realpath(invoiceSourceFile);
+    const scan = (await engine.call('invoice.scan', {
+      directory: invoiceSource,
+      recursive: true,
+      excludeDirectory: invoiceTarget,
+    })) as import('@potools/core').InvoiceScanResult;
+    const entry = scan.files[0];
+    const scanOk = scan.sourceDirectory === canonicalSource && scan.files.length === 1 && entry?.path === canonicalSourceFile && Boolean(entry?.sha256);
+    record('invoice RPC scan/preview', scanOk, `${scan.files.length} file(s), root=${scan.sourceDirectory === canonicalSource}, path=${entry?.path === canonicalSourceFile}, recognition=${entry?.recognition ?? 'none'}`);
+    if (scanOk && entry) {
+      const archive = (await engine.call('invoice.archive', {
+        sourceDirectory: scan.sourceDirectory,
+        targetDirectory: invoiceTarget,
+        conflict: 'rename',
+        files: [{
+          path: entry.path,
+          sha256: entry.sha256,
+          relativePath: '2024/sample-invoice.pdf',
+          enabled: true,
+          fields: entry.fields,
+        }],
+      })) as import('@potools/core').InvoiceArchiveResult;
+      const archivedPath = archive.copied[0]?.target;
+      const reportJson = archive.reportPath
+        ? await readFile(archive.reportPath, 'utf8').then((value) => JSON.parse(value) as { archiveId?: string; copied?: Array<{ target?: string }> }).catch(() => null)
+        : null;
+      const reportCsv = archive.csvReportPath ? await readFile(archive.csvReportPath, 'utf8').catch(() => '') : '';
+      const reportsOk = Boolean(
+        reportJson?.archiveId === archive.archiveId
+        && reportJson.copied?.length === 1
+        && reportJson.copied[0]?.target === archivedPath
+        && reportCsv.startsWith('\uFEFF')
+        && reportCsv.includes('sample-invoice.pdf')
+        && reportCsv.includes('copied'),
+      );
+      const archiveOk = archive.copied.length === 1 && Boolean(archivedPath) && Boolean(archive.reportPath) && Boolean(archive.csvReportPath) && Boolean(await stat(archivedPath!).catch(() => null)) && reportsOk;
+      record('invoice RPC archive/report', archiveOk, `${archive.copied.length} copied, reports=${reportsOk}, json=${Boolean(reportJson)}, csv=${reportCsv.includes('copied')}`);
+      if (archiveOk) {
+        const undone = (await engine.call('invoice.undo', { archiveId: archive.archiveId })) as import('@potools/core').InvoiceUndoResult;
+        const sourceStillExists = Boolean(await stat(invoiceSourceFile).catch(() => null));
+        invoiceOrganizerCoverage = undone.removed.length === 1 && undone.skipped.length === 0 && !(await stat(archivedPath!).catch(() => null)) && sourceStillExists;
+        record('invoice RPC undo', invoiceOrganizerCoverage, `removed=${undone.removed.length}, skipped=${undone.skipped.length}, source=${sourceStillExists}`);
+      }
+    }
+  } catch (error) {
+    record('invoice RPC scan/preview', false, error instanceof Error ? error.message : String(error));
+  } finally {
+    await rm(invoiceOrganizerRoot, { recursive: true, force: true });
+  }
   await assertArtifacts('header+footer', await run(engine, 'header-footer', [a], { header: '内部文件', footer: '{n}/{total}' }), 3);
   await assertArtifacts('remove-blank none', await run(engine, 'remove-blank', [a], { tolerance: 0 }), 3);
   await assertArtifacts('remove-blank report', await run(engine, 'remove-blank', [a], { reportOnly: true }));
@@ -408,7 +470,12 @@ async function main(): Promise<void> {
   await assertExports('export ppt', await run(engine, 'pdf-to-ppt', [a], { dpi: 96 }), async (bytes) => {
     const zip = await JSZip.loadAsync(bytes);
     const slides = Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name));
-    return slides.length === 3 ? `${slides.length} slides` : `expected 3 slides, got ${slides.length}`;
+    const xmls = await Promise.all(slides.map((name) => zip.file(name)?.async('string')));
+    const textSlide = xmls.find((xml) => xml?.includes('第一季度报告')) ?? '';
+    const hasBlackText = /<a:srgbClr val="000000"\s*\/>/.test(textSlide);
+    return slides.length === 3 && textSlide && hasBlackText
+      ? `${slides.length} slides; searchable text black`
+      : `expected black searchable text; slides=${slides.length}, text=${Boolean(textSlide)}, black=${hasBlackText}`;
   });
   await assertExports('export markdown', await run(engine, 'pdf-to-markdown', [a]), async (bytes) => {
     const text = Buffer.from(bytes).toString('utf8');
@@ -483,7 +550,18 @@ async function main(): Promise<void> {
     const [docxBytes, xlsxBytes, pptxBytes] = await Promise.all([
       writeDocx({ title: 'PoTools conversion sample', blocks: [{ kind: 'paragraph', text: 'Office conversion fixture', page: 1, bold: false }], imageFor: () => null, pageBreaks: true, contentWidth: 500 }),
       writeXlsx([{ name: 'Sheet1', rows: [['Quarter', 'Value'], ['Q1', '12']] }]),
-      writePptx({ title: 'PoTools conversion sample', slides: [{ widthIn: 8, heightIn: 11, image: new Uint8Array(await readFile(resolve(SAMPLES, 'sample-scan-2.png'))), lines: [] }] }),
+      writePptx({
+        title: 'PoTools conversion sample',
+        slides: [{
+          widthIn: 8,
+          heightIn: 11,
+          image: new Uint8Array(await readFile(resolve(SAMPLES, 'sample-scan-2.png'))),
+          lines: [
+            { text: '本地化转换测试', xIn: 0.5, yIn: 0.5, wIn: 7, hIn: 0.5, size: 22, bold: true, color: '000000' },
+            { text: '导出 docx/xlsx/pptx', xIn: 0.5, yIn: 1.1, wIn: 7, hIn: 0.5, size: 16, bold: false, color: '000000' },
+          ],
+        }],
+      }),
     ]);
     const originals = { docx: docxBytes, xlsx: xlsxBytes, pptx: pptxBytes };
     const legacy = {
@@ -846,11 +924,39 @@ async function main(): Promise<void> {
   await textCase('date-diff', { from: '2023-01-01', to: '2023-11-15', breakdown: true }, ['318 天', '2023-11-15']);
   await textCase('date-math', { base: '2023-11-15', direction: 'add', value: 10, unit: 'days' }, ['2023-11-25']);
   await textCase('workdays', { start: '2023-11-01', mode: 'add', days: 5 }, ['2023-11-08', '周六']);
-  await textCase('timezone-board', { at: '2023-11-15T12:00:00Z', zones: 'Asia/Shanghai\nAmerica/New_York' }, ['Asia/Shanghai', 'America/New_York', '20:00:00', '07:00:00']);
-  await textCase('duration', { value: '3735', unit: 's' }, ['01:02:15', 'PT1H2M15S']);
+  await textCase('timezone-board', { at: '2023-11-15T12:00:00Z', zones: 'Asia/Shanghai\nAmerica/New_York', style: 'full' }, ['Asia/Shanghai', 'America/New_York', '20:00:00', '07:00:00']);
+  await textCase('duration', { value: '3735', unit: 's', style: 'all' }, ['01:02:15', 'PT1H2M15S']);
   await textCase('cron', { expression: '0 9 * * 1-5', from: '2023-11-13T00:00:00Z', count: 5 }, ['2023-11-13 09:00:00', '星期五']);
   await textCase('date-format', { input: '1700000000', pattern: 'YYYY-MM-DD' }, ['2023-11-15']);
   await textCase('relative-time', { input: '2023-11-15', base: '2023-11-16' }, ['昨天']);
+
+  const defaultTimezone = await callText(engine, 'timezone-board', { at: '2023-11-15T12:00:00Z', zones: 'Asia/Shanghai\nAmerica/New_York' });
+  const defaultTimezoneText = defaultTimezone.result?.text ?? '';
+  const defaultTimezoneRows = defaultTimezoneText.split(/\r?\n/);
+  const shanghaiRow = defaultTimezoneRows.find((line) => line.includes('Asia/Shanghai') && line.includes('2023-11-15')) ?? '';
+  const newYorkRow = defaultTimezoneRows.find((line) => line.includes('America/New_York') && line.includes('2023-11-15')) ?? '';
+  record(
+    'timezone-board default style',
+    shanghaiRow.includes('2023-11-15 20:00')
+      && newYorkRow.includes('2023-11-15 07:00')
+      && !shanghaiRow.includes('20:00:00')
+      && !newYorkRow.includes('07:00:00'),
+    'default datetime keeps minute precision',
+  );
+  const defaultDuration = await callText(engine, 'duration', { value: '3735', unit: 's' });
+  const defaultDurationText = defaultDuration.result?.text ?? '';
+  record(
+    'duration default style',
+    /小时|hour/i.test(defaultDurationText) && !defaultDurationText.includes('PT1H2M15S') && !defaultDurationText.includes('01:02:15'),
+    'default human output stays copy-friendly',
+  );
+  const defaultTimestamp = await callText(engine, 'timestamp', { input: '1700000000', showRange: false, showNow: false });
+  const defaultTimestampText = defaultTimestamp.result?.text ?? '';
+  record(
+    'timestamp default style',
+    defaultTimestampText.includes('Unix 秒') && defaultTimestampText.includes('Unix 毫秒') && defaultTimestampText.includes('2023-11-15'),
+    'default both output keeps date/time and epoch values',
+  );
 
   // 参考站对齐断言：epochconverter 的周期边界/实时戳、timeanddate 的终点日口径与工作日统计。
   {
@@ -871,7 +977,7 @@ async function main(): Promise<void> {
         .map((hit) => hit[0]);
     const rowNum = (text: string, label: string) => Number(new RegExp(`${label}\\s+([\\d,]+)`).exec(text)?.[1]?.replace(/,/g, '') ?? Number.NaN);
     const hanGlyph = /[㐀-䶿一-鿿豈-﫿　-〿＀-￯]/;
-    const stampBase = { input: '1700000000', timezone: 'Asia/Shanghai' };
+    const stampBase = { input: '1700000000', timezone: 'Asia/Shanghai', style: 'full' };
 
     const stamp = await callText(engine, 'timestamp', stampBase);
     const stampText = stamp.result?.text ?? '';
@@ -1231,7 +1337,7 @@ async function main(): Promise<void> {
     return result;
   };
   await enTextCase('timestamp', { input: '1700000000' }, ['2023-11-15', '1700000000000']);
-  await enTextCase('duration', { value: '3735', unit: 's' }, ['01:02:15', 'PT1H2M15S']);
+  await enTextCase('duration', { value: '3735', unit: 's', style: 'all' }, ['01:02:15', 'PT1H2M15S']);
   await enTextCase('cron', { expression: '0 9 * * 1-5', from: '2023-11-13T00:00:00Z', count: 5 }, ['2023-11-13 09:00:00', 'Monday']);
   await enTextCase('hash', { input: 'abc' }, ['900150983cd24fb0d6963f7d28e17f72', 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad']);
   await enTextCase('base64', { input: '中文😀 PoToois', mode: 'encode' }, ['5Lit5paH8J+YgCBQb1Rvb2lz']);
@@ -1383,6 +1489,10 @@ async function main(): Promise<void> {
 
   for (const tool of TOOL_LIST) {
     const id = tool.id;
+    if (id === 'invoice-organize') {
+      record('coverage invoice-organize', invoiceOrganizerCoverage, invoiceOrganizerCoverage ? 'RPC scan → archive → undo passed' : 'RPC contract failed above');
+      continue;
+    }
     if (['doc-to-docx', 'docx-to-doc', 'xls-to-xlsx', 'xlsx-to-xls', 'ppt-to-pptx', 'pptx-to-ppt'].includes(id)) {
       recordSkipped(`coverage ${byId.get(id)?.id ?? id}`, 'six real-format conversions were exercised with dedicated fixtures above');
       continue;
