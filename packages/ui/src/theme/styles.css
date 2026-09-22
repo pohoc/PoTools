@@ -300,11 +300,13 @@
     height: 6px;
     border-left-width: 0;
     border-right-width: 0;
+    border-radius: var(--ui-radius-pill);
   }
 
   .slider[data-orientation='horizontal'] .slider__fill {
     top: 0;
     height: 6px;
+    border-radius: var(--ui-radius-pill);
   }
 
   .slider[data-orientation='horizontal'] .slider__thumb {
