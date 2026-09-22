@@ -294,6 +294,24 @@
     @apply border border-line/90 bg-surface shadow-card;
   }
 
+  /* Compact desktop slider: HeroUI's default horizontal track is a chunky 20px
+     pill sized for touch. Slim it down to a 6px rail with a 12px round thumb. */
+  .slider[data-orientation='horizontal'] .slider__track {
+    height: 6px;
+    border-left-width: 0;
+    border-right-width: 0;
+  }
+
+  .slider[data-orientation='horizontal'] .slider__thumb {
+    width: 16px;
+  }
+
+  .slider[data-orientation='horizontal'] .slider__thumb::after {
+    width: 12px;
+    height: 12px;
+    border-radius: var(--ui-radius-pill);
+  }
+
   .page-frame {
     @apply mx-auto w-full max-w-[1280px];
   }

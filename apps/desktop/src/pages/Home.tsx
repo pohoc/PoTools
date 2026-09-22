@@ -78,10 +78,10 @@ export function Home() {
             <HeroInput className="h-10 bg-surface pl-9 pr-9 text-[13px]" placeholder={t('search.placeholder')} value={query} onChange={(event) => setQuery(event.target.value)} aria-label={t('search.placeholder')} />
             {query ? <Button type="button" variant="ghost" size="icon-sm" className="absolute right-2.5 top-1/2 h-7 w-7 -translate-y-1/2 border-transparent bg-transparent p-0 text-faint hover:bg-raised hover:text-ink" onClick={() => setQuery('')} aria-label={t('common.close')}><Icon name="close" size={14} /></Button> : null}
           </label>
-          <label className="flex shrink-0 items-center gap-2 rounded-control border border-line bg-surface px-2.5 text-[11px] text-muted">
+          <div className="home-format-control flex min-w-0 shrink-0 items-center gap-2 rounded-control border border-line bg-surface px-2.5 text-[11px] text-muted">
             <span id="home-format-label">{t('home.format')}</span>
             <Select aria-labelledby="home-format-label" value={format} onValueChange={(value) => setFormat(value as ToolFormat | 'all')}>
-              <SelectTrigger aria-labelledby="home-format-label" className="h-8 w-[132px] border-0 bg-transparent px-1.5 shadow-none hover:bg-transparent focus-visible:ring-0">
+              <SelectTrigger unstyled aria-labelledby="home-format-label" className="home-format-trigger h-8 w-[132px] bg-transparent px-1.5 shadow-none hover:bg-transparent focus-visible:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="end">
@@ -89,7 +89,7 @@ export function Home() {
                 {availableFormats().map((item) => <SelectItem key={item} value={item}>{t(`format.${item}`)}</SelectItem>)}
               </SelectContent>
             </Select>
-          </label>
+          </div>
         </div>
       </header>
 
@@ -106,9 +106,9 @@ export function Home() {
         </section>
       ) : null}
 
-      <nav className="home-categories flex gap-1 overflow-x-auto border-b border-line py-2" aria-label={t('home.categories')}>
+      <nav className="home-categories flex flex-wrap gap-1 border-b border-line py-2" aria-label={t('home.categories')}>
           {categoryGroups.map((category) => (
-            <Button key={category.id} type="button" variant={activeCategory === category.id ? 'secondary' : 'ghost'} aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 gap-1.5 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'border-transparent bg-accent-soft font-medium text-accent hover:bg-accent-soft' : 'text-muted'}`}>
+            <Button key={category.id} type="button" variant="ghost" aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 gap-1.5 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'ui-button-active border-line bg-surface font-medium text-ink shadow-sm hover:bg-surface' : 'border-transparent bg-transparent text-muted'}`}>
               {t(category.label)}<span className={`text-[10px] tabular-nums ${activeCategory === category.id ? 'text-accent/70' : 'text-faint'}`}>{category.tools.length}</span>
             </Button>
           ))}

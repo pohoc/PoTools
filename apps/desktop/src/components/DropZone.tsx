@@ -1,21 +1,32 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { DragEvent } from 'react';
-import { Icon } from '@potools/ui';
-import { Button } from '@potools/ui';
+import { Button, Icon } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
-import { filesFromDataTransfer, pickFiles, type PickedFile } from '../lib/files.ts';
-import { isTauri, ACCEPT_EXTENSIONS } from '../lib/tauri.ts';
-import type { AcceptKind } from '../lib/tauri.ts';
+import { filesFromDataTransfer, fromPaths, pickFiles, type PickedFile } from '../lib/files.ts';
+import { isTauri, ACCEPT_EXTENSIONS, type AcceptKind } from '../lib/tauri.ts';
 
-export function useNativeDrop(enabled: boolean, onPaths: (paths: string[]) => void): void {
+/**
+ * Tauri intercepts HTML5 drag & drop (dragDropEnabled), so on the desktop the
+ * drop zone is driven from native webview events — including the hover state,
+ * which the DOM events can never provide there. Browser builds keep the DOM events.
+ */
+function useDragOver(onDropPaths: (paths: string[]) => void): [boolean, (over: boolean) => void] {
+  const [over, setOver] = useState(false);
+
   useEffect(() => {
-    if (!enabled || !isTauri()) return;
+    if (!isTauri()) return;
     let disposed = false;
     let unlisten: (() => void) | undefined;
     void (async () => {
       const { getCurrentWebview } = await import('@tauri-apps/api/webview');
       const stop = await getCurrentWebview().onDragDropEvent((event) => {
-        if (event.payload.type === 'drop') onPaths(event.payload.paths);
+        const payload = event.payload;
+        if (payload.type === 'drop') {
+          setOver(false);
+          onDropPaths(payload.paths);
+        } else {
+          setOver(payload.type === 'over');
+        }
       });
       if (disposed) stop();
       else unlisten = stop;
@@ -24,7 +35,9 @@ export function useNativeDrop(enabled: boolean, onPaths: (paths: string[]) => vo
       disposed = true;
       unlisten?.();
     };
-  }, [enabled, onPaths]);
+  }, [onDropPaths]);
+
+  return [over, setOver];
 }
 
 export function DropZone({
@@ -41,8 +54,15 @@ export function DropZone({
   busy?: boolean;
 }) {
   const { t } = useI18n();
-  const [over, setOver] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useDragOver(
+    useCallback(
+      (paths: string[]) => {
+        const files = fromPaths(paths);
+        if (files.length) onFiles(files, null as unknown as DataTransfer);
+      },
+      [onFiles],
+    ),
+  );
 
   const browse = useCallback(() => {
     void pickFiles(accept, multiple).then((files) => {
@@ -58,7 +78,7 @@ export function DropZone({
       const files = filesFromDataTransfer(event.dataTransfer);
       if (files.length) onFiles(files, event.dataTransfer);
     },
-    [onFiles],
+    [onFiles, setOver],
   );
 
   return (
@@ -92,24 +112,6 @@ export function DropZone({
         </span>
         {!compact ? <span className="text-[12px] leading-5 text-faint">{t(`drop.hint.${accept}`)}</span> : null}
       </Button>
-      <input
-        ref={inputRef}
-        type="file"
-        className="hidden"
-        multiple={multiple}
-        accept={ACCEPT_EXTENSIONS[accept].mime}
-        onChange={(event) => {
-          const files = Array.from(event.target.files ?? []).map((file) => ({
-            id: `${file.name}-${file.lastModified}-${file.size}`,
-            name: file.name,
-            size: file.size,
-            path: null,
-            file,
-          }));
-          if (files.length) onFiles(files, null as unknown as DataTransfer);
-          event.target.value = '';
-        }}
-      />
     </div>
   );
 }

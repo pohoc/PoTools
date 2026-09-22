@@ -35,16 +35,19 @@ export function kindFor(accept: string): AcceptKind {
   return 'pdf';
 }
 
+export function fromPaths(paths: string[]): PickedFile[] {
+  return paths.map((path) => ({
+    id: newId(),
+    name: path.split(/[/\\]/).pop() ?? path,
+    size: 0,
+    path,
+    file: null,
+  }));
+}
+
 export async function pickFiles(accept: AcceptKind, multiple: boolean): Promise<PickedFile[]> {
   if (isTauri()) {
-    const paths = await nativePickFiles(accept, multiple);
-    return paths.map((path) => ({
-      id: newId(),
-      name: path.split(/[/\\]/).pop() ?? path,
-      size: 0,
-      path,
-      file: null,
-    }));
+    return fromPaths(await nativePickFiles(accept, multiple));
   }
   return new Promise<PickedFile[]>((resolve) => {
     const input = document.createElement('input');

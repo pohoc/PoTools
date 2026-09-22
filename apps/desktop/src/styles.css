@@ -186,6 +186,29 @@
   box-shadow: var(--ui-shadow-control);
 }
 
+/* The format picker is one control: the wrapper owns its border and focus
+   ring, while the nested Select trigger stays visually borderless. */
+.home-page .home-format-control:focus-within { border-color: rgb(var(--ui-line)); box-shadow: none; }
+
+.home-page .home-format-control .home-format-trigger,
+.home-page .home-format-control .home-format-trigger:hover,
+.home-page .home-format-control .home-format-trigger:focus,
+.home-page .home-format-control .home-format-trigger:focus-visible {
+  border: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.home-page .home-format-control .home-format-trigger[data-focused],
+.home-page .home-format-control .home-format-trigger[data-focus-visible],
+.home-page .home-format-control .home-format-trigger[data-focus-visible="true"] {
+  outline: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 .home-page .tool-card-grid {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
@@ -199,11 +222,23 @@
 }
 
 .home-page .home-categories {
+  flex-wrap: wrap;
+  overflow-x: visible;
   scrollbar-width: none;
 }
 
 .home-page .home-categories::-webkit-scrollbar {
   display: none;
+}
+
+/* The shared ghost button has an unlayered raised hover rule. Keep the
+   selected library category on its semantic surface in both themes. */
+.home-page .home-categories .ui-button-active,
+.home-page .home-categories .ui-button-active:hover {
+  border-color: rgb(var(--ui-line));
+  background: rgb(var(--ui-surface));
+  color: rgb(var(--ui-ink));
+  box-shadow: var(--ui-shadow-control);
 }
 
 @media (min-width: 860px) {
@@ -215,6 +250,13 @@
 @media (min-width: 1260px) {
   .home-page .tool-card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .home-page .home-categories {
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 }
 

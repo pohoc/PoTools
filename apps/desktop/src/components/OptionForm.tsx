@@ -17,6 +17,8 @@ function isVisible(field: ToolField, values: Record<string, FieldValue>): boolea
 
 const ALL_RANGES = new Set(['all', '*', '全部', '所有']);
 const MILLIMETERS_PER_POINT = 25.4 / 72;
+/** Shared invalid-state chrome for every control in this form. */
+const INVALID_CLASS = 'border-bad focus-visible:border-bad focus-visible:ring-bad/25';
 
 function toDisplayNumber(field: Extract<ToolField, { type: 'number' | 'slider' }>, value: number): number {
   return field.displayUnit === 'mm' ? Number((value * MILLIMETERS_PER_POINT).toFixed(1)) : value;
@@ -173,7 +175,7 @@ export function OptionForm({
       ) : null}
       {advanced.length ? (
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="form-section pt-3">
-          <CollapsibleTrigger className="group h-auto w-full justify-start gap-1.5 border-transparent bg-transparent px-1 py-1 text-[12.5px] font-medium text-muted hover:bg-transparent hover:text-ink">
+          <CollapsibleTrigger className="group flex h-auto w-full items-center gap-1.5 rounded-control border border-transparent bg-transparent px-1 py-1.5 text-left text-[12.5px] font-medium text-muted outline-none hover:bg-transparent hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/35">
             <Icon name="chevronRight" size={13} className="transition-transform group-data-[state=open]:rotate-90" />
             <span>{t('opt.section.advanced')}</span>
             <span className="ml-auto rounded-full bg-raised px-1.5 text-[11px] text-faint">{advanced.length}</span>
@@ -221,13 +223,14 @@ function Group({
       {[...rows.entries()].map(([row, group]) => (
         <div key={row} className={cn('grid gap-3', group.length > 1 ? 'grid-cols-2' : 'grid-cols-1')}>
           {group.map((field) => (
-            <Field
-              key={field.key}
-              field={field}
-              value={values[field.key]}
-              onChange={onChange}
-              values={values}
-            />
+            <div key={field.key} className={field.type === 'slider' && group.length > 1 ? 'col-span-full' : undefined}>
+              <Field
+                field={field}
+                value={values[field.key]}
+                onChange={onChange}
+                values={values}
+              />
+            </div>
           ))}
         </div>
       ))}
@@ -310,7 +313,7 @@ function Control({
           <HeroInput
             type="number"
             id={id}
-            className={cn('font-mono tabular-nums', unit && 'pr-10')}
+            className={cn('font-mono tabular-nums', unit && 'pr-10', fieldError(field, value) !== null && INVALID_CLASS)}
             min={min}
             max={max}
             step={step}
@@ -357,7 +360,7 @@ function Control({
                 onClick={() => choose(option.value)}
                 className={cn('h-9 w-10 border-transparent p-0', selected(option) && 'border-accent/35 bg-accent-soft text-accent hover:bg-accent-soft')}
               >
-                <span className={positionMarkerClass(String(option.value))} aria-hidden="true"><span className="h-1.5 w-1.5 rounded-full bg-current" /></span>
+                <span className={positionMarkerClass(String(option.value))} aria-hidden="true"><span className="h-2 w-2 rounded-full bg-current" /></span>
               </Button>
             ))}
           </div>
@@ -415,7 +418,7 @@ function Control({
           aria-labelledby={labelId}
           onValueChange={choose}
         >
-          <SelectTrigger id={id} aria-labelledby={labelId} aria-invalid={fieldError(field, value) !== null}>
+          <SelectTrigger id={id} aria-labelledby={labelId} aria-invalid={fieldError(field, value) !== null} className={fieldError(field, value) !== null ? INVALID_CLASS : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -447,12 +450,32 @@ function Control({
             step={displayStep}
             value={[displayValue]}
             onValueChange={([next]) => onChange(field.key, fromDisplayNumber(field, next ?? displayValue))}
-            aria-label={t(field.labelKey)}
+            aria-labelledby={labelId}
             className="min-w-0 flex-1"
           />
-          <span className="w-[54px] shrink-0 text-right font-mono text-[12px] tabular-nums text-muted">
-            {displayValue}
-            {unit}
+          <span className="relative shrink-0">
+            <HeroInput
+              type="number"
+              className={cn(
+                'h-7 w-[86px] pr-9 text-right font-mono text-[12px] tabular-nums',
+                fieldError(field, value) !== null && INVALID_CLASS,
+              )}
+              min={displayMin}
+              max={displayMax}
+              step={displayStep}
+              value={String(displayValue)}
+              aria-labelledby={labelId}
+              aria-invalid={fieldError(field, value) !== null}
+              onChange={(event) => {
+                const raw = event.target.value;
+                onChange(field.key, raw === '' ? '' : fromDisplayNumber(field, Number(raw)));
+              }}
+            />
+            {unit ? (
+              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10.5px] text-faint">
+                {unit}
+              </span>
+            ) : null}
           </span>
           </span>
           {field.presets?.length ? (
@@ -513,7 +536,7 @@ function Control({
           className={cn(
             'min-h-[76px] resize-y leading-5',
             field.mono && 'font-mono',
-            fieldError(field, value) !== null && 'border-bad focus:border-bad focus:ring-bad/25',
+            fieldError(field, value) !== null && INVALID_CLASS,
           )}
           value={field.default === 'now' && value === 'now' ? '' : String(value ?? field.default)}
           maxLength={field.maxLength}
@@ -612,7 +635,7 @@ function PageRangesField({
           type="text"
           id={id}
           aria-labelledby={labelId}
-          className={cn('font-mono', invalid && 'border-bad focus:border-bad focus:ring-bad/25')}
+          className={cn('font-mono', invalid && INVALID_CLASS)}
           aria-invalid={invalid}
           aria-describedby={invalid ? `${id}-error` : undefined}
           value={value}
@@ -665,7 +688,7 @@ function TimezoneField({
   return (
     <span className="flex min-w-0 flex-col gap-1.5">
       <Select aria-label={t(field.labelKey)} value={normalized} onValueChange={(next) => onChange(field.key, next)}>
-        <SelectTrigger id={id} aria-labelledby={labelId} aria-invalid={invalid} className={invalid ? 'border-bad focus-visible:ring-bad/25' : undefined}>
+        <SelectTrigger id={id} aria-labelledby={labelId} aria-invalid={invalid} className={invalid ? INVALID_CLASS : undefined}>
           <SelectValue placeholder={t('timezone.placeholder')} />
         </SelectTrigger>
         <SelectContent className="max-h-[22rem]">
@@ -715,7 +738,7 @@ function DateTimeField({
         placeholder={field.placeholderKey ? t(field.placeholderKey) : undefined}
         aria-invalid={invalid}
         onChange={(event) => onChange(field.key, event.target.value)}
-        className={`min-w-0 ${field.mono ? 'font-mono' : ''} ${invalid ? 'border-bad focus:border-bad focus:ring-bad/25' : ''}`}
+        className={cn('min-w-0', field.mono && 'font-mono', invalid && INVALID_CLASS)}
       />
       {field.presets?.length ? (
         <span role="group" aria-label={t('date.presets.aria')} className="flex flex-wrap gap-1">
