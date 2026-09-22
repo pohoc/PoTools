@@ -304,6 +304,10 @@
 
   .slider[data-orientation='horizontal'] .slider__thumb {
     width: 16px;
+    /* RAC positions the thumb by its left edge at the value percent; center it
+       so the thumb midpoint matches the fill end (HeroUI compensated with the
+       chunky transparent track borders that the slim rail drops). */
+    transform: translateX(-50%);
   }
 
   .slider[data-orientation='horizontal'] .slider__thumb::after {
