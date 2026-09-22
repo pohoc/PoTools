@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DragEvent } from 'react';
-import { Button, Icon } from '@potools/ui';
+import { Icon } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { filesFromDataTransfer, fromPaths, pickFiles, type PickedFile } from '../lib/files.ts';
 import { isTauri, ACCEPT_EXTENSIONS, type AcceptKind } from '../lib/tauri.ts';
@@ -91,14 +91,21 @@ export function DropZone({
       onDrop={handleDrop}
       className="w-full"
     >
-      <Button
-        type="button"
-        variant="outline"
-        onClick={browse}
+      <div
+        role="button"
+        tabIndex={busy ? -1 : 0}
         aria-busy={busy}
-        className={`group h-auto w-full flex-col gap-2 rounded-card border-dashed bg-transparent text-center text-ink shadow-none hover:bg-accent-soft/40 active:translate-y-0 ${
-          over ? 'drag-over border-accent' : 'border-line hover:border-accent/60'
-        } ${compact ? 'px-3 py-4' : 'px-4 py-9'}`}
+        aria-label={compact ? t('drop.append') : t('drop.browse')}
+        onClick={() => { if (!busy) browse(); }}
+        onKeyDown={(event) => {
+          if (!busy && (event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            browse();
+          }
+        }}
+        className={`tool-drop-zone group flex w-full cursor-pointer flex-col items-center justify-center rounded-control border border-dashed text-center outline-none transition focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30 ${
+          over ? 'drag-over border-accent bg-accent-soft/35' : 'border-line bg-surface hover:border-accent/60'
+        } ${compact ? 'gap-2 px-3 py-4' : 'gap-2.5 px-4 py-6'}`}
       >
         <span
           className={`flex items-center justify-center rounded-full bg-raised text-muted transition group-hover:bg-accent-soft group-hover:text-accent ${
@@ -111,7 +118,7 @@ export function DropZone({
           {compact ? t('drop.append') : t('drop.title')}
         </span>
         {!compact ? <span className="text-[12px] leading-5 text-faint">{t(`drop.hint.${accept}`)}</span> : null}
-      </Button>
+      </div>
     </div>
   );
 }

@@ -20,6 +20,7 @@ export const zhCN = {
   'home.categoryEmpty': '这个分类暂时还没有工具',
   'home.input': '输入',
   'home.output': '输出',
+  'tool.inputFiles': '输入文件',
   'preview.input': '文件预览',
   'preview.loading': '正在生成预览…',
   'preview.unavailable': '当前文件无法生成预览',

@@ -22,6 +22,7 @@ export const en: Messages = {
   'home.categoryEmpty': 'No tools in this category yet',
   'home.input': 'IN',
   'home.output': 'OUT',
+  'tool.inputFiles': 'Input files',
   'preview.input': 'File preview',
   'preview.loading': 'Preparing preview…',
   'preview.unavailable': 'Preview is unavailable for this file',

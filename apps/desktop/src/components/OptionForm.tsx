@@ -170,7 +170,7 @@ export function OptionForm({
             <h3 id="option-layout-heading" className="form-section-title">{t('opt.section.layout')}</h3>
             <p className="form-hint mt-0.5">{t('opt.section.layoutHint')}</p>
           </div>
-          <Group fields={layout} values={values} onChange={onChange} bare />
+          <Group fields={layout} values={values} onChange={onChange} bare stackClassName="option-layout-stack" />
         </section>
       ) : null}
       {advanced.length ? (
@@ -197,11 +197,13 @@ function Group({
   values,
   onChange,
   bare,
+  stackClassName,
 }: {
   fields: ToolField[];
   values: Values;
   onChange: (key: string, value: FieldValue) => void;
   bare?: boolean;
+  stackClassName?: string;
 }) {
   const rows = new Map<string, ToolField[]>();
   const stack: ToolField[] = [];
@@ -216,7 +218,7 @@ function Group({
   }
 
   const content = (
-    <div className="form-field-stack">
+    <div className={cn('form-field-stack', stackClassName)}>
       {stack.map((field) => (
         <Field key={field.key} field={field} value={values[field.key]} onChange={onChange} values={values} />
       ))}

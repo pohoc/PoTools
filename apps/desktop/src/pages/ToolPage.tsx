@@ -159,11 +159,12 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   const optionsSection = (
     <Section
       title={t('tool.options')}
+      className="tool-options-section"
       aside={
         <Button
-          variant="link"
+          variant="secondary"
           size="sm"
-          className="h-auto shrink-0 p-0 text-[11.5px] text-faint hover:text-ink"
+          className="h-8 shrink-0 px-3 text-[11.5px]"
           onClick={draft.resetOptions}
         >
           {t('common.reset')}
@@ -257,7 +258,8 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
         <div className="flex min-w-0 flex-col gap-4">
           {needsFiles ? (
             <Section
-              title={t('drop.title')}
+              title={t('tool.inputFiles')}
+              className="tool-input-section"
               aside={
                 draft.files.length ? (
                   <span className="flex shrink-0 items-center gap-2 text-[11.5px] text-faint">

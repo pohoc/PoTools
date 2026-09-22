@@ -2,7 +2,7 @@ import { Children, cloneElement, isValidElement, type ButtonHTMLAttributes, type
 import { Loader2 } from 'lucide-react';
 import { Button as HeroButton, Description as HeroDescription, Label as HeroLabel, Switch as HeroSwitch } from '@heroui/react';
 import { Icon } from './Icon';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardTitle } from './ui/card';
 import { Progress } from './ui/progress';
 import { cn } from '../utils';
 
@@ -108,10 +108,10 @@ export function Section({
   return (
     <Card className={className}>
       {title ? (
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          {aside}
-        </CardHeader>
+        <div className="section-header flex w-full min-w-0 items-center justify-between gap-3">
+          <CardTitle className="min-w-0 flex-1">{title}</CardTitle>
+          <span className="shrink-0">{aside}</span>
+        </div>
       ) : null}
       <CardContent className={dense ? 'p-0' : undefined}>{children}</CardContent>
     </Card>
@@ -163,14 +163,16 @@ export function EmptyState({
   title,
   hint,
   action,
+  className,
 }: {
   icon?: string;
   title: string;
   hint?: string;
   action?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+    <div className={cn('flex flex-col items-center justify-center gap-2 px-6 py-12 text-center', className)}>
       <span className="mb-1 flex h-11 w-11 items-center justify-center rounded-full bg-raised text-faint">
         <Icon name={icon} size={20} />
       </span>

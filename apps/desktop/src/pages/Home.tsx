@@ -3,7 +3,9 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Input as HeroInput } from '@potools/ui';
 import {
+  CATEGORY_ORDER,
   TOOL_LIST,
+  type ToolCategory,
   type ToolDescriptor,
   type ToolFormat,
 } from 'core';
@@ -18,6 +20,7 @@ export function Home() {
   const jobs = useJobs((state) => state.jobs);
   const [query, setQuery] = useState('');
   const [format, setFormat] = useState<ToolFormat | 'all'>('all');
+  const [activeSubcategory, setActiveSubcategory] = useState<ToolCategory | 'all'>('all');
   const [activeCategory, setActiveCategory] = useState<ToolLibraryCategory>(() => {
     try {
       const saved = sessionStorage.getItem('potools.lastCategory');
@@ -25,15 +28,18 @@ export function Home() {
     } catch { return 'all'; }
   });
 
-  const filtered = useMemo(() => {
+  const queryFiltered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return TOOL_LIST.filter((tool) => {
-      if (format !== 'all' && ![...tool.inputFormats, ...tool.outputFormats].includes(format)) return false;
       if (!needle) return true;
       const haystack = [t(tool.nameKey), t(tool.descKey), tool.id, ...tool.keywords ?? []].join(' ').toLowerCase();
       return needle.split(/\s+/).every((token) => haystack.includes(token));
     });
-  }, [format, query, t]);
+  }, [query, t]);
+
+  const filtered = useMemo(() => format === 'all'
+    ? queryFiltered
+    : queryFiltered.filter((tool) => [...tool.inputFormats, ...tool.outputFormats].includes(format)), [format, queryFiltered]);
 
   const categoryGroups = useMemo(() => {
     return TOOL_CATEGORIES.map((category) => ({
@@ -48,11 +54,19 @@ export function Home() {
       : categoryGroups.filter((group) => group.id === activeCategory);
     return candidates.map((category) => ({
       ...category,
-      tools: category.tools.filter((tool) => filtered.includes(tool)),
+      tools: category.tools.filter((tool) => filtered.includes(tool)
+        && (activeCategory === 'all' || activeSubcategory === 'all'
+          || (classifyTool(tool) === activeCategory && tool.category === activeSubcategory))),
     })).filter((category) => category.tools.length > 0);
-  }, [activeCategory, categoryGroups, filtered, query]);
+  }, [activeCategory, activeSubcategory, categoryGroups, filtered, query]);
 
   const resultCount = sections.reduce((sum, section) => sum + section.tools.length, 0);
+  const subcategoryTags = useMemo(() => {
+    if (activeCategory === 'all') return [];
+    const categoryTools = filtered.filter((tool) => classifyTool(tool) === activeCategory);
+    const available = new Set(categoryTools.map((tool) => tool.category));
+    return CATEGORY_ORDER.filter((category) => available.has(category));
+  }, [activeCategory, filtered]);
   const recentTools = useMemo(() => {
     const seen = new Set<string>();
     return jobs.filter((job) => {
@@ -108,15 +122,24 @@ export function Home() {
 
       <nav className="home-categories flex flex-wrap gap-1 border-b border-line py-2" aria-label={t('home.categories')}>
           {categoryGroups.map((category) => (
-            <Button key={category.id} type="button" variant="ghost" aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 gap-1.5 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'ui-button-active border-line bg-surface font-medium text-ink shadow-sm hover:bg-surface' : 'border-transparent bg-transparent text-muted'}`}>
-              {t(category.label)}<span className={`text-[10px] tabular-nums ${activeCategory === category.id ? 'text-accent/70' : 'text-faint'}`}>{category.tools.length}</span>
+            <Button key={category.id} type="button" variant="ghost" aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setActiveSubcategory('all'); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'ui-button-active border-line bg-surface font-medium text-ink shadow-sm hover:bg-surface' : 'border-transparent bg-transparent text-muted'}`}>
+              {t(category.label)}
             </Button>
           ))}
         </nav>
 
       <main className="min-w-0 py-3">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div><h2 className="text-[15px] font-semibold">{query.trim() ? t('home.searchResults') : t(categoryGroups.find((category) => category.id === activeCategory)?.label ?? 'home.allTools')}</h2><p className="mt-0.5 text-[11.5px] text-muted">{resultCount} {t('home.results')}</p></div>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="shrink-0"><h2 className="text-[15px] font-semibold">{query.trim() ? t('home.searchResults') : t(categoryGroups.find((category) => category.id === activeCategory)?.label ?? 'home.allTools')}</h2><p className="mt-0.5 text-[11.5px] text-muted">{resultCount} {t('home.results')}</p></div>
+              {subcategoryTags.length > 0 ? <div className="flex min-w-0 flex-1 flex-wrap justify-start gap-1 sm:justify-end" aria-label={t('home.categories')}>
+                <button type="button" aria-pressed={activeSubcategory === 'all'} onClick={() => setActiveSubcategory('all')} className={`max-w-full rounded-full border px-2 py-0.5 text-[10.5px] leading-4 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/35 ${activeSubcategory === 'all' ? 'border-accent/35 bg-accent-soft text-ink' : 'border-line bg-surface text-muted hover:bg-raised hover:text-ink'}`}>{t('search.all')}</button>
+                {subcategoryTags.map((subcategory) => {
+                  const active = activeSubcategory === subcategory;
+                  return <button key={subcategory} type="button" aria-pressed={active} onClick={() => setActiveSubcategory(active ? 'all' : subcategory)} className={`max-w-full rounded-full border px-2 py-0.5 text-[10.5px] leading-4 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/35 ${active ? 'border-accent/35 bg-accent-soft text-ink' : 'border-line bg-surface text-muted hover:bg-raised hover:text-ink'}`}>{t(`category.${subcategory}`)}</button>;
+                })}
+              </div> : null}
+            </div>
           </div>
           {sections.length ? <div className="flex flex-col gap-5">
             {sections.map((section) => (
@@ -161,8 +184,8 @@ function classifyTool(tool: ToolDescriptor): ToolLibraryCategory {
 function ToolCard({ tool }: { tool: ToolDescriptor }) {
   const { t } = useI18n();
   return (
-    <Card className="group min-w-0 overflow-hidden transition hover:border-accent/35 hover:bg-raised/35 hover:shadow-pop">
-      <Link to={`/tool/${tool.id}`} className="flex h-full min-w-0 flex-col p-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
+    <Card className="group min-w-0 overflow-hidden transition hover:border-accent/35 hover:shadow-pop">
+      <Link to={`/tool/${tool.id}`} className="flex h-full min-w-0 flex-col bg-transparent p-3.5 text-left outline-none transition active:bg-transparent focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
         <span className="flex w-full min-w-0 items-start gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-line bg-canvas text-muted transition group-hover:border-accent/25 group-hover:text-accent"><Icon name={tool.icon} size={17} /></span>
           <span className="min-w-0 flex-1 pt-0.5">

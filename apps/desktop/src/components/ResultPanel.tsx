@@ -57,7 +57,7 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
   if (!job) {
     return (
       <Section title={t('result.title')}>
-        <EmptyState icon="file" title={t('result.empty')} hint={t('result.noDir')} />
+        <EmptyState className="tool-empty-result" icon="file" title={t('result.empty')} hint={t('result.noDir')} />
       </Section>
     );
   }
