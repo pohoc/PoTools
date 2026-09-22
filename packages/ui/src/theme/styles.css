@@ -302,17 +302,24 @@
     border-right-width: 0;
   }
 
+  .slider[data-orientation='horizontal'] .slider__fill {
+    top: 0;
+    height: 6px;
+  }
+
   .slider[data-orientation='horizontal'] .slider__thumb {
+    top: 50%;
     width: 16px;
-    /* RAC positions the thumb by its left edge at the value percent; center it
-       so the thumb midpoint matches the fill end (HeroUI compensated with the
-       chunky transparent track borders that the slim rail drops). */
-    transform: translateX(-50%);
+    height: 16px;
+    /* RAC positions the thumb by its left edge at the value percent; center the
+       16px hit area on that point so the thumb midpoint matches the fill end. */
+    transform: translate(-50%, -50%);
   }
 
   .slider[data-orientation='horizontal'] .slider__thumb::after {
     width: 12px;
     height: 12px;
+    border: 2px solid rgb(var(--ui-line));
     border-radius: var(--ui-radius-pill);
   }
 
