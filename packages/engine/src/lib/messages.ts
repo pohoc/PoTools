@@ -4,6 +4,9 @@ import { cryptoEncodingMessages } from './messages/crypto-encoding.ts';
 import { cryptoPrimitivesMessages } from './messages/crypto-primitives.ts';
 import { timeMessages } from './messages/time.ts';
 import { timeExtraMessages } from './messages/time-extra.ts';
+import { developerMessages } from './messages/developer.ts';
+import { financeMessages } from './messages/finance.ts';
+import { ocrMessages } from './messages/ocr.ts';
 
 export type MsgLocale = 'zh-CN' | 'en';
 
@@ -16,8 +19,11 @@ const CATALOGS: readonly DomainMessages[] = [
   commonMessages,
   timeMessages,
   timeExtraMessages,
+  developerMessages,
   cryptoEncodingMessages,
   cryptoPrimitivesMessages,
+  financeMessages,
+  ocrMessages,
 ];
 
 function merge(locale: MsgLocale): Record<string, string> {

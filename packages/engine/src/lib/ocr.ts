@@ -12,9 +12,9 @@ let servicePromise: Promise<LocalOcr> | null = null;
 /** Local PaddleOCR/ONNX Runtime provider. No Python, subprocess, or network calls. */
 export async function recognizePaddlePage(png: Uint8Array): Promise<OcrPageResult> {
   const sharp = await getSharp();
-  if (!sharp) throw new EngineError('unsupported', '本地 OCR 需要图像解码能力（sharp）。');
+  if (!sharp) throw new EngineError('no_image_codec', 'sharp is unavailable', 'error.noImageCodec');
   const modelDir = await findModelDir();
-  if (!modelDir) throw new EngineError('unsupported', 'PoTools 未找到随应用打包的 PP-OCR 中文模型。');
+  if (!modelDir) throw new EngineError('unsupported', 'OCR model files were not found.', 'error.ocrModelMissing');
   const pixels = await sharp(Buffer.from(png), { failOn: 'none' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const service = await getService(modelDir);
   const results = await service.recognize({ width: pixels.info.width, height: pixels.info.height, data: new Uint8Array(pixels.data) });
@@ -22,7 +22,12 @@ export async function recognizePaddlePage(png: Uint8Array): Promise<OcrPageResul
   const lines = (processed.items ?? []).map((item) => ({
     text: String(item.text ?? '').trim(),
     confidence: typeof item.score === 'number' ? item.score : undefined,
-    box: item.box?.flatMap((point) => point).slice(0, 4) as [number, number, number, number] | undefined,
+    box: item.box?.length ? [
+      Math.min(...item.box.map((point) => point[0] ?? 0)),
+      Math.min(...item.box.map((point) => point[1] ?? 0)),
+      Math.max(...item.box.map((point) => point[0] ?? 0)),
+      Math.max(...item.box.map((point) => point[1] ?? 0)),
+    ] as [number, number, number, number] : undefined,
   })).filter((line) => line.text);
   return { text: String(processed.text ?? lines.map((line) => line.text).join('\n')), lines, model: 'PP-OCRv6_small' };
 }
@@ -47,7 +52,7 @@ async function getService(modelDir: string): Promise<LocalOcr> {
       }) as Promise<LocalOcr>;
     })().catch((error) => {
       servicePromise = null;
-      throw new EngineError('unsupported', `本地 PaddleOCR 初始化失败：${error instanceof Error ? error.message : String(error)}`);
+      throw new EngineError('unsupported', `PaddleOCR initialization failed: ${error instanceof Error ? error.message : String(error)}`, 'error.ocrInit');
     });
   }
   return servicePromise;

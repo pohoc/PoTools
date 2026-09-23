@@ -12,6 +12,9 @@ import { importTools } from './import.ts';
 import { imageTools } from './image.ts';
 import { timeTools } from './time.ts';
 import { cryptoTools } from './crypto.ts';
+import { developerTools } from './developer.ts';
+import { financeTools } from './finance.ts';
+import { ocrTools } from './ocr.ts';
 
 export const TOOL_IMPLS: ToolImpl[] = [
   ...pageTools,
@@ -26,6 +29,9 @@ export const TOOL_IMPLS: ToolImpl[] = [
   ...imageTools,
   ...timeTools,
   ...cryptoTools,
+  ...developerTools,
+  ...financeTools,
+  ...ocrTools,
 ];
 
 export const TOOL_IMPL_MAP = TOOL_IMPLS.reduce(
