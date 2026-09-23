@@ -240,6 +240,13 @@ const workdaysTool: ToolImpl = {
       ),
     ];
 
+    const resultHeading = section(mode === 'add' ? msg('common.label.result') : msg('extra.workdays.statsResult'));
+    const resultPosition = blocks.indexOf(resultHeading);
+    if (resultPosition > 1) {
+      const resultContent = blocks.splice(resultPosition, 2);
+      blocks.splice(1, 0, ...resultContent);
+    }
+
     const collapse = mode === 'add' && naturalDays > 30 && ranges.length > 0;
     if (mode === 'add' && worked.length) {
       if (collapse) {
@@ -1412,7 +1419,7 @@ const cronTool: ToolImpl = {
       ),
     ];
     if (showCountdown) {
-      blocks.push(
+      blocks.splice(2, 0,
         section(msg('extra.cron.nextSection')),
         alignRows([
           [msg('extra.cron.nextLabel'), msg('extra.cron.nextAtValue', { wall: nextRun.wall, zone: timeZone })],

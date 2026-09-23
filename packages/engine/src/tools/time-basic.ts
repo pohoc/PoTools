@@ -249,17 +249,17 @@ function fullRows(
   msg: Msg,
 ): Array<[string, string]> {
   const rows: Array<[string, string]> = [
-    [msg('common.label.input'), instant.raw],
-    [msg('basic.timestamp.detectedUnit'), instant.unit === 'text' ? msg('basic.timestamp.textTime') : msg('basic.timestamp.unixUnit', { unit: unitName(instant.unit, msg) })],
-    [msg('time.label.timezone'), zoneText(parts, msg)],
     [msg('time.label.localTime'), formatZoneStamp(parts.timeZone, instant.epochMs, uiLocale)],
-    ['ISO 8601', isoInZone(parts.timeZone, instant.epochMs, true, uiLocale)],
-    ['ISO 8601 (UTC)', utcIso(instant, uiLocale)],
-    ['RFC 2822', rfc2822(instant.epochMs, parts.timeZone, uiLocale)],
     [msg('basic.timestamp.unixSec'), String(Math.floor(instant.epochMs / SEC_MS))],
     [msg('basic.timestamp.unixMs'), String(instant.epochMs)],
     [msg('basic.timestamp.unixUs'), String(instant.epochUs)],
     [msg('basic.timestamp.unixNs'), String(instant.epochNs)],
+    ['ISO 8601', isoInZone(parts.timeZone, instant.epochMs, true, uiLocale)],
+    ['ISO 8601 (UTC)', utcIso(instant, uiLocale)],
+    ['RFC 2822', rfc2822(instant.epochMs, parts.timeZone, uiLocale)],
+    [msg('common.label.input'), instant.raw],
+    [msg('basic.timestamp.detectedUnit'), instant.unit === 'text' ? msg('basic.timestamp.textTime') : msg('basic.timestamp.unixUnit', { unit: unitName(instant.unit, msg) })],
+    [msg('time.label.timezone'), zoneText(parts, msg)],
     [msg('time.label.longDate'), longDate(instant.epochMs, parts.timeZone, uiLocale)],
     [msg('time.label.weekday'), weekdayPair(parts.weekday, uiLocale)],
     [msg('basic.timestamp.dayOfYear'), `${parts.dayOfYear} / ${parts.daysInYear}`],
@@ -267,9 +267,9 @@ function fullRows(
     [msg('basic.timestamp.relativeNow'), relativePhrase(instant.epochMs - now, locale)],
     [msg('time.label.dst'), msg(parts.dst ? 'time.value.active' : 'time.value.inactive')],
   ];
-  if (parts.millisecond > 0) rows.splice(4, 0, [msg('time.unit.ms'), pad(parts.millisecond, 3)]);
+  if (parts.millisecond > 0) rows.splice(3, 0, [msg('time.unit.ms'), pad(parts.millisecond, 3)]);
   if (fractionalSeconds(instant.epochNs)) {
-    rows.splice(5, 0, [msg('basic.timestamp.preciseIso'), preciseIso(parts.timeZone, instant, uiLocale)]);
+    rows.splice(6, 0, [msg('basic.timestamp.preciseIso'), preciseIso(parts.timeZone, instant, uiLocale)]);
   }
   return rows;
 }
@@ -342,6 +342,12 @@ const dateDiffTool: ToolImpl = {
       headRows.push([msg('basic.datediff.span'), `${delta < 0 ? '−' : ''}${spanText({ ...span, sign: 1 }, locale)}`]);
     }
     const blocks: string[] = [
+      section(msg('common.label.result')),
+      alignRows([
+        [msg('basic.datediff.span'), `${delta < 0 ? '−' : ''}${spanText({ ...span, sign: 1 }, locale)}`],
+        [msg('basic.datediff.direction'), delta === 0 ? msg('basic.datediff.dirSame') : delta > 0 ? msg('basic.datediff.dirForward') : msg('basic.datediff.dirBackward')],
+        ...(unit !== 'auto' ? [[msg('basic.datediff.byUnit', { unit: optLabel(msg, 'dateDiff.unit', unit) }), `${signed(delta / divisorOf(unit), locale)} ${unitSuffix(unit, locale, msg)}`] as [string, string]] : []),
+      ]),
       section(msg('basic.datediff.title', { zone: timeZone })),
       alignRows(headRows),
       section(msg('time.section.totals')),
@@ -494,6 +500,12 @@ const dateMathTool: ToolImpl = {
         ).epochMs + result.millisecond
       : shifted.epochMs;
     const blocks: string[] = [
+      section(msg('common.label.result')),
+      alignRows([
+        [msg('common.label.result'), `${formatZoneStamp(timeZone, shifted.epochMs, uiLocale)} · ${instantText(result, msg)}`],
+        ['ISO 8601', isoInZone(timeZone, shifted.epochMs, true, uiLocale)],
+        [msg('basic.timestamp.unixSec'), String(Math.floor(shifted.epochMs / SEC_MS))],
+      ]),
       section(msg('basic.datemath.title', { zone: timeZone })),
       alignRows([
         [msg('time.label.base'), `${baseRaw} → ${formatZoneStamp(timeZone, base.epochMs, uiLocale)} · ${instantText(baseParts, msg)}`],
@@ -591,10 +603,10 @@ const relativeTimeTool: ToolImpl = {
     const altLocale: LocaleCode = uiLocale === 'en' ? locale : other;
     const altStyle: 'auto' | 'always' = uiLocale === 'en' ? (numeric === 'auto' ? 'always' : 'auto') : numeric;
     const rows: Array<[string, string]> = [
+      [msg('basic.relative.phrase'), phrase],
+      [msg('basic.datediff.direction'), delta === 0 ? msg('basic.relative.dirSame') : delta > 0 ? msg('basic.relative.dirFuture') : msg('basic.relative.dirPast')],
       [msg('basic.relative.target'), `${target.raw} → ${formatZoneStamp(timeZone, target.epochMs, uiLocale)} · ${instantText(targetParts, msg)}`],
       [msg('time.label.base'), `${baseRaw} → ${formatZoneStamp(timeZone, base.epochMs, uiLocale)} · ${instantText(baseParts, msg)}`],
-      [msg('basic.datediff.direction'), delta === 0 ? msg('basic.relative.dirSame') : delta > 0 ? msg('basic.relative.dirFuture') : msg('basic.relative.dirPast')],
-      [msg('basic.relative.phrase'), phrase],
       [msg('basic.relative.phraseAlt'), msg('basic.relative.phraseAltValue', { locale: altLocale, phrase: relativePhrase(delta, altLocale, altStyle) })],
       [msg('basic.relative.exactSpan'), `${delta < 0 ? '−' : ''}${spanText({ ...span, sign: 1 }, locale)}`],
       [msg('basic.relative.targetAbs'), msg('basic.relative.targetAbsValue', { iso: isoInZone(timeZone, target.epochMs, true, uiLocale), weekday: weekdaySpelled(targetParts.weekday, uiLocale) })],
