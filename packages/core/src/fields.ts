@@ -27,6 +27,15 @@ export type ToolField =
       maxLength?: number;
       mono?: boolean;
       required?: boolean;
+      presets?: Array<{ value: string; labelKey: string }>;
+    })
+  | (FieldCommon & {
+      type: 'password';
+      default: string;
+      placeholderKey?: string;
+      maxLength?: number;
+      required?: boolean;
+      autoComplete?: 'new-password' | 'current-password';
     })
   | (FieldCommon & {
       type: 'textarea';

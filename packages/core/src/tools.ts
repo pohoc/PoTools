@@ -21,7 +21,10 @@ export type ToolWorkflow =
   | 'image-processing'
   | 'invoice-organizing'
   | 'time'
-  | 'crypto';
+  | 'crypto'
+  | 'developer'
+  | 'network'
+  | 'finance';
 
 export type ToolFormat = FileKind | 'image' | 'jpg' | 'png' | 'webp' | 'tiff';
 
@@ -47,10 +50,12 @@ export interface ToolDescriptor {
   /** Order of the picked files is meaningful to the tool. */
   orderSensitive?: boolean;
   keywords?: string[];
+  /** Network access performed by the tool itself, distinct from local-only network inspection. */
+  networkAccess?: 'network' | 'internet';
 }
 
 export const TOOL_WORKFLOWS: ToolWorkflow[] = [
-  'page-management', 'page-layout', 'annotation', 'conversion', 'extraction', 'optimization', 'metadata', 'image-processing', 'invoice-organizing',
+  'page-management', 'page-layout', 'annotation', 'conversion', 'extraction', 'optimization', 'metadata', 'image-processing', 'invoice-organizing', 'developer', 'network', 'finance',
 ];
 
 const POSITION_OPTIONS = [
@@ -208,6 +213,116 @@ const imagePrintFields: ToolField[] = [
 ];
 
 type ToolDefinition = Omit<ToolDescriptor, 'workflow' | 'inputFormats' | 'outputFormats'>;
+
+const devText = (key: string, labelKey: string, value = '', rows = 5): ToolField => ({ type: 'textarea', key, labelKey, default: value, mono: true, rows, required: true });
+const devSelect = (key: string, labelKey: string, value: string, options: string[]): ToolField => ({
+  type: 'select', key, labelKey, default: value,
+  options: options.map((option) => ({ value: option, labelKey: `opt.dev.${key}.${option}` })),
+});
+const devInputTool = (id: ToolId, slug: string, order: number, icon: string, fields: ToolField[], keywords: string[], artifactKind: FileKind = 'text', networkAccess?: 'network' | 'internet'): ToolDefinition => ({
+  id, nameKey: `tool.${slug}.name`, descKey: `tool.${slug}.desc`, category: 'extract', icon, order,
+  accept: 'text/plain', multiFile: false, requiresInput: false, layout: 'text', artifactKind, keywords, fields,
+  ...(networkAccess ? { networkAccess } : {}),
+});
+
+const DEVELOPER_TOOL_DEFINITIONS: ToolDefinition[] = [
+  {
+    id: 'file-base64', nameKey: 'tool.fileBase64.name', descKey: 'tool.fileBase64.desc', category: 'extract',
+    icon: 'file', order: 695, accept: '*/*', multiFile: false, layout: 'standard', artifactKind: 'text',
+    keywords: ['文件', 'Base64', 'data URI', '编码', 'file to base64'], fields: [],
+  },
+  devInputTool('base64-file', 'base64File', 696, 'download', [
+    devText('input', 'opt.dev.input', 'SGVsbG8='),
+    { type: 'text', key: 'filename', labelKey: 'opt.dev.filename', default: 'decoded.bin' },
+  ], ['Base64', '文件', '解码', 'base64 to file'], 'binary'),
+  devInputTool('bcrypt', 'bcrypt', 697, 'shield', [
+    devSelect('mode', 'opt.dev.mode', 'hash', ['hash', 'verify']),
+    { type: 'password', key: 'bcryptPassword', labelKey: 'opt.dev.bcryptPassword', default: '', required: true, maxLength: 72, autoComplete: 'new-password' },
+    { type: 'number', key: 'rounds', labelKey: 'opt.dev.rounds', default: 10, min: 4, max: 12, step: 1, showIf: { field: 'mode', in: ['hash'] } },
+    { type: 'text', key: 'bcryptHash', labelKey: 'opt.dev.bcryptHash', default: '', mono: true, required: true, showIf: { field: 'mode', in: ['verify'] } },
+  ], ['bcrypt', '密码', '哈希', '校验', 'hash', 'verify']),
+  devInputTool('json-format', 'jsonFormat', 700, 'braces', [
+    devText('input', 'opt.dev.input', '{\n  "hello": "world"\n}'),
+    devSelect('mode', 'opt.dev.mode', 'pretty', ['pretty', 'minify']),
+    { type: 'number', key: 'indent', labelKey: 'opt.dev.indent', default: 2, min: 1, max: 8, step: 1, suffixKey: 'opt.dev.spaces' },
+  ], ['JSON', '格式化', '压缩', 'pretty', 'minify'], 'json'),
+  devInputTool('xml-format', 'xmlFormat', 710, 'code', [
+    devText('input', 'opt.dev.input', '<root><item>value</item></root>'),
+    devSelect('mode', 'opt.dev.mode', 'pretty', ['pretty', 'minify']),
+  ], ['XML', '格式化', '压缩', 'pretty', 'minify']),
+  devInputTool('xml-json', 'xmlJson', 720, 'code', [
+    devText('input', 'opt.dev.input', '<root><item>value</item></root>'),
+    devSelect('direction', 'opt.dev.direction', 'xml-json', ['xml-json', 'json-xml']),
+  ], ['XML', 'JSON', '互转', 'convert']),
+  devInputTool('yaml-json', 'yamlJson', 725, 'code', [
+    devText('input', 'opt.dev.input', 'name: PoTools\nversion: 1'),
+    devSelect('direction', 'opt.dev.direction', 'yaml-json', ['yaml-json', 'json-yaml']),
+  ], ['YAML', 'JSON', '互转', 'convert']),
+  devInputTool('regex-test', 'regexTest', 728, 'search', [
+    { type: 'text', key: 'pattern', labelKey: 'opt.dev.pattern', default: '\\b\\w+\\b', mono: true, required: true },
+    devText('input', 'opt.dev.input', 'Test a regular expression against this text.'),
+    { type: 'text', key: 'flags', labelKey: 'opt.dev.flags', default: 'g', mono: true },
+    devSelect('mode', 'opt.dev.mode', 'test', ['test', 'replace']),
+    { type: 'textarea', key: 'replacement', labelKey: 'opt.dev.replacement', default: '', rows: 3, showIf: { field: 'mode', in: ['replace'] } },
+  ], ['正则', 'Regex', 'RegExp', '匹配', '替换']),
+  devInputTool('binary-codec', 'binaryCodec', 730, 'binary', [
+    devText('input', 'opt.dev.input', 'Hello'),
+    devSelect('direction', 'opt.dev.direction', 'text-binary', ['text-binary', 'binary-text']),
+  ], ['二进制', '文本', 'binary', 'convert']),
+  devInputTool('case-convert', 'caseConvert', 740, 'case-sensitive', [
+    devText('input', 'opt.dev.input', 'Hello world'),
+    devSelect('style', 'opt.dev.style', 'camel', ['upper', 'lower', 'title', 'camel', 'pascal', 'snake', 'kebab']),
+  ], ['大小写', '命名转换', 'camelCase', 'snake_case', 'kebab-case']),
+  devInputTool('user-agent', 'userAgent', 750, 'globe', [devText('input', 'opt.dev.input', '', 3)], ['UA', 'User-Agent', '浏览器', '操作系统', '设备']),
+  devInputTool('ipv4-convert', 'ipv4Convert', 760, 'network', [devText('input', 'opt.dev.input', '192.168.1.1', 2)], ['IPv4', 'IP', '十进制', '二进制', '十六进制']),
+  devInputTool('ipv4-subnet', 'ipv4Subnet', 770, 'network', [devText('input', 'opt.dev.input', '192.168.1.0/24', 2)], ['IPv4', '子网', 'CIDR', '网络计算器']),
+  devInputTool('color-convert', 'colorConvert', 780, 'palette', [{ type: 'color', key: 'input', labelKey: 'opt.dev.input', default: '#111827' }], ['颜色', 'HEX', 'RGB', 'HSL', 'HWB', 'LCH', 'CMYK', '色值']),
+  devInputTool('robots-txt', 'robotsTxt', 790, 'file-text', [
+    { type: 'text', key: 'userAgent', labelKey: 'opt.dev.userAgent', default: '*', required: true },
+    devText('allow', 'opt.dev.allow', '/', 2),
+    devText('disallow', 'opt.dev.disallow', '/admin/\n/private/', 3),
+    { type: 'text', key: 'sitemap', labelKey: 'opt.dev.sitemap', default: '', placeholderKey: 'opt.dev.sitemap.hint' },
+  ], ['robots.txt', '爬虫', '搜索引擎', '站长']),
+  devInputTool('spf-record', 'spfRecord', 800, 'shield', [
+    { type: 'text', key: 'domain', labelKey: 'opt.dev.domain', default: 'example.com', required: true },
+    { type: 'boolean', key: 'mx', labelKey: 'opt.dev.mx', default: false },
+    { type: 'boolean', key: 'a', labelKey: 'opt.dev.a', default: false },
+    devText('includes', 'opt.dev.includes', '', 2),
+    devText('ipv4', 'opt.dev.ipv4', '', 2),
+    devSelect('policy', 'opt.dev.policy', '-all', ['-all', '~all', '?all', '+all']),
+  ], ['SPF', 'DNS', '邮件', '发件人验证']),
+  devInputTool('dmarc-record', 'dmarcRecord', 810, 'shield', [
+    { type: 'text', key: 'domain', labelKey: 'opt.dev.domain', default: 'example.com', required: true },
+    devSelect('policy', 'opt.dev.policy', 'quarantine', ['none', 'quarantine', 'reject']),
+    { type: 'text', key: 'reportEmail', labelKey: 'opt.dev.reportEmail', default: '' },
+    { type: 'number', key: 'percent', labelKey: 'opt.dev.percent', default: 100, min: 0, max: 100, step: 1, suffixKey: 'opt.dev.percentUnit' },
+  ], ['DMARC', 'DNS', '邮件', '反钓鱼']),
+  devInputTool('dns-lookup', 'dnsLookup', 650, 'network', [
+    { type: 'text', key: 'hostname', labelKey: 'opt.network.hostname', default: 'example.com', required: true },
+    devSelect('recordType', 'opt.network.recordType', 'A', ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA']),
+  ], ['DNS', '域名解析', 'A记录', 'AAAA', 'MX', 'TXT', 'NS'], 'text', 'network'),
+  devInputTool('url-inspect', 'urlInspect', 660, 'globe', [
+    { type: 'text', key: 'url', labelKey: 'opt.network.url', default: 'https://example.com:8443/path?key=value#section', required: true },
+  ], ['URL', '网址解析', '主机', '端口', '查询参数']),
+  devInputTool('ipv6-convert', 'ipv6Convert', 670, 'network', [
+    { type: 'text', key: 'input', labelKey: 'opt.dev.input', default: '2001:db8::1', required: true, mono: true },
+  ], ['IPv6', 'IP', '压缩', '展开', '地址转换']),
+  devInputTool('port-reference', 'portReference', 680, 'list', [
+    { type: 'text', key: 'port', labelKey: 'opt.network.port', default: '443', required: true },
+  ], ['端口', 'port', '协议', '常用端口', '服务'], 'text'),
+  devInputTool('system-network', 'systemNetwork', 690, 'network', [], ['本机网络', '网卡', 'IP 地址', 'DNS 配置', 'network interface']),
+  devInputTool('ping-check', 'pingCheck', 700, 'activity', [
+    { type: 'text', key: 'host', labelKey: 'opt.network.targetHost', default: 'example.com', required: true },
+    { type: 'number', key: 'count', labelKey: 'opt.network.pingCount', default: 4, min: 1, max: 10, step: 1 },
+  ], ['Ping', '连通性', '延迟', '网络诊断'], 'text', 'network'),
+  devInputTool('tcp-check', 'tcpCheck', 710, 'plug', [
+    { type: 'text', key: 'host', labelKey: 'opt.network.targetHost', default: 'example.com', required: true },
+    { type: 'number', key: 'port', labelKey: 'opt.network.port', default: 443, min: 1, max: 65535, step: 1 },
+  ], ['TCP', '端口检测', '端口连通', '网络诊断'], 'text', 'network'),
+  devInputTool('ip-lookup', 'ipLookup', 720, 'map-pin', [
+    { type: 'text', key: 'ip', labelKey: 'opt.network.ipAddress', default: '', placeholderKey: 'opt.network.ipAddress.hint' },
+  ], ['IP 查询', 'IP 归属地', 'IP 地址查询', '运营商', '地理位置', '宝塔'], 'text', 'internet'),
+];
 
 const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
@@ -1288,6 +1403,39 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     ],
   },
   {
+    id: 'ocr-text',
+    nameKey: 'tool.ocrText.name',
+    descKey: 'tool.ocrText.desc',
+    category: 'extract',
+    icon: 'scan',
+    order: 117,
+    accept: 'application/pdf,image/*,.tif,.tiff,.bmp',
+    multiFile: true,
+    layout: 'standard',
+    artifactKind: 'text',
+    keywords: ['OCR', '图片转文字', '扫描件识别', '文字识别', 'recognize text'],
+    fields: [
+      { type: 'slider', key: 'dpi', labelKey: 'opt.ocr.dpi', descriptionKey: 'opt.ocr.dpi.hint', default: 200, min: 120, max: 300, step: 20, unit: 'dpi' },
+      { type: 'boolean', key: 'pageMarkers', labelKey: 'opt.ocr.pageMarkers', default: true },
+    ],
+  },
+  {
+    id: 'ocr-table',
+    nameKey: 'tool.ocrTable.name',
+    descKey: 'tool.ocrTable.desc',
+    category: 'extract',
+    icon: 'table',
+    order: 118,
+    accept: 'application/pdf,image/*,.tif,.tiff,.bmp',
+    multiFile: true,
+    layout: 'standard',
+    artifactKind: 'xlsx',
+    keywords: ['OCR', '表格识别', '扫描表格', '图片转 Excel', 'table recognition'],
+    fields: [
+      { type: 'slider', key: 'dpi', labelKey: 'opt.ocr.dpi', descriptionKey: 'opt.ocr.dpi.hint', default: 220, min: 120, max: 300, step: 20, unit: 'dpi' },
+    ],
+  },
+  {
     id: 'invoice-merge',
     nameKey: 'tool.invoiceMerge.name',
     descKey: 'tool.invoiceMerge.desc',
@@ -1683,20 +1831,22 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     keywords: ['时间戳', 'unix', 'epoch', 'timestamp', '毫秒', '秒级', '转换时间'],
     fields: [
       {
-        type: 'textarea',
+        type: 'dateTime',
         key: 'input',
         labelKey: 'opt.timestamp.input',
         descriptionKey: 'opt.timestamp.input.hint',
         placeholderKey: 'opt.timestamp.input.placeholder',
-        default: 'now',
+        default: '',
         mono: true,
-        rows: 3,
         required: true,
+        allowTime: true,
+        presets: ['now'],
       },
       {
         type: 'select',
         key: 'unit',
         labelKey: 'opt.timestamp.unit',
+        section: 'advanced',
         default: 'auto',
         options: [
           { value: 'auto', labelKey: 'opt.timestamp.unit.auto', descriptionKey: 'opt.timestamp.unit.auto.hint' },
@@ -1716,6 +1866,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'style',
         labelKey: 'opt.timestamp.style',
+        section: 'advanced',
         default: 'both',
         options: [
           { value: 'full', labelKey: 'opt.timestamp.style.full', descriptionKey: 'opt.timestamp.style.full.hint' },
@@ -1733,7 +1884,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         section: 'advanced',
         labelKey: 'opt.timestamp.showRange',
         descriptionKey: 'opt.timestamp.showRange.hint',
-        default: true,
+        default: false,
       },
       {
         type: 'boolean',
@@ -1741,7 +1892,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         section: 'advanced',
         labelKey: 'opt.timestamp.showNow',
         descriptionKey: 'opt.timestamp.showNow.hint',
-        default: true,
+        default: false,
       },
     ],
   },
@@ -2387,7 +2538,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'algorithm',
         labelKey: 'opt.hash.algorithm',
-        default: 'all',
+        default: 'sha256',
         options: [
           { value: 'all', labelKey: 'opt.hash.algorithm.all', descriptionKey: 'opt.hash.algorithm.all.hint' },
           { value: 'md5', labelKey: 'opt.hash.algorithm.md5' },
@@ -2793,6 +2944,13 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         descriptionKey: 'opt.urlCodec.component.hint',
         default: true,
       },
+      {
+        type: 'boolean',
+        key: 'form',
+        labelKey: 'opt.urlCodec.form',
+        descriptionKey: 'opt.urlCodec.form.hint',
+        default: false,
+      },
     ],
   },
   {
@@ -2878,6 +3036,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         placeholderKey: 'opt.jwt.secret.placeholder',
         default: '',
         mono: true,
+        showIf: { field: 'verify', in: [true] },
       },
       {
         type: 'boolean',
@@ -2890,8 +3049,10 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'algorithm',
         labelKey: 'opt.jwt.algorithm',
+        section: 'advanced',
         default: 'auto',
         row: 'a',
+        showIf: { field: 'verify', in: [true] },
         options: [
           { value: 'auto', labelKey: 'opt.jwt.algorithm.auto', descriptionKey: 'opt.jwt.algorithm.auto.hint' },
           { value: 'hs256', labelKey: 'opt.jwt.algorithm.hs256' },
@@ -2907,11 +3068,13 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         labelKey: 'opt.jwt.leeway',
         descriptionKey: 'opt.jwt.leeway.hint',
         default: 0,
+        section: 'advanced',
         min: 0,
         max: 3600,
         step: 1,
         suffixKey: 'opt.jwt.leeway.unit',
         row: 'a',
+        showIf: { field: 'verify', in: [true] },
       },
     ],
   },
@@ -2976,6 +3139,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'cipher',
         labelKey: 'opt.aes.cipher',
+        section: 'advanced',
         default: 'aes-256-gcm',
         options: [
           { value: 'aes-256-gcm', labelKey: 'opt.aes.cipher.aes256Gcm', descriptionKey: 'opt.aes.cipher.aes256Gcm.hint' },
@@ -2988,6 +3152,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'kdf',
         labelKey: 'opt.aes.kdf',
+        section: 'advanced',
         default: 'scrypt',
         row: 'a',
         options: [
@@ -2999,6 +3164,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'number',
         key: 'iterations',
         labelKey: 'opt.aes.iterations',
+        section: 'advanced',
         descriptionKey: 'opt.aes.iterations.hint',
         default: 150000,
         min: 1000,
@@ -3041,6 +3207,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'bits',
         labelKey: 'opt.rsa.bits',
         descriptionKey: 'opt.rsa.bits.hint',
+        section: 'advanced',
         default: 2048,
         row: 'a',
         options: [
@@ -3053,6 +3220,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'format',
         labelKey: 'opt.rsa.format',
+        section: 'advanced',
         default: 'pem',
         row: 'a',
         options: [
@@ -3069,6 +3237,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         default: '',
         mono: true,
         rows: 4,
+        showIf: { field: 'mode', in: ['decrypt', 'sign', 'pubkey'] },
       },
       {
         type: 'textarea',
@@ -3079,6 +3248,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         default: '',
         mono: true,
         rows: 4,
+        showIf: { field: 'mode', in: ['encrypt', 'verify'] },
       },
       {
         type: 'textarea',
@@ -3089,6 +3259,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         default: '',
         mono: true,
         rows: 3,
+        showIf: { field: 'mode', in: ['encrypt', 'decrypt', 'sign', 'verify'] },
       },
       {
         type: 'text',
@@ -3097,11 +3268,14 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         descriptionKey: 'opt.rsa.passphrase.hint',
         placeholderKey: 'opt.rsa.passphrase.placeholder',
         default: '',
+        section: 'advanced',
+        showIf: { field: 'mode', in: ['decrypt', 'sign', 'pubkey'] },
       },
       {
         type: 'select',
         key: 'padding',
         labelKey: 'opt.rsa.padding',
+        section: 'advanced',
         default: 'oaep',
         row: 'b',
         options: [
@@ -3113,6 +3287,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'hash',
         labelKey: 'opt.rsa.hash',
+        section: 'advanced',
         default: 'sha256',
         row: 'b',
         options: [
@@ -3342,6 +3517,52 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         placeholderKey: 'opt.passwordGen.exclude.placeholder',
         default: '',
         mono: true,
+        presets: [
+          { value: '0O1lI', labelKey: 'opt.passwordGen.exclude.lookalikes' },
+          { value: '!@#$%^&*()-_=+[]{};:,.<>?/\\|~`', labelKey: 'opt.passwordGen.exclude.symbols' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'password-strength',
+    nameKey: 'tool.passwordStrength.name',
+    descKey: 'tool.passwordStrength.desc',
+    category: 'extract',
+    icon: 'shield',
+    order: 635,
+    accept: 'text/plain',
+    multiFile: false,
+    requiresInput: false,
+    layout: 'text',
+    artifactKind: 'text',
+    keywords: ['密码强度', '密码检测', '强度检测', 'password strength', 'password checker'],
+    fields: [],
+  },
+  {
+    id: 'amount-convert',
+    nameKey: 'tool.amountConvert.name',
+    descKey: 'tool.amountConvert.desc',
+    category: 'extract',
+    icon: 'receipt',
+    order: 645,
+    accept: 'text/plain',
+    multiFile: false,
+    requiresInput: false,
+    layout: 'text',
+    artifactKind: 'text',
+    keywords: ['金额转换', '中文大写金额', '人民币大写', '数字转中文', '中文转数字', 'capital amount', 'RMB uppercase'],
+    fields: [
+      {
+        type: 'select', key: 'direction', labelKey: 'opt.amountConvert.direction', default: 'to-uppercase', row: 'a', presentation: 'chips',
+        options: [
+          { value: 'to-uppercase', labelKey: 'opt.amountConvert.direction.toUppercase' },
+          { value: 'to-number', labelKey: 'opt.amountConvert.direction.toNumber' },
+        ],
+      },
+      {
+        type: 'textarea', key: 'input', labelKey: 'opt.amountConvert.input', descriptionKey: 'opt.amountConvert.input.hint',
+        placeholderKey: 'opt.amountConvert.input.placeholder', default: '', rows: 3, required: true,
       },
     ],
   },
@@ -3402,6 +3623,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
       },
     ],
   },
+  ...DEVELOPER_TOOL_DEFINITIONS,
 ];
 
 const TOOL_WORKFLOW_BY_ID: Record<ToolId, ToolWorkflow> = {
@@ -3414,7 +3636,7 @@ const TOOL_WORKFLOW_BY_ID: Record<ToolId, ToolWorkflow> = {
   'pdf-to-ppt': 'conversion', 'pdf-to-markdown': 'conversion', 'pdf-to-html': 'conversion', 'pdf-to-csv': 'conversion',
   'pdf-to-rtf': 'conversion', 'pdf-to-epub': 'conversion', 'pdf-to-ofd': 'conversion',
   'ofd-to-pdf': 'conversion', 'markdown-to-pdf': 'conversion',
-  'extract-images': 'extraction', 'extract-text': 'extraction',
+  'extract-images': 'extraction', 'extract-text': 'extraction', 'ocr-text': 'extraction', 'ocr-table': 'extraction',
   compress: 'optimization', repair: 'optimization', 'remove-blank': 'optimization',
   'image-compress': 'image-processing', 'image-resize': 'image-processing', 'image-crop': 'image-processing',
   'image-rotate': 'image-processing', 'image-convert': 'image-processing', 'image-cutout': 'image-processing', 'image-id-photo': 'image-processing', 'image-metadata-clean': 'metadata', 'image-print': 'image-processing', 'image-watermark-clean': 'image-processing',
@@ -3424,10 +3646,21 @@ const TOOL_WORKFLOW_BY_ID: Record<ToolId, ToolWorkflow> = {
   duration: 'time', cron: 'time', 'date-format': 'time', 'relative-time': 'time',
   hash: 'crypto', hmac: 'crypto', 'file-checksum': 'crypto', base64: 'crypto', radix: 'crypto', hex: 'crypto',
   'url-codec': 'crypto', 'unicode-escape': 'crypto', jwt: 'crypto', aes: 'crypto', rsa: 'crypto', totp: 'crypto',
-  x509: 'crypto', 'password-gen': 'crypto', 'uuid-gen': 'crypto',
+  x509: 'crypto', 'password-gen': 'crypto', 'password-strength': 'crypto', 'uuid-gen': 'crypto',
+  'amount-convert': 'finance',
+  'json-format': 'developer', 'xml-format': 'developer', 'xml-json': 'developer', 'yaml-json': 'developer',
+  'binary-codec': 'developer', 'case-convert': 'developer', 'regex-test': 'developer',
+  'color-convert': 'developer',
+  'robots-txt': 'developer',
+  'file-base64': 'crypto', 'base64-file': 'crypto', bcrypt: 'crypto',
+  'dns-lookup': 'network', 'url-inspect': 'network', 'ipv6-convert': 'network', 'port-reference': 'network',
+  'system-network': 'network', 'ping-check': 'network', 'tcp-check': 'network', 'ip-lookup': 'network',
+  'spf-record': 'network', 'dmarc-record': 'network',
+  'ipv4-convert': 'network', 'ipv4-subnet': 'network', 'user-agent': 'network',
 };
 
 const INPUT_FORMATS: Record<string, ToolFormat> = {
+  '*/*': 'binary',
   'application/pdf': 'pdf', [DOCX_MIME]: 'docx', '.docx': 'docx', 'application/msword': 'doc', '.doc': 'doc', 'application/vnd.ms-excel': 'xls', '.xls': 'xls', [XLSX_MIME]: 'xlsx', '.xlsx': 'xlsx', 'application/vnd.ms-powerpoint': 'ppt', '.ppt': 'ppt', [PPTX_MIME]: 'pptx', '.pptx': 'pptx',
   '.ofd': 'ofd', 'image/*': 'image', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
   'image/tiff': 'tiff', 'text/markdown': 'md', 'text/plain': 'text',
