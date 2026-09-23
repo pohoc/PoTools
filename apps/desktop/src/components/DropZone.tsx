@@ -118,6 +118,7 @@ export function DropZone({
           {compact ? t('drop.append') : t('drop.title')}
         </span>
         {!compact ? <span className="text-[12px] leading-5 text-faint">{t(`drop.hint.${accept}`)}</span> : null}
+        <span className="text-[11px] leading-4 text-faint">{t('drop.pasteHint')}</span>
       </div>
     </div>
   );

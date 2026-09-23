@@ -64,7 +64,7 @@ export function Home() {
 
   const resultCount = sections.reduce((sum, section) => sum + section.tools.length, 0);
   const subcategoryTags = useMemo(() => {
-    if (activeCategory === 'all') return [];
+    if (activeCategory === 'all' || activeCategory === 'network') return [];
     const categoryTools = filtered.filter((tool) => classifyTool(tool) === activeCategory);
     const available = new Set(categoryTools.map((tool) => tool.category));
     return CATEGORY_ORDER.filter((category) => available.has(category));
@@ -158,7 +158,7 @@ export function Home() {
   );
 }
 
-type ToolLibraryCategory = 'all' | 'pdf' | 'office' | 'finance' | 'image' | 'time' | 'crypto' | 'other';
+type ToolLibraryCategory = 'all' | 'pdf' | 'office' | 'finance' | 'image' | 'time' | 'crypto' | 'network' | 'developer' | 'other';
 
 const TOOL_CATEGORIES: Array<{ id: ToolLibraryCategory; label: string }> = [
   { id: 'all', label: 'home.allTools' },
@@ -168,14 +168,19 @@ const TOOL_CATEGORIES: Array<{ id: ToolLibraryCategory; label: string }> = [
   { id: 'image', label: 'home.category.image' },
   { id: 'time', label: 'home.category.time' },
   { id: 'crypto', label: 'home.category.crypto' },
+  { id: 'network', label: 'home.category.network' },
+  { id: 'developer', label: 'home.category.developer' },
   { id: 'other', label: 'home.category.other' },
 ];
 
 const OFFICE_FORMATS = new Set<ToolFormat>(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']);
 
 function classifyTool(tool: ToolDescriptor): ToolLibraryCategory {
+  if (tool.workflow === 'finance') return 'finance';
   if (tool.workflow === 'time') return 'time';
   if (tool.workflow === 'crypto') return 'crypto';
+  if (tool.workflow === 'network') return 'network';
+  if (tool.workflow === 'developer') return 'developer';
   if (tool.workflow === 'invoice-organizing' || tool.id === 'invoice-merge') return 'finance';
   if (tool.accept.startsWith('image/') || tool.inputFormats.includes('image') || tool.id.startsWith('image-')) return 'image';
   if ([...tool.inputFormats, ...tool.outputFormats].some((format) => OFFICE_FORMATS.has(format))) return 'office';
@@ -192,6 +197,7 @@ function ToolCard({ tool }: { tool: ToolDescriptor }) {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-line bg-canvas text-muted transition group-hover:border-accent/25 group-hover:text-accent"><Icon name={tool.icon} size={17} /></span>
           <span className="min-w-0 flex-1 pt-0.5">
             <span className="block whitespace-normal break-words text-[13px] font-semibold leading-5 text-ink">{t(tool.nameKey)}</span>
+            {tool.networkAccess ? <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-warn/35 bg-warn/10 px-1.5 py-0.5 text-[9.5px] leading-3 text-warn"><Icon name="globe" size={10} />{t(`network.access.${tool.networkAccess}`)}</span> : null}
             <span className="mt-1 block whitespace-normal break-words text-[11.5px] leading-[1.55] text-muted">{t(tool.descKey)}</span>
           </span>
           <Icon name="chevronRight" size={15} className="mt-1 shrink-0 text-faint transition group-hover:translate-x-0.5 group-hover:text-accent" />

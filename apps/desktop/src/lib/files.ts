@@ -21,8 +21,10 @@ export function acceptsFor(kind: AcceptKind): string {
 
 /** Maps a descriptor's `accept` string onto a picker filter. */
 export function kindFor(accept: string): AcceptKind {
+  if (accept === '*/*') return 'any';
   if (accept === 'image/jpeg,image/png,image/webp') return 'portrait';
   if (accept === 'image/*') return 'image';
+  if (accept.includes('application/pdf') && accept.includes('image/*')) return 'pdf-image';
   if (accept.startsWith('image/')) return 'raster';
   if (accept.includes('ofd')) return 'ofd';
   if (accept.includes('markdown') || accept.includes('text/plain')) return 'markdown';
@@ -66,7 +68,15 @@ export async function pickFiles(accept: AcceptKind, multiple: boolean): Promise<
 
 export function filesFromDataTransfer(transfer: DataTransfer): PickedFile[] {
   const out: PickedFile[] = [];
-  for (const file of Array.from(transfer.files ?? [])) {
+  const seen = new Set<string>();
+  const candidates = [
+    ...Array.from(transfer.files ?? []),
+    ...Array.from(transfer.items ?? []).flatMap((item) => item.kind === 'file' ? [item.getAsFile()].filter((file): file is File => file !== null) : []),
+  ];
+  for (const file of candidates) {
+    const signature = `${file.name}|${file.size}|${file.type}|${file.lastModified}`;
+    if (seen.has(signature)) continue;
+    seen.add(signature);
     out.push({
       id: newId(),
       name: file.name,

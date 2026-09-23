@@ -5,6 +5,8 @@ import type { JobSnapshot, ToolDescriptor, ToolId } from 'core';
 import { TOOLS } from 'core';
 import { Button, Section, Badge, Card, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@potools/ui';
 import { DropZone } from '../components/DropZone.tsx';
+import { ColorPickerPanel } from '../components/ColorPickerPanel.tsx';
+import { PasswordStrengthPanel } from '../components/PasswordStrengthPanel.tsx';
 import { FileList } from '../components/FileList.tsx';
 import { areOptionsValid, OptionForm } from '../components/OptionForm.tsx';
 import { ResultPanel, TextRunPanel } from '../components/ResultPanel.tsx';
@@ -16,7 +18,7 @@ import { useEngine, rpcErrorMessage } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { useSettings } from '../lib/settings.ts';
 import { formatBytes } from '../lib/format.ts';
-import { kindFor } from '../lib/files.ts';
+import { filesFromDataTransfer, kindFor } from '../lib/files.ts';
 import { usePageThumbs } from '../lib/usePageThumbs.ts';
 import { ImageStudioEditor } from '../components/ImageStudioEditor.tsx';
 import type { PickedFile } from '../lib/files.ts';
@@ -50,6 +52,29 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   const splitter = descriptor.layout === 'splitter';
   const needsFiles = descriptor.requiresInput !== false;
   const [cuts, setCuts] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!needsFiles) return;
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [contenteditable="true"]'))) return;
+      const transfer = event.clipboardData;
+      if (!transfer) return;
+      const accepted = descriptor.accept.split(',').map((part) => part.trim().toLowerCase()).filter(Boolean);
+      const files = filesFromDataTransfer(transfer).filter((picked) => {
+        const file = picked.file;
+        if (!file) return false;
+        const type = file.type.toLowerCase();
+        const name = file.name.toLowerCase();
+        return accepted.some((rule) => rule === '*/*' || (rule.endsWith('/*') && type.startsWith(rule.slice(0, -1))) || (rule.startsWith('.') && name.endsWith(rule)) || (rule === type));
+      });
+      if (!files.length) return;
+      event.preventDefault();
+      draft.addFiles(files);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [descriptor.accept, draft.addFiles, needsFiles]);
   const total = useMemo(
     () => Object.values(draft.probes).reduce((sum, probe) => sum + probe.pageCount, 0),
     [draft.probes],
@@ -136,6 +161,11 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-[16px] font-semibold tracking-tight">{t(descriptor.nameKey)}</h2>
           <Badge variant="outline">{t(`workflow.${descriptor.workflow}`)}</Badge>
+          {descriptor.networkAccess ? (
+            <Badge variant="outline" className="gap-1 border-warn/40 bg-warn/10 text-warn">
+              <Icon name="globe" size={12} />{t(`network.access.${descriptor.networkAccess}`)}
+            </Badge>
+          ) : null}
           {descriptor.multiFile ? <Badge variant="outline">{t('run.multiHint')}</Badge> : null}
         </div>
         <p className="mt-0.5 text-[12.5px] leading-5 text-muted">{t(descriptor.descKey)}</p>
@@ -153,6 +183,12 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
       <Button variant="ghost" icon="refresh" onClick={() => void reconnect()}>
         {t('settings.reconnect')}
       </Button>
+    </Card>
+  ) : null;
+  const networkNotice = descriptor.networkAccess ? (
+    <Card className="flex flex-row items-center gap-2.5 border-warn/35 bg-warn/5 px-3.5 py-3">
+      <Icon name="globe" size={15} className="shrink-0 text-warn" />
+      <p className="min-w-0 text-[11.5px] leading-5 text-muted">{t(`network.notice.${descriptor.networkAccess}`)}</p>
     </Card>
   ) : null;
 
@@ -241,10 +277,27 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
     <ResultPanel job={job} onRetry={() => void onRun()} />
   );
 
+  if (descriptor.id === 'color-convert') {
+    return (
+      <ToolWorkspaceLayout header={header} width="text">
+        <ColorPickerPanel />
+      </ToolWorkspaceLayout>
+    );
+  }
+
+  if (descriptor.id === 'password-strength') {
+    return (
+      <ToolWorkspaceLayout header={header} width="text">
+        <PasswordStrengthPanel />
+      </ToolWorkspaceLayout>
+    );
+  }
+
   if (textLayout) {
     return (
       <ToolWorkspaceLayout header={header} width="text">
         {engineNotice}
+        {networkNotice}
         {optionsSection}
         {runPanel}
         {resultPanel}
@@ -255,6 +308,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   return (
     <ToolWorkspaceLayout header={header}>
       {engineNotice}
+      {networkNotice}
 
       <div className="tool-workspace-grid items-start gap-4">
         <div className="tool-workspace-input-column flex min-w-0 flex-col gap-4">
@@ -501,7 +555,7 @@ function shorten(path: string): string {
 }
 
 function describeError(raw: string, t: (key: string) => string): string {
-  const known = ['error.encrypted', 'error.unreadable', 'error.noFont', 'error.noRasterizer', 'error.noImageCodec'];
+  const known = ['error.encrypted', 'error.unreadable', 'error.noFont', 'error.noRasterizer', 'error.noImageCodec', 'error.ocrModelMissing', 'error.ocrInit'];
   if (known.includes(raw)) return t(raw);
   return raw;
 }

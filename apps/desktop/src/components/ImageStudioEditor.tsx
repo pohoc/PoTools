@@ -18,7 +18,7 @@ export function ImageStudioEditor({
   options: Record<string, FieldValue>;
   onReady: (file: File | null, overrides?: Record<string, FieldValue>) => void;
 }) {
-  const { t } = useI18n();
+  const { t, tf } = useI18n();
   const call = useEngine((state) => state.call);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -69,7 +69,7 @@ export function ImageStudioEditor({
       objectUrl = URL.createObjectURL(result.blob);
       setPreview({ url: objectUrl, width: result.width, height: result.height });
     }).catch((issue) => {
-      if (!disposed) setError(issue instanceof Error ? issue.message : String(issue));
+      if (!disposed) setError(studioError(issue, t, tf));
     });
     return () => {
       disposed = true;
@@ -82,7 +82,7 @@ export function ImageStudioEditor({
     let disposed = false;
     void renderPrintSheet(processed, options).then((blob) => {
       if (!disposed) setPrintUrl(URL.createObjectURL(blob));
-    }).catch((issue) => { if (!disposed) setError(issue instanceof Error ? issue.message : String(issue)); });
+    }).catch((issue) => { if (!disposed) setError(studioError(issue, t, tf)); });
     return () => { disposed = true; };
   }, [processed, tool, options]);
 
@@ -116,7 +116,7 @@ export function ImageStudioEditor({
       setProcessed(output);
       onReady(output);
     } catch (issue) {
-      setError(issue instanceof Error ? issue.message : t('imageStudio.modelError'));
+      setError(studioError(issue, t, tf));
     } finally {
       setBusy(false);
     }
@@ -192,7 +192,7 @@ export function ImageStudioEditor({
         setRepairedPreviewUrl(URL.createObjectURL(blob));
         onReady(processed, { repairPng: mask });
       }
-    } catch (issue) { setError(issue instanceof Error ? issue.message : String(issue)); }
+    } catch (issue) { setError(studioError(issue, t, tf)); }
     finally { setBusy(false); }
   };
 
@@ -235,6 +235,26 @@ export function ImageStudioEditor({
       </Dialog> : null}
     </section>
   );
+}
+
+function studioError(issue: unknown, t: (key: string) => string, tf: (key: string, vars?: Record<string, string | number>) => string): string {
+  const message = issue instanceof Error ? issue.message : String(issue);
+  const quality = message.match(/^最低画质仍为 (\d+) KB，超过 (\d+) KB 上限。$/);
+  if (quality) return tf('imageStudio.error.qualityLimit', { smallest: quality[1]!, limit: quality[2]! });
+  const keys: Record<string, string> = {
+    '无法生成修复预览': 'imageStudio.error.repairCanvas',
+    '无法读取修复选区': 'imageStudio.error.readMask',
+    '无法绘制打印预览': 'imageStudio.error.printPreview',
+    '没有生成透明背景图片': 'imageStudio.error.noCutout',
+    '人物识别失败': 'imageStudio.error.personRecognition',
+    '人物分割没有返回前景遮罩': 'imageStudio.error.noMask',
+    '无法创建图像遮罩': 'imageStudio.error.createMask',
+    '无法创建输出画布': 'imageStudio.error.outputCanvas',
+    '无法生成高清遮罩': 'imageStudio.error.highResolutionMask',
+    '预览图片不可用': 'imageStudio.error.previewUnavailable',
+    '无法绘制图片预览': 'imageStudio.error.drawPreview',
+  };
+  return keys[message] ? t(keys[message]!) : t('imageStudio.modelError');
 }
 
 async function renderPrintSheet(file: File, options: Record<string, FieldValue>): Promise<Blob> {

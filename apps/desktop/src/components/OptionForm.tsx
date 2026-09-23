@@ -45,19 +45,20 @@ const COMMON_ZONES = [
   'Pacific/Auckland', 'UTC',
 ];
 
-const ZONE_LABELS: Record<string, string> = {
-  'Asia/Shanghai': '中国标准时间 · 上海', 'Asia/Hong_Kong': '中国香港', 'Asia/Taipei': '中国台湾 · 台北',
-  'Asia/Tokyo': '日本 · 东京', 'Asia/Seoul': '韩国 · 首尔', 'Asia/Singapore': '新加坡',
-  'Asia/Kolkata': '印度 · 加尔各答', 'Asia/Dubai': '阿联酋 · 迪拜', 'Europe/London': '英国 · 伦敦',
-  'Europe/Paris': '法国 · 巴黎', 'Europe/Berlin': '德国 · 柏林', 'Europe/Moscow': '俄罗斯 · 莫斯科',
-  'America/New_York': '美国东部 · 纽约', 'America/Chicago': '美国中部 · 芝加哥',
-  'America/Los_Angeles': '美国西部 · 洛杉矶', 'America/Toronto': '加拿大 · 多伦多',
-  'America/Sao_Paulo': '巴西 · 圣保罗', 'Australia/Sydney': '澳大利亚 · 悉尼',
-  'Pacific/Auckland': '新西兰 · 奥克兰', UTC: '协调世界时',
+const ZONE_LABEL_KEYS: Record<string, string> = {
+  'Asia/Shanghai': 'timezone.city.shanghai', 'Asia/Hong_Kong': 'timezone.city.hongKong', 'Asia/Taipei': 'timezone.city.taipei',
+  'Asia/Tokyo': 'timezone.city.tokyo', 'Asia/Seoul': 'timezone.city.seoul', 'Asia/Singapore': 'timezone.city.singapore',
+  'Asia/Kolkata': 'timezone.city.kolkata', 'Asia/Dubai': 'timezone.city.dubai', 'Europe/London': 'timezone.city.london',
+  'Europe/Paris': 'timezone.city.paris', 'Europe/Berlin': 'timezone.city.berlin', 'Europe/Moscow': 'timezone.city.moscow',
+  'America/New_York': 'timezone.city.newYork', 'America/Chicago': 'timezone.city.chicago',
+  'America/Los_Angeles': 'timezone.city.losAngeles', 'America/Toronto': 'timezone.city.toronto',
+  'America/Sao_Paulo': 'timezone.city.saoPaulo', 'Australia/Sydney': 'timezone.city.sydney',
+  'Pacific/Auckland': 'timezone.city.auckland', UTC: 'timezone.city.utc',
 };
 
-function zoneLabel(zone: string): string {
-  return ZONE_LABELS[zone] ?? zone.split('/').at(-1)?.replaceAll('_', ' ') ?? zone;
+function zoneLabel(zone: string, translate: (key: string) => string): string {
+  const key = ZONE_LABEL_KEYS[zone];
+  return key ? translate(key) : zone.split('/').at(-1)?.replaceAll('_', ' ') ?? zone;
 }
 
 function zoneNames(): string[] | null {
@@ -108,7 +109,7 @@ function fieldError(field: ToolField, value: FieldValue | undefined): 'required'
     if (!Number.isFinite(numeric)) return 'format';
     if ((field.min !== undefined && numeric < field.min) || (field.max !== undefined && numeric > field.max)) return 'range';
   }
-  if (field.type === 'text' || field.type === 'textarea') {
+  if (field.type === 'text' || field.type === 'password' || field.type === 'textarea') {
     const text = String(value ?? '');
     if (field.required && !text.trim()) return 'required';
     if (field.maxLength !== undefined && text.length > field.maxLength) return 'range';
@@ -299,7 +300,7 @@ function Field({
 
   return (
     <div className="form-field">
-      <Label id={`${id}-label`} htmlFor={id} className="form-label">{label}{(field.type === 'text' || field.type === 'textarea' || field.type === 'dateTime') && field.required ? <span className="ml-1 text-bad">*</span> : null}</Label>
+      <Label id={`${id}-label`} htmlFor={id} className="form-label">{(field.type === 'text' || field.type === 'password' || field.type === 'textarea' || field.type === 'dateTime') ? <>{label}{field.required ? <span className="ml-1 text-bad">*</span> : null}</> : label}</Label>
       <Control id={id} labelId={`${id}-label`} field={field} value={value} values={values} onChange={onChange} />
       {helpText ? <p className="form-hint">{helpText}</p> : null}
       {errorText ? <p className="text-[11px] leading-4 text-bad" role="alert">{errorText}</p> : null}
@@ -506,7 +507,7 @@ function Control({
             aria-label={t('opt.color')}
             value={hex}
             onChange={(event) => onChange(field.key, event.target.value)}
-            className="h-8 w-10 shrink-0 cursor-pointer rounded-control border border-line bg-surface p-1"
+            className="h-10 w-12 shrink-0 cursor-pointer rounded-control border border-line bg-surface p-1 shadow-inner"
           />
           <HeroInput
             type="text"
@@ -518,6 +519,7 @@ function Control({
             aria-label={t('form.colorValue')}
             onChange={(event) => onChange(field.key, event.target.value)}
           />
+          <span aria-hidden="true" className="h-8 w-8 shrink-0 rounded-full border border-line shadow-sm" style={{ backgroundColor: /^#[\da-f]{6}$/i.test(hex) ? hex : '#ffffff' }} />
         </span>
       );
     }
@@ -549,21 +551,55 @@ function Control({
         {field.default === 'now' && value === 'now' ? <Button type="button" variant="outline" size="sm" className="self-start h-7 rounded-full px-2.5 text-[11px]" onClick={() => onChange(field.key, 'now')}>{t('date.useNow')}</Button> : null}
       </span>;
     case 'text':
-    default:
-      return (
+    case 'password':
+      {
+      const input = (
         <HeroInput
-          type="text"
+          type={field.type === 'password' ? 'password' : 'text'}
           id={id}
           className={field.type === 'text' && field.mono ? 'font-mono' : ''}
           value={String(value ?? field.default)}
-          maxLength={field.type === 'text' ? field.maxLength : undefined}
-          required={field.type === 'text' ? field.required : undefined}
+          maxLength={field.type === 'text' || field.type === 'password' ? field.maxLength : undefined}
+          required={field.type === 'text' || field.type === 'password' ? field.required : undefined}
+          autoComplete={field.type === 'password' ? field.autoComplete : undefined}
           aria-labelledby={labelId}
           aria-invalid={fieldError(field, value) !== null}
-          placeholder={field.type === 'text' && field.placeholderKey ? t(field.placeholderKey) : undefined}
+          placeholder={field.placeholderKey ? t(field.placeholderKey) : undefined}
           onChange={(event) => onChange(field.key, event.target.value)}
         />
       );
+      if (field.type !== 'text' || !field.presets?.length) return input;
+      const current = String(value ?? field.default);
+      const uniqueChars = (text: string) => [...new Set(text)];
+      return (
+        <span className="flex flex-col gap-2">
+          {input}
+          <span className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('opt.passwordGen.exclude.presets')}>
+            {field.presets.map((preset) => {
+              const chars = uniqueChars(preset.value);
+              const selected = chars.every((char) => current.includes(char));
+              return (
+                <Button
+                  key={preset.labelKey}
+                  type="button"
+                  variant={selected ? 'secondary' : 'outline'}
+                  size="sm"
+                  aria-pressed={selected}
+                  onClick={() => {
+                    const next = selected
+                      ? [...current].filter((char) => !chars.includes(char)).join('')
+                      : uniqueChars(current + preset.value).join('');
+                    onChange(field.key, next);
+                  }}
+                >
+                  {t(preset.labelKey)}
+                </Button>
+              );
+            })}
+          </span>
+        </span>
+      );
+      }
   }
 }
 
@@ -695,7 +731,7 @@ function TimezoneField({
           {choices.map((zone) => (
             <SelectItem key={zone} value={zone}>
               <span className="flex min-w-0 flex-col">
-                <span className="truncate">{zoneLabel(zone)}</span>
+                <span className="truncate">{zoneLabel(zone, t)}</span>
                 <span className="font-mono text-[10px] text-faint">{zone} · {zoneOffsetLabel(zone) ?? '—'}</span>
               </span>
             </SelectItem>

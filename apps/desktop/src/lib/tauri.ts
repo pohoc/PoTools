@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { EngineInfo } from 'core';
 
-export type AcceptKind = 'pdf' | 'image' | 'raster' | 'portrait' | 'ofd' | 'markdown';
+export type AcceptKind = 'pdf' | 'image' | 'raster' | 'portrait' | 'ofd' | 'markdown' | 'any' | 'pdf-image';
 
 /**
  * Checked lazily because the injected IPC globals may not exist while this
@@ -16,6 +16,7 @@ export function isTauri(): boolean {
 
 export const ACCEPT_EXTENSIONS: Record<AcceptKind, { name: string; extensions: string[]; mime: string }> = {
   pdf: { name: 'PDF', extensions: ['pdf'], mime: 'application/pdf,.pdf' },
+  'pdf-image': { name: 'PDF 和图片', extensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'tif', 'tiff'], mime: 'application/pdf,image/*' },
   image: {
     name: '图片',
     extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'tif', 'tiff'],
@@ -33,10 +34,15 @@ export const ACCEPT_EXTENSIONS: Record<AcceptKind, { name: string; extensions: s
     extensions: ['md', 'markdown', 'txt'],
     mime: '.md,.markdown,.txt,text/markdown',
   },
+  any: { name: '所有文件', extensions: [], mime: '*/*' },
 };
 
 const FILTERS: Record<AcceptKind, { name: string; extensions: string[] }[]> = {
   pdf: [{ name: ACCEPT_EXTENSIONS.pdf.name, extensions: ACCEPT_EXTENSIONS.pdf.extensions }],
+  'pdf-image': [
+    { name: ACCEPT_EXTENSIONS.pdf.name, extensions: ACCEPT_EXTENSIONS.pdf.extensions },
+    { name: ACCEPT_EXTENSIONS.image.name, extensions: ACCEPT_EXTENSIONS.image.extensions },
+  ],
   image: [{ name: ACCEPT_EXTENSIONS.image.name, extensions: ACCEPT_EXTENSIONS.image.extensions }],
   raster: [{ name: ACCEPT_EXTENSIONS.raster.name, extensions: ACCEPT_EXTENSIONS.raster.extensions }],
   portrait: [{ name: ACCEPT_EXTENSIONS.portrait.name, extensions: ACCEPT_EXTENSIONS.portrait.extensions }],
@@ -44,13 +50,14 @@ const FILTERS: Record<AcceptKind, { name: string; extensions: string[] }[]> = {
   markdown: [
     { name: ACCEPT_EXTENSIONS.markdown.name, extensions: ACCEPT_EXTENSIONS.markdown.extensions },
   ],
+  any: [],
 };
 
 /** Native open dialog; returns absolute paths. */
 export async function nativePickFiles(kind: AcceptKind, multiple: boolean): Promise<string[]> {
   if (!isTauri()) return [];
   const { open } = await import('@tauri-apps/plugin-dialog');
-  const selected = await open({ multiple, directory: false, filters: FILTERS[kind] });
+  const selected = await open({ multiple, directory: false, ...(FILTERS[kind].length ? { filters: FILTERS[kind] } : {}) });
   if (!selected) return [];
   return Array.isArray(selected) ? selected : [selected];
 }

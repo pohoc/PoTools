@@ -30,8 +30,8 @@ export function InvoiceOrganizerPage() {
 
   const targetPaths = useMemo(() => Object.fromEntries((scan?.files ?? []).map((entry) => [
     entry.path,
-    `${renderTemplate(directoryTemplate, entry)}/${renderTemplate(fileTemplate, entry)}${extensionOf(entry.name)}`.replace(/^\/+|\/+$/g, ''),
-  ])), [directoryTemplate, fileTemplate, scan]);
+    `${renderTemplate(directoryTemplate, entry, t)}/${renderTemplate(fileTemplate, entry, t)}${extensionOf(entry.name)}`.replace(/^\/+|\/+$/g, ''),
+  ])), [directoryTemplate, fileTemplate, scan, t]);
 
   const pickDirectory = async (which: 'source' | 'target') => {
     const value = await nativePickDirectory();
@@ -244,14 +244,14 @@ function InvoiceCard({ entry, targetPath, checked, onCheck, onFieldChange }: { e
   );
 }
 
-function renderTemplate(template: string, entry: InvoiceScanEntry): string {
+function renderTemplate(template: string, entry: InvoiceScanEntry, t: (key: string) => string): string {
   const date = entry.fields.date.replace(/[年月]/g, '-').replace(/日/g, '').replace(/[./]/g, '-');
   const [year = '', month = ''] = date.split('-');
   const values: Record<string, string> = {
-    year: year || '年份待确认', month: month.padStart(2, '0') || '月份待确认', date: safePart(entry.fields.date || '日期待确认'),
-    seller: safePart(entry.fields.seller || '销售方待确认'), buyer: safePart(entry.fields.buyer || '购买方待确认'),
-    invoiceNo: safePart(entry.fields.invoiceNo || '号码待确认'), amount: safePart(entry.fields.amount || '金额待确认'),
-    type: safePart(entry.fields.type || '类型待确认'), originalName: safePart(entry.name.replace(/\.[^.]+$/, '')),
+    year: year || t('invoice.placeholder.year'), month: month.padStart(2, '0') || t('invoice.placeholder.month'), date: safePart(entry.fields.date || t('invoice.placeholder.date')),
+    seller: safePart(entry.fields.seller || t('invoice.placeholder.seller')), buyer: safePart(entry.fields.buyer || t('invoice.placeholder.buyer')),
+    invoiceNo: safePart(entry.fields.invoiceNo || t('invoice.placeholder.invoiceNo')), amount: safePart(entry.fields.amount || t('invoice.placeholder.amount')),
+    type: safePart(entry.fields.type || t('invoice.placeholder.type')), originalName: safePart(entry.name.replace(/\.[^.]+$/, '')),
     ext: extensionOf(entry.name).replace(/^\./, ''),
   };
   return template

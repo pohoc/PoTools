@@ -20,6 +20,7 @@ import {
   revealArtifact,
   saveArtifactToFolder,
   saveAllToFolder,
+  saveArtifactAs,
 } from '../lib/files.ts';
 import { isTauri } from '../lib/tauri.ts';
 import { rpcErrorMessage } from '../stores/engine.ts';
@@ -260,6 +261,17 @@ interface TextBlock {
   text: string;
   base64: string;
   sizeBytes: number;
+  summary?: string;
+}
+
+function splitTextReport(text: string): { preview: string; details: string } {
+  const headings = [...text.matchAll(/^── .*$/gm)];
+  if (headings.length < 3) return { preview: text, details: '' };
+  const secondDetailStart = headings[2]?.index ?? text.length;
+  return {
+    preview: text.slice(0, secondDetailStart).trimEnd(),
+    details: text.slice(secondDetailStart).trimStart(),
+  };
 }
 
 function decodeBase64Text(base64: string): string {
@@ -295,7 +307,7 @@ export function TextRunPanel({
   running: boolean;
   onRetry?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, tf } = useI18n();
 
   const blocks = useMemo<TextBlock[]>(() => {
     if (!result) return [];
@@ -308,6 +320,9 @@ export function TextRunPanel({
         text: decodeBase64Text(artifact.dataBase64 ?? ''),
         base64: artifact.dataBase64 ?? '',
         sizeBytes: artifact.sizeBytes,
+        summary: artifact.name === 'password-gen.txt' && result.extra
+          ? tf('result.passwordSummary', { count: result.extra.count ?? '', length: result.extra.length ?? '' })
+          : undefined,
       }));
     }
     if (!result.text) return [];
@@ -317,7 +332,12 @@ export function TextRunPanel({
       base64: encodeBase64Text(result.text),
       sizeBytes: new TextEncoder().encode(result.text).byteLength,
     }];
-  }, [defaultName, result]);
+  }, [defaultName, result, tf]);
+  const binaryArtifacts = (result?.artifacts ?? []).filter((artifact) => artifact.kind === 'binary').map((artifact, index) => ({
+    ...artifact,
+    id: `inline-binary-${index}`,
+    kind: 'binary' as const,
+  }));
 
   const copyAll = async () => {
     const text = blocks.map((block) => block.text).join('\n\n');
@@ -378,11 +398,41 @@ export function TextRunPanel({
             <TextBlockCard key={`${block.name}:${block.sizeBytes}`} block={block} />
           ))}
         </div>
-      ) : error || running ? null : (
+      ) : null}
+
+      {binaryArtifacts.length ? (
+        <ul className="mb-3 flex flex-col gap-2 px-4">
+          {binaryArtifacts.map((artifact) => <TextBinaryFileCard key={artifact.id} artifact={artifact} />)}
+        </ul>
+      ) : null}
+
+      {!blocks.length && !binaryArtifacts.length && (error || running) ? null : !blocks.length && !binaryArtifacts.length ? (
         <EmptyState icon="file" title={t('result.empty')} hint={t('result.textEmpty')} />
-      )}
+      ) : null}
 
     </Section>
+  );
+}
+
+function TextBinaryFileCard({ artifact }: { artifact: OutputFile }) {
+  const { t } = useI18n();
+  const save = async () => {
+    try {
+      if (isTauri()) await saveArtifactAs(artifact);
+      else await downloadArtifact(artifact);
+    } catch {
+      toast.error(t('result.saveFailed'));
+    }
+  };
+  return (
+    <li className="flex items-center gap-2.5 rounded-control border border-line bg-canvas px-2.5 py-2">
+      <Icon name="file" size={15} className="shrink-0 text-faint" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[12px] text-ink">{artifact.name}</span>
+        <span className="text-[11px] text-faint">{formatBytes(artifact.sizeBytes)}</span>
+      </span>
+      <Button size="sm" variant="quiet" icon="download" onClick={() => void save()}>{t(isTauri() ? 'result.save' : 'result.download')}</Button>
+    </li>
   );
 }
 
@@ -393,6 +443,9 @@ function TextBlockCard({
 }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
+  const passwords = block.name === 'password-gen.txt' ? block.text.split(/\r?\n/).filter(Boolean) : null;
+  const colorValue = block.name === 'color-values.txt' ? block.text.match(/(?:^|\n)HEX:\s*(#[\da-f]{6})/i)?.[1] : null;
+  const report = useMemo(() => splitTextReport(block.text), [block.text]);
 
   const copy = async () => {
     try {
@@ -409,7 +462,8 @@ function TextBlockCard({
     <div className="min-w-0 overflow-hidden rounded-control border border-line bg-canvas">
       <div className="flex items-center gap-2 border-b border-line px-2.5 py-1.5">
         <Icon name="file-text" size={14} className="shrink-0 text-faint" />
-        <span className="min-w-0 flex-1 text-[12px] text-muted">{t('result.outputContent')}</span>
+        <span className="min-w-0 flex-1 truncate text-[12px] text-muted" title={block.name}>{block.name}</span>
+        <span className="shrink-0 text-[11px] text-faint">{formatBytes(block.sizeBytes)}</span>
         <Button
           size="sm"
           variant="quiet"
@@ -420,14 +474,64 @@ function TextBlockCard({
           {copied ? t('common.copied') : t('common.copy')}
         </Button>
       </div>
-      {block.text ? (
-        <pre className="max-h-[420px] min-w-0 select-text overflow-auto whitespace-pre-wrap break-words px-3 py-2.5 font-mono text-[12px] leading-5 text-ink">
-          {block.text}
-        </pre>
+      {block.summary ? <p className="border-b border-line px-3 py-2 text-[12px] text-muted">{block.summary}</p> : null}
+      {colorValue ? (
+        <div className="flex items-center gap-3 border-b border-line px-3 py-3">
+          <span aria-label={`${t('result.colorPreview')} ${colorValue}`} className="h-12 w-12 shrink-0 rounded-control border border-line shadow-sm" style={{ backgroundColor: colorValue }} />
+          <span className="min-w-0">
+            <span className="block text-[11px] text-muted">{t('result.colorPreview')}</span>
+            <code className="font-mono text-[15px] font-semibold tracking-wide text-ink">{colorValue.toUpperCase()}</code>
+          </span>
+        </div>
+      ) : null}
+      {passwords?.length ? (
+        <ol className="divide-y divide-line">
+          {passwords.map((password, index) => <PasswordValueRow key={`${index}:${password}`} index={index} value={password} />)}
+        </ol>
+      ) : block.text ? (
+        <>
+          <pre className="max-h-[420px] min-w-0 select-text overflow-auto whitespace-pre-wrap break-words px-3 py-2.5 font-mono text-[12px] leading-5 text-ink">
+            {report.preview}
+          </pre>
+          {report.details ? (
+            <details className="border-t border-line">
+              <summary className="cursor-pointer px-3 py-2 text-[12px] text-muted hover:text-ink">{t('result.moreDetails')}</summary>
+              <pre className="max-h-[420px] min-w-0 select-text overflow-auto whitespace-pre-wrap break-words border-t border-line bg-raised px-3 py-2.5 font-mono text-[12px] leading-5 text-ink">
+                {report.details}
+              </pre>
+            </details>
+          ) : null}
+        </>
       ) : (
         <p className="px-3 py-2.5 text-[12px] text-faint">{t('result.noText')}</p>
       )}
     </div>
+  );
+}
+
+function PasswordValueRow({ index, value }: { index: number; value: string }) {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      toast.success(t('common.copied'));
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      toast.error(t('common.copyFailed'));
+    }
+  };
+
+  return (
+    <li className="flex min-w-0 items-center gap-2 px-3 py-2">
+      <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-faint">{index + 1}</span>
+      <code className="min-w-0 flex-1 select-text break-all font-mono text-[13px] text-ink">{value}</code>
+      <Button size="sm" variant="quiet" icon={copied ? 'check' : 'copy'} title={`${t('common.copy')} ${index + 1}`} aria-label={`${t('common.copy')} ${index + 1}`} onClick={() => void copy()}>
+        {copied ? t('common.copied') : t('common.copy')}
+      </Button>
+    </li>
   );
 }
 

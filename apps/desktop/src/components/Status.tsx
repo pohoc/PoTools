@@ -3,10 +3,10 @@ import type { CSSProperties } from 'react';
 type StatusProps = {
   color: string;
   active?: boolean;
-  label?: string;
+  label: string;
 };
 
-export function Status({ color, active = false, label = '状态' }: StatusProps) {
+export function Status({ color, active = false, label }: StatusProps) {
   const style = { '--status-dot-color': color } as CSSProperties;
 
   return (

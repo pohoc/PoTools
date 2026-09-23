@@ -77,7 +77,7 @@ export function App() {
 function EngineStartupScreen({ error, retry }: { error: string | null; retry: () => void }) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
-  const report = error ? sanitizeStartupError(error) : '';
+  const report = error ? sanitizeStartupError(error, t('startup.pathHidden')) : '';
 
   const copyReport = async () => {
     await navigator.clipboard.writeText(`PoTools engine startup error\n${report}`);
@@ -97,7 +97,7 @@ function EngineStartupScreen({ error, retry }: { error: string | null; retry: ()
               {error ? <Icon name="serverCrash" size={22} /> : <Icon name="spinner" size={22} className="animate-spin motion-reduce:animate-none" />}
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[.16em] text-accent">PoTools · Local processing</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[.16em] text-accent">{t('startup.localProcessing')}</p>
               <p className="mt-1 text-xs text-muted">{error ? t('startup.failed') : t('startup.connecting')}</p>
             </div>
           </div>
@@ -126,9 +126,9 @@ function EngineStartupScreen({ error, retry }: { error: string | null; retry: ()
   );
 }
 
-function sanitizeStartupError(error: string): string {
+function sanitizeStartupError(error: string, pathHidden: string): string {
   return error
-    .replace(/(?:[A-Z]:\\|\\\\)[^\r\n"']+/g, '[本机路径已隐藏]')
-    .replace(/(?:\/Users\/|\/home\/)[^\r\n"']+/g, '[本机路径已隐藏]')
+    .replace(/(?:[A-Z]:\\|\\\\)[^\r\n"']+/g, pathHidden)
+    .replace(/(?:\/Users\/|\/home\/)[^\r\n"']+/g, pathHidden)
     .slice(0, 5000);
 }
