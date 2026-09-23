@@ -366,6 +366,8 @@ const hashTool: ToolImpl = {
     ctx.report({ percent: 45, phase: 'digest' });
     const digests = names.map((name) => ({ name, value: formatHex(renderDigest(digestBytes(bytes, name), 'hex'), uppercase) }));
     const blocks = [
+      section(msg('enc.hash.section.results')),
+      alignRows(digests.map((item) => [item.name, item.value] as Row)),
       section(msg('enc.hash.title', { detail: algorithm === 'all' ? msg('enc.hash.algoCount', { count: names.length }) : names[0] ?? '' })),
       alignRows([
         [msg('enc.hash.label.inputForm'), msg(INPUT_AS_LABEL[inputAs])],
@@ -373,8 +375,6 @@ const hashTool: ToolImpl = {
         [msg('enc.label.inputPreview'), preview(msg, raw)],
         [msg('enc.label.caseOut'), uppercase ? msg('enc.value.upper') : msg('enc.value.lower')],
       ]),
-      section(msg('enc.hash.section.results')),
-      alignRows(digests.map((item) => [item.name, item.value] as Row)),
     ];
     const notes = [msg('enc.hash.noteTrim')];
     if (inputAs !== 'text') notes.push(msg('enc.hash.noteInputAs', { inputAs: msg(INPUT_AS_LABEL[inputAs]), count: bytes.length }));
@@ -410,21 +410,21 @@ const hmacTool: ToolImpl = {
     });
     const altLabel = format === 'hex' ? 'base64' : 'hex';
     const blocks = [
+      section(msg('enc.hmac.section.results')),
+      alignRows(signed.map((item) => [item.name, item.primary] as Row)),
+      section(msg('enc.hmac.section.equivalent', { alt: altLabel })),
+      alignRows(signed.map((item) => [item.name, item.alt] as Row)),
       section(msg('enc.hmac.title', { algos: names.join(msg('common.list.sep')), format })),
       alignRows([
-        [msg('common.label.secret'), secretRaw.length <= 12 ? secretRaw : msg('enc.hmac.secretMasked', { preview: preview(msg, secretRaw, 8), count: codePoints(secretRaw) })],
+        [msg('common.label.secret'), msg('enc.hmac.secretMasked', { preview: '••••', count: codePoints(secretRaw) })],
         [msg('enc.hmac.label.secretBytes'), msg('enc.unit.bytes', { count: groupDigits(keyBytes.length) })],
         [msg('enc.hmac.label.message'), preview(msg, message)],
         [msg('enc.hmac.label.messageBytes'), msg('enc.unit.bytes', { count: groupDigits(messageBytes.length) })],
         [msg('enc.label.caseOut'), uppercase && format === 'hex' ? msg('enc.value.upper') : msg('enc.value.asIs')],
       ]),
-      section(msg('enc.hmac.section.results')),
-      alignRows(signed.map((item) => [item.name, item.primary] as Row)),
-      section(msg('enc.hmac.section.equivalent', { alt: altLabel })),
-      alignRows(signed.map((item) => [item.name, item.alt] as Row)),
     ];
     const notes = [msg('enc.hmac.noteStructure')];
-    if (secretRaw.length > 12) notes.push(msg('enc.hmac.noteMasked'));
+    notes.push(msg('enc.hmac.noteMasked'));
     blocks.push(section(msg('common.section.notes')), notes.join('\n'));
     if (warnings.length) blocks.push(section(msg('enc.section.warning')), warnings.map((item) => msg('enc.bullet.item', { item })).join('\n'));
     await emitText(ctx, 'hmac.txt', joinBlocks(blocks));
@@ -590,6 +590,7 @@ const base64Tool: ToolImpl = {
           [msg('enc.b64.label.decodedBytes'), msg('enc.unit.bytesCharset', { count: groupDigits(bytes.length), charset: humanBytes(bytes.length) })],
           [msg('enc.b64.label.decodedText'), msg('enc.unit.chars', { count: codePoints(text) })],
           ['HEX', preview(msg, spacedHex(bytes), 96)],
+          ['HEX (compact)', preview(msg, toHex(bytes), 192)],
           [msg('enc.label.reencoded'), stable ? msg('common.value.yes') : msg('enc.b64.value.notCanonical', { value: reEncoded })],
         ]),
       );
@@ -759,14 +760,14 @@ const hexTool: ToolImpl = {
   },
 };
 
-function percentEncode(text: string, component: boolean): string {
-  return component ? encodeURIComponent(text) : encodeURI(text);
+function percentEncode(text: string, component: boolean, form = false): string {
+  const encoded = component ? encodeURIComponent(text) : encodeURI(text);
+  return form ? encoded.replace(/%20/g, '+') : encoded;
 }
 
-function percentDecode(msg: Msg, text: string, component: boolean, field: string): string {
-  const spaced = text.replace(/\+/g, ' ');
+function percentDecode(msg: Msg, text: string, component: boolean, field: string, form = false): string {
   try {
-    return component ? decodeURIComponent(spaced) : decodeURI(spaced);
+    return component ? decodeURIComponent(form ? text.replace(/\+/g, ' ') : text) : decodeURI(form ? text.replace(/\+/g, ' ') : text);
   } catch {
     throw bad(msg, field, msg('enc.url.error.badPercent'), '%E4%B8%AD%E6%96%87');
   }
@@ -802,8 +803,8 @@ function parsePairs(msg: Msg, query: string): QueryPair[] {
     const rawKey = at < 0 ? token : token.slice(0, at);
     const rawValue = at < 0 ? '' : token.slice(at + 1);
     pairs.push({
-      key: percentDecode(msg, rawKey, true, msg('enc.url.field.queryKey')),
-      value: percentDecode(msg, rawValue, true, msg('enc.url.field.queryValue')),
+      key: percentDecode(msg, rawKey, true, msg('enc.url.field.queryKey'), true),
+      value: percentDecode(msg, rawValue, true, msg('enc.url.field.queryValue'), true),
       rawKey,
       rawValue,
       hasValue: at >= 0,
@@ -824,6 +825,7 @@ const urlCodecTool: ToolImpl = {
     const raw = needText(msg, ctx, 'input', msg('enc.example.urlQuery'));
     const mode = optSelect(ctx, 'mode', ['encode', 'decode', 'parse', 'build'] as const, 'encode');
     const component = optBool(ctx, 'component', true);
+    const form = optBool(ctx, 'form', false);
     const blocks: string[] = [];
     const notes: string[] = [];
     let extra: Record<string, string | number> = { mode, component: component ? 'component' : 'url' };
@@ -831,7 +833,7 @@ const urlCodecTool: ToolImpl = {
     if (mode === 'encode' || mode === 'decode') {
       const scope = component ? msg('enc.url.scope.component') : msg('enc.url.scope.url');
       if (mode === 'encode') {
-        const encoded = percentEncode(raw, component);
+        const encoded = percentEncode(raw, component, form);
         blocks.push(section(msg('enc.url.encodeTitle', { scope })), encoded);
         const escapes = (encoded.match(/%[0-9a-fA-F]{2}/g) ?? []).length;
         blocks.push(
@@ -846,7 +848,7 @@ const urlCodecTool: ToolImpl = {
         notes.push(component ? msg('enc.url.noteEncodeComponent') : msg('enc.url.noteEncodeUrl'));
         extra = { ...extra, inputChars: codePoints(raw), outputChars: encoded.length, escapes };
       } else {
-        const decoded = percentDecode(msg, raw, component, 'input');
+        const decoded = percentDecode(msg, raw, component, 'input', form);
         blocks.push(section(msg('enc.url.decodeTitle', { scope })), decoded);
         blocks.push(
           section(msg('common.section.stats')),

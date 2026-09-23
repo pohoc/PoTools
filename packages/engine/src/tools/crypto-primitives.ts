@@ -20,6 +20,7 @@ import {
   X509Certificate,
 } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
+import { assessPasswordStrength } from '@potools/core';
 import { EngineError } from '../errors.ts';
 import type { ToolContext, ToolImpl, ToolResult } from '../types.ts';
 import { localeOf, makeMsg } from '../lib/messages.ts';
@@ -485,19 +486,18 @@ const aesTool: ToolImpl = {
       const container = buildContainer({ kdf, cipher, iterations, salt, iv, tag, data });
       const rendered = renderContainer(container, format);
       const blocks = [
+        section(msg('sec.aes.section.3')),
+        rendered,
         section(msg('sec.aes.section.1', { cipher: cipher, kdf: kdf, format: format })),
         alignRows([
           [msg('sec.rsa.section.1'), msg('sec.aes.row.1', { plain: plain.length })],
           [msg('sec.aes.row.2'), msg('sec.aes.row.3', { data: data.length })],
           [msg('sec.aes.row.4'), msg('sec.aes.row.5', { container: container.length, rendered: rendered.length })],
-          [msg('common.label.secret'), msg('sec.aes.rowx.2', { key: hexOf(key).slice(0, 32), cipher: keyLengthOf(cipher) * 8 })],
           ['salt', msg('sec.aes.row.6', { salt: hexOf(salt) })],
           ['IV/nonce', msg('sec.aes.row.7', { iv: hexOf(iv), iv2: iv.length })],
           ['authTag', gcm ? msg('sec.aes.row.8', { tag: hexOf(tag) }) : msg('sec.aes.row.9')],
           [msg('sec.aes.row.10'), kdf === 'scrypt' ? msg('sec.aes.row.11', { iterations: scryptCost(iterations), iterations2: iterations }) : msg('sec.aes.section.2', { iterations: iterations })],
         ]),
-        section(msg('sec.aes.section.3')),
-        rendered,
         section(msg('sec.aes.section.4')),
         msg(CONTAINER_LAYOUT) + '\n  ' + msg(CONTAINER_ALG_IDS) + msg('sec.aes.row.12'),
         section(msg('common.section.notes')),
@@ -565,6 +565,8 @@ const aesTool: ToolImpl = {
     }
     const blocks = [
       section(msg('sec.aes.section.10', { cipher: packed.cipher, kdf: packed.kdf })),
+      section(msg('common.label.result')),
+      text,
       alignRows([
         [msg('sec.aes.row.17'), msg('sec.aes.row.18', { containerBytes: containerBytes.length })],
         [msg('sec.rsa.row.1'), msg('sec.aes.row.3', { data: packed.data.length })],
@@ -573,8 +575,6 @@ const aesTool: ToolImpl = {
         ['authTag', gcm ? msg('sec.aes.row.25', { tag: hexOf(packed.tag) }) : msg('sec.aes.row.26')],
         [msg('sec.aes.row.27'), roundTrip ? msg('sec.aes.row.28') : msg('sec.aes.row.29', { text: text.length, plain: hexOf(plain).slice(0, 64) })],
       ]),
-      section(msg('sec.rsa.section.1')),
-      text,
       section(msg('common.section.notes')),
       [
         msg('sec.aes.row.30'),
@@ -687,14 +687,14 @@ const rsaTool: ToolImpl = {
         const encoded = out.toString('base64');
         const blocks = [
           section(msg('sec.rsa.section.10', { padding: padding.toUpperCase(), digestName: digestName })),
+          section(msg('common.label.result')),
+          encoded,
           alignRows([
             [msg('common.label.secret'), `${loaded.label}${loaded.derived ? msg('sec.rsa.row.21') : ''}`],
             [msg('sec.rsa.row.3'), msg('sec.rsa.row.22', { source: source.length, maxBytes: maxBytes })],
             [msg('sec.rsa.row.1'), msg('sec.rsa.row.23', { out: out.length, blockBytes: blockBytes })],
             [msg('sec.rsa.section.11'), padding === 'oaep' ? msg('sec.rsa.sectionx.2', { digestName: digestName }) : 'PKCS#1 v1.5'],
           ]),
-          section(msg('sec.rsa.section.12')),
-          encoded,
           section(msg('common.section.notes')),
           [
             msg('sec.rsa.row.24'),
@@ -724,14 +724,14 @@ const rsaTool: ToolImpl = {
       }
       const blocks = [
         section(msg('sec.rsa.section.13', { padding: padding.toUpperCase(), digestName: digestName })),
+        section(msg('common.label.result')),
+        text,
         alignRows([
           [msg('common.label.secret'), loaded.label],
           [msg('sec.rsa.row.1'), msg('sec.rsa.row.27', { cipherBytes: cipherBytes.length })],
           [msg('sec.rsa.row.3'), msg('sec.rsa.row.2', { plain: plain.length })],
           [msg('sec.rsa.section.2'), msg('sec.rsa.section.14')],
         ]),
-        section(msg('sec.rsa.section.1')),
-        text,
         section(msg('common.section.notes')),
         msg('sec.rsa.row.28'),
         msg('sec.rsa.row.29'),
@@ -751,14 +751,14 @@ const rsaTool: ToolImpl = {
       const encoded = signature.toString('base64');
       const blocks = [
         section(msg('sec.rsa.section.15', { digestName: digestName })),
+        section(msg('common.label.result')),
+        encoded,
         alignRows([
           [msg('common.label.secret'), loaded.label],
           [msg('sec.rsa.row.30'), msg('sec.rsa.row.31', { source: source.length })],
           [msg('sec.rsa.row.32'), msg('sec.rsa.row.33', { signature: signature.length })],
           [msg('sec.rsa.section.11'), msg('sec.rsa.sectionx.1')],
         ]),
-        section(msg('sec.rsa.section.16')),
-        encoded,
         section(msg('sec.rsa.section.17')),
         hexOf(signature),
         section(msg('sec.rsa.section.18')),
@@ -807,6 +807,8 @@ const rsaTool: ToolImpl = {
     }
     const blocks = [
       section(msg('sec.rsa.section.19', { digestName: digestName })),
+      section(msg('common.label.result')),
+      ok ? msg('sec.rsa.section.20') : msg('sec.rsa.section.21'),
       alignRows([
         [msg('common.label.secret'), `${loaded.label}${loaded.derived ? msg('sec.rsa.row.21') : ''}`],
         [msg('sec.rsa.row.37'), msg('sec.rsa.row.38', { contentBytes: contentBytes.length })],
@@ -1463,11 +1465,6 @@ function shuffleChars(chars: string[]): string[] {
   return chars;
 }
 
-function passwordMetrics(msg: Msg, password: string): { length: number; classes: string } {
-  const hits = CHAR_CLASSES.filter((item) => [...password].some((char) => item.chars.includes(char))).map((item) => msg(item.label));
-  return { length: [...password].length, classes: hits.length ? hits.join(msg('common.list.sep')) : msg('sec.passwordMetrics.text.1') };
-}
-
 const passwordGenTool: ToolImpl = {
   id: 'password-gen',
   async run(ctx): Promise<ToolResult> {
@@ -1486,41 +1483,35 @@ const passwordGenTool: ToolImpl = {
     if (ensureAll && length < enabled.length) warnings.push(msg('sec.password.warn.1', { enabled: enabled.length, p1: length }));
     if (exclude) warnings.push(msg('sec.password.warn.2', { excluded: excluded.size, excluded2: [...excluded].join(' ') }));
     ctx.report({ percent: 30, phase: 'generate' });
-    const rows: Row[] = [];
     const passwords: string[] = [];
     for (let index = 0; index < count; index += 1) {
       const mandatory = ensureAll && length >= enabled.length ? enabled.map((item) => sampleFrom(item.chars)) : [];
       const filler = Array.from({ length: length - mandatory.length }, () => sampleFrom(pool));
       const password = shuffleChars([...mandatory, ...filler]).join('');
-      const metrics = passwordMetrics(msg, password);
       passwords.push(password);
-      rows.push([`${index + 1}`, msg('sec.password.note.1', { password: password, metrics: metrics.length, classes: metrics.classes })]);
       if ((index + 1) % 10 === 0) ctx.report({ percent: 30 + Math.round(((index + 1) / count) * 55), phase: 'generate' });
     }
-    const entropy = (length * Math.log2(pool.length)).toFixed(1);
-    const blocks = [
-      section(msg('sec.password.section.2', { count: count, p1: length })),
-      alignRows([
-        [msg('sec.password.row.2'), msg('sec.password.row.3', { pool: pool.length })],
-        [msg('sec.password.row.4'), enabled.map((item) => `${item.label}(${item.chars.length})`).join(msg('common.list.sep'))],
-        ['ensureAll', ensureAll ? (length >= enabled.length ? msg('sec.password.row.5', { enabled: enabled.length }) : msg('sec.password.row.6')) : msg('sec.password.row.7')],
-        [msg('sec.password.row.8'), msg('sec.password.row.9')],
-        [msg('sec.password.row.10'), msg('sec.password.sectionx.1', { entropy: entropy, pool: pool.length, p2: length })],
-      ]),
-      section(msg('sec.password.section.3')),
-      alignRows(rows),
-      section(msg('common.section.notes')),
-      [
-        msg('sec.password.row.11', { pool: pool.length }),
-        ensureAll ? msg('sec.password.row.12') : msg('sec.password.row.13'),
-        excluded.size ? msg('sec.password.row.14') : msg('sec.password.row.15'),
-        msg('sec.password.row.16'),
-      ].join('\n'),
-    ];
-    if (warnings.length) blocks.push(section(msg('sec.password.section.1')), warnings.map((item) => `· ${item}`).join('\n'));
-    await emitText(ctx, 'password-gen.txt', joinBlocks(blocks));
+    ctx.warnings.push(...warnings);
+    await emitText(ctx, 'password-gen.txt', passwords.join('\n'));
     ctx.report({ percent: 100, phase: 'done' });
-    return { extra: { count, length, pool: pool.length, classes: enabled.length, ensureAll: ensureAll ? 'on' : 'off', entropy, first: passwords[0]! } };
+    return { extra: { count, length } };
+  },
+};
+
+const passwordStrengthTool: ToolImpl = {
+  id: 'password-strength',
+  async run(ctx): Promise<ToolResult> {
+    const password = optStr(ctx, 'password');
+    if (!password) throw new EngineError('bad_request', makeMsg(localeOf(ctx))('sec.passwordStrength.empty'));
+    const assessment = assessPasswordStrength(password);
+    const msg = makeMsg(localeOf(ctx));
+    const tips = assessment.tips.map((tip) => msg(`sec.passwordStrength.tip.${tip}`));
+    await emitText(ctx, 'password-strength.txt', [
+      `${msg('sec.passwordStrength.level')}: ${msg(`sec.passwordStrength.level.${assessment.level}`)}`,
+      `${msg('sec.passwordStrength.length')}: ${assessment.length}`,
+      tips.length ? `${msg('sec.passwordStrength.suggestions')}:\n- ${tips.join('\n- ')}` : msg('sec.passwordStrength.good'),
+    ].join('\n'));
+    return { extra: { level: assessment.level, score: assessment.score, length: assessment.length } };
   },
 };
 
@@ -1636,4 +1627,4 @@ const uuidGenTool: ToolImpl = {
   },
 };
 
-export const cryptoPrimitivesTools: ToolImpl[] = [jwtTool, aesTool, rsaTool, totpTool, x509Tool, passwordGenTool, uuidGenTool];
+export const cryptoPrimitivesTools: ToolImpl[] = [jwtTool, aesTool, rsaTool, totpTool, x509Tool, passwordGenTool, passwordStrengthTool, uuidGenTool];
