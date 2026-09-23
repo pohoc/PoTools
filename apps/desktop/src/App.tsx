@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell.tsx';
+import { AppLogo } from './components/AppLogo.tsx';
 import { Button, Icon, ThemeProvider, Toaster } from '@potools/ui';
 import { Home } from './pages/Home.tsx';
 import { ToolPage } from './pages/ToolPage.tsx';
@@ -86,7 +87,7 @@ function EngineStartupScreen({ error, retry }: { error: string | null; retry: ()
   return (
     <div className="flex h-full min-h-0 flex-col bg-canvas text-ink">
       <TitleBar
-        brand={<span className="flex items-center gap-2"><img src="/app-icon.svg" alt="" className="h-[18px] w-[18px]" /><span className="text-[12.5px] font-semibold">{t('app.name')}</span></span>}
+        brand={<span className="flex items-center gap-2"><AppLogo className="h-[18px] w-[18px]" /><span className="text-[12.5px] font-semibold">{t('app.name')}</span></span>}
         title={t('startup.title')}
       />
       <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-6 py-10">

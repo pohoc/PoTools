@@ -2,6 +2,7 @@ import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Badge, Button, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Icon } from '@potools/ui';
 import { TitleBar } from './TitleBar.tsx';
+import { AppLogo } from './AppLogo.tsx';
 import { Status } from './Status.tsx';
 import { useI18n } from '../i18n/index.tsx';
 import { useSettings } from '../lib/settings.ts';
@@ -116,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TitleBar
         brand={
           <span className="flex items-center gap-2">
-            <img src="/app-icon.svg" alt="" draggable={false} className="h-[18px] w-[18px] shrink-0 select-none" />
+            <AppLogo className="h-[18px] w-[18px] shrink-0 select-none" />
             <span className="truncate text-[12.5px] font-semibold tracking-tight text-ink">{t('app.name')}</span>
           </span>
         }

@@ -1,9 +1,6 @@
 /**
- * Single source of truth for app artwork: apps/desktop/public/app-icon.svg
- *
- * The desktop icon and the in-app logo are the SAME image on purpose — one
- * rounded-tile artwork feeds favicons, the brand mark and the OS icon set, so
- * they can never drift apart. macOS/Windows receive the squircle art directly.
+ * Static artwork source for browser and native package icons.
+ * The in-app AppLogo shares the same geometry and uses theme variables.
  */
 import { createRequire } from 'node:module';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';

@@ -1,40 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="PoTools">
   <defs>
-    <linearGradient id="potools-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#57a0ff" />
-      <stop offset="0.5" stop-color="#2c62e8" />
-      <stop offset="1" stop-color="#1f45c0" />
-    </linearGradient>
     <linearGradient id="potools-page" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff" />
-      <stop offset="1" stop-color="#e9f0fd" />
+      <stop offset="1" stop-color="#f3f4f6" />
     </linearGradient>
     <clipPath id="potools-tile">
       <rect width="1024" height="1024" rx="224" />
     </clipPath>
   </defs>
 
-  <!-- Rounded tile: matches macOS/iOS icon geometry so the same art works at 16px and 1024px. -->
-  <rect width="1024" height="1024" rx="224" fill="url(#potools-bg)" />
+  <rect width="1024" height="1024" rx="224" fill="#111827" />
   <g clip-path="url(#potools-tile)">
-    <circle cx="806" cy="206" r="252" fill="#7ab3ff" opacity="0.32" />
+    <circle cx="806" cy="206" r="252" fill="#ffffff" opacity="0.13" />
   </g>
 
   <g transform="rotate(-9 440 440)">
-    <rect x="286" y="240" width="308" height="400" rx="36" fill="#c9d9f2" />
+    <rect x="286" y="240" width="308" height="400" rx="36" fill="#ffffff" opacity="0.5" />
   </g>
 
   <g transform="rotate(-3 540 520)">
     <path d="M412 300h198l92 92v308a40 40 0 0 1-40 40H412a40 40 0 0 1-40-40V340a40 40 0 0 1 40-40z" fill="url(#potools-page)" />
-    <path d="M610 300l92 92h-52a40 40 0 0 1-40-40z" fill="#a9c8f6" />
-    <rect x="422" y="474" width="140" height="38" rx="19" fill="#1d4ed8" />
-    <rect x="422" y="552" width="230" height="38" rx="19" fill="#5b8ff0" />
-    <rect x="422" y="630" width="150" height="38" rx="19" fill="#a9c6f8" />
+    <path d="M610 300l92 92h-52a40 40 0 0 1-40-40z" fill="#111827" opacity="0.22" />
+    <rect x="422" y="474" width="140" height="38" rx="19" fill="#111827" />
+    <rect x="422" y="552" width="230" height="38" rx="19" fill="#111827" opacity="0.72" />
+    <rect x="422" y="630" width="150" height="38" rx="19" fill="#111827" opacity="0.45" />
   </g>
 
-  <g>
-    <circle cx="716" cy="716" r="126" fill="#ffffff" />
-    <rect x="639" y="695" width="154" height="42" rx="21" fill="#2f6ae8" />
-    <rect x="695" y="639" width="42" height="154" rx="21" fill="#2f6ae8" />
-  </g>
+  <circle cx="716" cy="716" r="126" fill="#ffffff" />
+  <rect x="639" y="695" width="154" height="42" rx="21" fill="#111827" />
+  <rect x="695" y="639" width="42" height="154" rx="21" fill="#111827" />
 </svg>
