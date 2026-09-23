@@ -33,17 +33,8 @@ export type ToolId =
   | 'pdf-to-rtf'
   | 'pdf-to-epub'
   | 'pdf-to-ofd'
-  | 'word-to-pdf'
-  | 'excel-to-pdf'
-  | 'ppt-to-pdf'
   | 'ofd-to-pdf'
   | 'markdown-to-pdf'
-  | 'doc-to-docx'
-  | 'docx-to-doc'
-  | 'xls-to-xlsx'
-  | 'xlsx-to-xls'
-  | 'ppt-to-pptx'
-  | 'pptx-to-ppt'
   | 'image-compress'
   | 'image-resize'
   | 'image-crop'
@@ -128,6 +119,8 @@ export interface OutputFile {
   name: string;
   kind: FileKind;
   path?: string | null;
+  /** The engine's staged copy is gone (temp cleanup), so it cannot be re-served. */
+  stagedMissing?: boolean;
   dataBase64?: string;
   sizeBytes: number;
   /** 1-based page the artifact came from, when relevant. */
@@ -243,6 +236,8 @@ export interface EngineInfo {
   defaultOutputDir: string;
   /** Scratch folder holding staged inputs and artifacts. */
   tempDir: string;
+  /** OS temp folder PoTools would use when no custom path is set. */
+  defaultTempDir: string;
   /** Feature flags the UI uses to enable or degrade tools. */
   features: {
     rasterizer: 'mupdf' | 'none';
@@ -250,6 +245,17 @@ export interface EngineInfo {
     cjkFont: string | null;
     busy: boolean;
   };
+}
+
+/** One level of the folder tree, for the in-app directory picker. */
+export interface DirListing {
+  /** Folder actually listed; equals `requested` unless it does not exist yet. */
+  path: string;
+  /** Path the caller asked for, so a not-yet-created folder stays selectable. */
+  requested: string;
+  parent: string | null;
+  dirs: Array<{ name: string; path: string }>;
+  quick: Array<{ id: 'home' | 'documents' | 'downloads' | 'desktop'; path: string }>;
 }
 
 export interface TempUsage {
@@ -280,6 +286,7 @@ export interface TextRunResult {
 export type RpcMethodName =
   | 'engine.info'
   | 'engine.ping'
+  | 'engine.setTempDir'
   | 'tools.list'
   | 'tool.run'
   | 'job.submit'
@@ -287,6 +294,7 @@ export type RpcMethodName =
   | 'job.list'
   | 'job.clear'
   | 'file.probe'
+  | 'fs.browse'
   | 'file.bytes'
   | 'page.thumbs'
   | 'page.list'
@@ -309,6 +317,8 @@ export interface RpcRequest<M extends RpcMethodName = RpcMethodName> {
 export interface RpcParamsMap {
   'engine.info': Record<string, never>;
   'engine.ping': Record<string, never>;
+  'engine.setTempDir': { dir: string | null };
+  'fs.browse': { path: string | null };
   'tools.list': Record<string, never>;
   'tool.run': { tool: ToolId; options: Record<string, unknown>; globals?: JobGlobals };
   'job.submit': { job: JobRequest };

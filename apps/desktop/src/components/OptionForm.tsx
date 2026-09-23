@@ -128,7 +128,16 @@ function fieldError(field: ToolField, value: FieldValue | undefined): 'required'
 }
 
 export function areOptionsValid(fields: ToolField[], values: Record<string, FieldValue>): boolean {
-  return fields.filter((field) => isVisible(field, values)).every((field) => fieldError(field, values[field.key]) === null);
+  const visible = fields.filter((field) => isVisible(field, values));
+  if (!visible.every((field) => fieldError(field, values[field.key]) === null)) return false;
+
+  // Header/footer is a single engine operation: at least one line must be
+  // supplied. Keep the invariant in the shared form gate so the run button
+  // explains the missing input before an RPC is attempted.
+  const hasHeader = visible.some((field) => field.key === 'header');
+  const hasFooter = visible.some((field) => field.key === 'footer');
+  if (hasHeader && hasFooter && !String(values.header ?? '').trim() && !String(values.footer ?? '').trim()) return false;
+  return true;
 }
 
 const DEFAULT_HINTS: Record<string, string> = {
@@ -205,37 +214,42 @@ function Group({
   bare?: boolean;
   stackClassName?: string;
 }) {
-  const rows = new Map<string, ToolField[]>();
-  const stack: ToolField[] = [];
+  // Fields render in declaration order; consecutive fields sharing a `row` key pair up.
+  const blocks: Array<{ row?: string; fields: [ToolField, ...ToolField[]] }> = [];
   for (const field of fields) {
-    if (field.row) {
-      const bucket = rows.get(field.row) ?? [];
-      bucket.push(field);
-      rows.set(field.row, bucket);
-    } else {
-      stack.push(field);
+    const last = blocks[blocks.length - 1];
+    if (field.row && last?.row === field.row) {
+      last.fields.push(field);
+      continue;
     }
+    blocks.push(field.row ? { row: field.row, fields: [field] } : { fields: [field] });
   }
 
   const content = (
     <div className={cn('form-field-stack', stackClassName)}>
-      {stack.map((field) => (
-        <Field key={field.key} field={field} value={values[field.key]} onChange={onChange} values={values} />
-      ))}
-      {[...rows.entries()].map(([row, group]) => (
-        <div key={row} className={cn('grid gap-3', group.length > 1 ? 'grid-cols-2' : 'grid-cols-1')}>
-          {group.map((field) => (
-            <div key={field.key} className={field.type === 'slider' && group.length > 1 ? 'col-span-full' : undefined}>
-              <Field
-                field={field}
-                value={values[field.key]}
-                onChange={onChange}
-                values={values}
-              />
-            </div>
-          ))}
-        </div>
-      ))}
+      {blocks.map((block) => {
+        const [first] = block.fields;
+        if (!block.row) {
+          return <Field key={first.key} field={first} value={values[first.key]} onChange={onChange} values={values} />;
+        }
+        return (
+          <div
+            key={`${block.row}:${first.key}`}
+            className="form-field-row grid grid-cols-1 gap-3"
+          >
+            {block.fields.map((field) => (
+              <div key={field.key} className={field.type === 'slider' && block.fields.length > 1 ? 'col-span-full' : undefined}>
+                <Field
+                  field={field}
+                  value={values[field.key]}
+                  onChange={onChange}
+                  values={values}
+                />
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -262,7 +276,14 @@ function Field({
   const hint = hintKey ? t(hintKey) : undefined;
   const error = fieldError(field, value);
   const errorText = error ? t(`form.error.${error}`) : undefined;
-  const helpText = field.type === 'pageRanges' && field.key !== 'pages' ? t('opt.ranges.help') : hint;
+  // A choice explains itself, so the selected option's note replaces the generic
+  // field hint instead of stacking a second line under the chips.
+  const choiceHintKey = field.type === 'select'
+    ? field.options.find((option) => String(option.value) === String(value ?? field.default))?.descriptionKey
+    : undefined;
+  const helpText = field.type === 'pageRanges' && field.key !== 'pages'
+    ? t('opt.ranges.help')
+    : choiceHintKey ? t(choiceHintKey) : hint;
 
   if (field.type === 'boolean') {
     return (
@@ -354,13 +375,13 @@ function Control({
               <Button
                 key={String(option.value)}
                 type="button"
-                variant={selected(option) ? 'secondary' : 'ghost'}
+                variant="ghost"
                 size="icon"
                 title={t(option.labelKey)}
                 aria-label={t(option.labelKey)}
                 aria-pressed={selected(option)}
                 onClick={() => choose(option.value)}
-                className={cn('h-9 w-10 border-transparent p-0', selected(option) && 'border-accent/35 bg-accent-soft text-accent hover:bg-accent-soft')}
+                className="option-chip h-9 w-10 p-0"
               >
                 <span className={positionMarkerClass(String(option.value))} aria-hidden="true"><span className="h-2 w-2 rounded-full bg-current" /></span>
               </Button>
@@ -368,28 +389,7 @@ function Control({
           </div>
         );
       }
-      if (field.presentation === 'cards') {
-        return (
-          <div role="group" aria-label={t(field.labelKey)} className="grid grid-cols-2 gap-1.5">
-            {field.options.map((option) => (
-              <Button
-                key={String(option.value)}
-                type="button"
-                variant={selected(option) ? 'secondary' : 'outline'}
-                aria-pressed={selected(option)}
-                onClick={() => choose(option.value)}
-                className={cn('h-auto min-h-12 justify-start whitespace-normal px-2.5 py-2 text-left', selected(option) && 'border-accent/35 bg-accent-soft text-accent hover:bg-accent-soft')}
-              >
-                <span className="flex min-w-0 flex-col items-start gap-0.5">
-                  <span className="text-[11.5px] leading-4">{t(option.labelKey)}</span>
-                  {option.descriptionKey ? <span className="whitespace-normal text-left text-[10px] font-normal leading-4 text-faint">{t(option.descriptionKey)}</span> : null}
-                </span>
-              </Button>
-            ))}
-          </div>
-        );
-      }
-      if (field.options.length <= 4) {
+      if (field.presentation === 'chips' || field.options.length <= 4) {
         return (
           <div role="group" aria-label={t(field.labelKey)} className="flex flex-wrap gap-1.5">
             {field.options.map((option) => {
@@ -398,16 +398,13 @@ function Control({
                 <Button
                   key={String(option.value)}
                   type="button"
-                  variant={isSelected ? 'secondary' : 'outline'}
+                  variant="outline"
                   size="sm"
                   aria-pressed={isSelected}
                   onClick={() => choose(option.value)}
-                  className={cn('h-auto min-h-8 whitespace-normal px-2.5 py-1 text-[11.5px] leading-4 font-normal', isSelected && 'border-accent/35 bg-accent-soft font-medium text-accent hover:bg-accent-soft')}
+                  className="option-chip whitespace-normal"
                 >
-                  <span className="flex flex-col items-start gap-0.5">
-                    <span>{t(option.labelKey)}</span>
-                    {option.descriptionKey ? <span className="text-left text-[10px] font-normal leading-4 text-faint">{t(option.descriptionKey)}</span> : null}
-                  </span>
+                  {t(option.labelKey)}
                 </Button>
               );
             })}
@@ -486,13 +483,13 @@ function Control({
                 <Button
                   key={preset.value}
                   type="button"
-                  variant={numeric === preset.value ? 'secondary' : 'ghost'}
+                  variant="outline"
                   size="sm"
                   aria-pressed={numeric === preset.value}
                   onClick={() => onChange(field.key, preset.value)}
-                  className={cn('h-6 px-2 text-[10.5px]', numeric === preset.value && 'border-accent/35 bg-accent-soft text-accent hover:bg-accent-soft')}
+                  className="option-chip option-chip-pill"
                 >
-                  {t(preset.labelKey)} <span className="ml-0.5 text-faint">{toDisplayNumber(field, preset.value)}{unit}</span>
+                  {t(preset.labelKey)} <span className="ml-0.5 opacity-70">{toDisplayNumber(field, preset.value)}{unit}</span>
                 </Button>
               ))}
             </div>
@@ -652,10 +649,11 @@ function PageRangesField({
           <Button
             key={preset.value}
             type="button"
-            variant={value === preset.value ? 'secondary' : 'outline'}
+            variant="outline"
             size="sm"
             onClick={() => onChange(field.key, preset.value)}
-            className={`h-6 rounded-full px-2 text-[11px] font-normal ${value === preset.value ? 'border-accent bg-accent-soft text-accent hover:bg-accent-soft' : 'text-muted'}`}
+            aria-pressed={value === preset.value}
+            className="option-chip option-chip-pill"
           >
             {t(preset.labelKey)}
           </Button>
@@ -748,11 +746,11 @@ function DateTimeField({
             <Button
               key={preset}
               type="button"
-              variant={active === preset ? 'secondary' : 'outline'}
+              variant="outline"
               size="sm"
               aria-pressed={active === preset}
               onClick={() => onChange(field.key, preset)}
-              className={`h-6 rounded-full px-2 text-[11px] font-normal ${active === preset ? 'border-accent bg-accent-soft text-accent hover:bg-accent-soft' : 'text-muted'}`}
+              className="option-chip option-chip-pill"
             >
               {t(`date.preset.${preset}`)}
             </Button>

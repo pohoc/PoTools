@@ -156,7 +156,8 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
     </Card>
   ) : null;
 
-  const optionsSection = (
+  // Tools without options (format-only converters) would show an empty card.
+  const optionsSection = descriptor.fields.length ? (
     <Section
       title={t('tool.options')}
       className="tool-options-section"
@@ -179,7 +180,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
         </p>
       ) : null}
     </Section>
-  );
+  ) : null;
 
   const runPanel = (
     <div className="flex flex-col gap-2">
@@ -211,12 +212,13 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
         <p className="text-center text-[11px] leading-4 text-faint">{t('result.textOnlyHint')}</p>
       ) : (
         <p className="text-center text-[11px] leading-4 text-faint">
-          {settings.outputDir ? (
+          {outputDir ? (
             <>
               {t('result.outputDir')} ·{' '}
-              <span className="font-mono" title={settings.outputDir}>
-                {shorten(settings.outputDir)}
+              <span className="font-mono" title={outputDir}>
+                {shorten(outputDir)}
               </span>
+              {settings.outputDir ? null : <span className="text-faint"> · {t('settings.defaultDir')}</span>}
             </>
           ) : (
             t('result.noDir')
@@ -255,7 +257,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
       {engineNotice}
 
       <div className="tool-workspace-grid items-start gap-4">
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="tool-workspace-input-column flex min-w-0 flex-col gap-4">
           {needsFiles ? (
             <Section
               title={t('tool.inputFiles')}
@@ -334,12 +336,12 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
             />
           ) : null}
 
-          {resultPanel}
+          <div className="tool-result-panel">{resultPanel}</div>
         </div>
 
         <div className="tool-run-column flex flex-col gap-3">
           {optionsSection}
-          {runPanel}
+          <div className="tool-run-panel">{runPanel}</div>
         </div>
       </div>
     </ToolWorkspaceLayout>

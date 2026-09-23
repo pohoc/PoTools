@@ -14,6 +14,8 @@ import { useI18n } from '../i18n/index.tsx';
 import { useEngine } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 
+const SUBCATEGORY_CHIP = 'option-chip max-w-full rounded-full border border-line bg-surface px-2 py-0.5 text-[10.5px] leading-4 text-muted outline-none transition hover:bg-raised hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/35';
+
 export function Home() {
   const { t } = useI18n();
   const status = useEngine((state) => state.status);
@@ -133,10 +135,10 @@ export function Home() {
             <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <div className="shrink-0"><h2 className="text-[15px] font-semibold">{query.trim() ? t('home.searchResults') : t(categoryGroups.find((category) => category.id === activeCategory)?.label ?? 'home.allTools')}</h2><p className="mt-0.5 text-[11.5px] text-muted">{resultCount} {t('home.results')}</p></div>
               {subcategoryTags.length > 0 ? <div className="flex min-w-0 flex-1 flex-wrap justify-start gap-1 sm:justify-end" aria-label={t('home.categories')}>
-                <button type="button" aria-pressed={activeSubcategory === 'all'} onClick={() => setActiveSubcategory('all')} className={`max-w-full rounded-full border px-2 py-0.5 text-[10.5px] leading-4 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/35 ${activeSubcategory === 'all' ? 'border-accent/35 bg-accent-soft text-ink' : 'border-line bg-surface text-muted hover:bg-raised hover:text-ink'}`}>{t('search.all')}</button>
+                <button type="button" aria-pressed={activeSubcategory === 'all'} onClick={() => setActiveSubcategory('all')} className={SUBCATEGORY_CHIP}>{t('search.all')}</button>
                 {subcategoryTags.map((subcategory) => {
                   const active = activeSubcategory === subcategory;
-                  return <button key={subcategory} type="button" aria-pressed={active} onClick={() => setActiveSubcategory(active ? 'all' : subcategory)} className={`max-w-full rounded-full border px-2 py-0.5 text-[10.5px] leading-4 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/35 ${active ? 'border-accent/35 bg-accent-soft text-ink' : 'border-line bg-surface text-muted hover:bg-raised hover:text-ink'}`}>{t(`category.${subcategory}`)}</button>;
+                  return <button key={subcategory} type="button" aria-pressed={active} onClick={() => setActiveSubcategory(active ? 'all' : subcategory)} className={SUBCATEGORY_CHIP}>{t(`category.${subcategory}`)}</button>;
                 })}
               </div> : null}
             </div>

@@ -24,4 +24,3 @@ export * from './tabs';
 export * from './textarea';
 export * from './form';
 export * from './file-upload';
-export * from './tooltip';

@@ -161,43 +161,8 @@ async function invoiceSamples(): Promise<void> {
   await write('sample-rotated.pdf', await rotated.save());
 }
 
-/** Office/OFD/Markdown fixtures, written by the same code paths the tools use. */
+/** OFD/Markdown fixtures, written by the same code paths the tools use. */
 async function officeSamples(): Promise<void> {
-  const blocks: FlowBlock[] = [
-    { kind: 'heading', level: 1, text: '本地化转换测试', page: 0 },
-    { kind: 'paragraph', text: 'Quarterly report — 收入增长 12%，文件不出这台电脑。', page: 0, bold: false },
-    { kind: 'list', ordered: false, items: ['导出 docx/xlsx/pptx', '导入回 PDF', '中文与英文混排'], page: 0 },
-    { kind: 'heading', level: 2, text: '第二章节', page: 0 },
-    { kind: 'paragraph', text: 'The quick brown fox jumps over the lazy dog.', page: 0, bold: true },
-  ];
-  await write(
-    'sample-office.docx',
-    await writeDocx({ title: 'Sample Office', blocks, pageBreaks: false, contentWidth: 451, imageFor: () => null }),
-  );
-  await write(
-    'sample-office.xlsx',
-    await writeXlsx([
-      { name: 'Sales', rows: [['季度', '收入', '备注'], ['Q1', '128.50', '增长 12%'], ['Q2', '204.00', '含税']] },
-    ]),
-  );
-  const source = new Uint8Array(await readFileSafe(resolve(OUT, 'sample-a.pdf')));
-  const raster = await openRaster(source, {});
-  const png = raster.renderPng({ page: 1, dpi: 96 });
-  const box = raster.pageBox(1);
-  await write(
-    'sample-office.pptx',
-    await writePptx({
-      title: 'Sample Slides',
-      slides: [
-        {
-          widthIn: box.width / 72,
-          heightIn: box.height / 72,
-          image: png,
-          lines: [{ text: '本地化转换测试', xIn: 0.6, yIn: 0.5, wIn: 6, hIn: 0.8, size: 26, bold: true, color: '000000' }],
-        },
-      ],
-    }),
-  );
   const fontPath = resolveFontPath(null);
   await write(
     'sample-office.ofd',

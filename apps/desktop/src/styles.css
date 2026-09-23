@@ -62,6 +62,7 @@
 .tool-options-section {
   width: 100%;
   min-width: 0;
+  container-type: inline-size;
 }
 
 .tool-options-section > .flex.w-full {
@@ -77,6 +78,15 @@
 
 .tool-options-section .option-layout-stack > .grid {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* Keep paired controls readable in the narrow options rail. Wide text-only
+   workspaces can still use a compact two-column row once there is room for
+   labels, controls and helper text without wrapping into a dense cluster. */
+@container (min-width: 520px) {
+  .tool-options-section .form-field-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -95,6 +105,44 @@
 
   .tool-options-section > .flex.w-full > span {
     margin-left: auto;
+  }
+}
+
+/* On a stacked desktop window, keep the task's natural workflow visible:
+   choose files, configure, run, then inspect the result. The wide layout keeps
+   the input/result column and the sticky options rail side by side. */
+@media (max-width: 1199px) {
+  .tool-workspace-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tool-workspace-input-column,
+  .tool-run-column {
+    display: contents;
+  }
+
+  .tool-workspace-input-column > :not(.tool-result-panel) {
+    order: 1;
+  }
+
+  .tool-workspace-grid .tool-options-section {
+    width: 100%;
+    order: 2;
+  }
+
+  .tool-workspace-grid .tool-run-panel {
+    width: 100%;
+    order: 3;
+  }
+
+  .tool-workspace-grid .tool-result-panel {
+    width: 100%;
+    order: 4;
+  }
+
+  .tool-workspace-grid .tool-input-section {
+    width: 100%;
   }
 }
 

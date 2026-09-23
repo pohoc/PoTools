@@ -23,20 +23,28 @@ import {
   Label,
   Segmented,
   Switch,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from '@potools/ui';
+import { DirectoryPicker } from '../components/DirectoryPicker.tsx';
 import { SettingsLayout } from '../components/PageLayout.tsx';
 import { useI18n } from '../i18n/index.tsx';
 import { DEFAULT_SETTINGS, useSettings } from '../lib/settings.ts';
 import { transportMode, useEngine } from '../stores/engine.ts';
+import { useJobs } from '../stores/jobs.ts';
 import { isTauri, nativePickDirectory } from '../lib/tauri.ts';
 import { pickFiles } from '../lib/files.ts';
 import { formatBytes } from '../lib/format.ts';
 import { APP_VERSION } from '../lib/version.ts';
 
-const PATTERN_TOKENS = ['{name}', '{tool}', '{index}', '{range}', '{date}'];
+const PATTERN_TOKENS = [
+  { token: '{name}', key: 'patternToken.name' },
+  { token: '{tool}', key: 'patternToken.tool' },
+  { token: '{index}', key: 'patternToken.index' },
+  { token: '{i}', key: 'patternToken.i' },
+  { token: '{total}', key: 'patternToken.total' },
+  { token: '{range}', key: 'patternToken.range' },
+  { token: '{date}', key: 'patternToken.date' },
+  { token: '{time}', key: 'patternToken.time' },
+];
 
 type TabId = 'appearance' | 'output' | 'storage' | 'advanced' | 'engine' | 'about';
 
@@ -119,7 +127,7 @@ function SettingRow({
   children: ReactNode;
 }) {
   return (
-    <div className="group flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-control px-2 py-3 transition hover:bg-raised/45">
+    <div className="group flex min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-control px-2 py-3">
       <div className="min-w-0 flex-1">
         <span className="block text-[13px] leading-5 text-ink">{label}</span>
         {hint ? <span className="mt-0.5 block text-[11.5px] leading-4 text-faint">{hint}</span> : null}
@@ -166,7 +174,7 @@ function DefinitionRow({
 }) {
   const color = tone === 'ok' ? 'text-ok' : tone === 'warn' ? 'text-warn' : tone === 'bad' ? 'text-bad' : 'text-ink';
   return (
-    <div className="flex min-w-0 items-baseline gap-3 py-2.5">
+    <div className="flex min-w-0 items-baseline gap-3 px-2 py-2.5">
       <dt className="w-28 shrink-0 truncate text-[11.5px] leading-5 text-faint">{term}</dt>
       <dd className={cn('min-w-0 flex-1 truncate text-[12px] leading-5', color)} title={title}>
         {children}
@@ -218,10 +226,16 @@ function OutputTab() {
   const { t } = useI18n();
   const settings = useSettings();
   const info = useEngine((state) => state.info);
+  const [picking, setPicking] = useState(false);
 
-  const chooseDir = async () => {
-    const dir = await nativePickDirectory();
-    if (dir) settings.set('outputDir', dir);
+  const chooseDir = () => {
+    if (isTauri()) {
+      void nativePickDirectory().then((dir) => {
+        if (dir) settings.set('outputDir', dir);
+      });
+      return;
+    }
+    setPicking(true);
   };
 
   return (
@@ -230,11 +244,7 @@ function OutputTab() {
         <FieldRow
           label={t('settings.outputDir')}
           htmlFor="output-dir"
-          hint={
-            transportMode() === 'tauri'
-              ? t('settings.outputDirHint')
-              : `${t('settings.outputDirHint')} · ${t('engine.mode.web')}`
-          }
+          hint={t('settings.outputDirHint')}
         >
           <div className="flex min-w-0 items-center gap-2">
             <Input
@@ -244,25 +254,26 @@ function OutputTab() {
               value={settings.outputDir ?? ''}
               onChange={(event) => settings.set('outputDir', event.target.value || null)}
             />
-            <Button variant="primary" size="sm" icon="folder" className="h-8 shrink-0 rounded-control" disabled={!isTauri()} title={isTauri() ? undefined : t('settings.chooseDesktopOnly')} onClick={() => void chooseDir()}>
+            <Button variant="outline" size="sm" icon="folder" className="h-8 shrink-0 rounded-control px-2.5 text-[11.5px]" onClick={chooseDir}>
               {t('settings.choose')}
             </Button>
           </div>
+          <DirectoryPicker
+            open={picking}
+            initialPath={settings.outputDir || info?.defaultOutputDir}
+            onOpenChange={setPicking}
+            onPick={(dir) => settings.set('outputDir', dir)}
+          />
           {info?.defaultOutputDir ? (
             <div className="flex min-w-0 items-center gap-2 text-[11.5px] leading-5 text-faint">
               <span className="shrink-0">{t('settings.defaultDir')}</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="min-w-0 truncate font-mono" title={info.defaultOutputDir}>{info.defaultOutputDir}</span>
-                </TooltipTrigger>
-                <TooltipContent side="top">{info.defaultOutputDir}</TooltipContent>
-              </Tooltip>
+              <span className="min-w-0 truncate font-mono" title={info.defaultOutputDir}>{info.defaultOutputDir}</span>
               <Button
                 type="button"
-                variant="quiet"
+                variant="outline"
                 size="sm"
-                className="h-6 shrink-0 rounded-control px-1.5 text-[11px]"
-                onClick={() => settings.set('outputDir', info.defaultOutputDir)}
+                className="shrink-0 rounded-control px-2 text-[11.5px]"
+                onClick={() => settings.set('outputDir', null)}
               >
                 {t('settings.useDefault')}
               </Button>
@@ -278,13 +289,13 @@ function OutputTab() {
             onChange={(event) => settings.set('namePattern', event.target.value)}
           />
           <div className="mt-1 flex flex-wrap items-center gap-1.5" aria-label={t('settings.patternTokens')}>
-            {PATTERN_TOKENS.map((token) => (
+            {PATTERN_TOKENS.map(({ token, key }) => (
               <Button
                 key={token}
                 type="button"
-                variant="quiet"
+                variant="outline"
                 size="sm"
-                className="kbd h-6 shrink-0 px-1.5 font-mono text-[11px]"
+                className="shrink-0 gap-1 px-2 text-[11px]"
                 onClick={() =>
                   settings.set(
                     'namePattern',
@@ -292,7 +303,8 @@ function OutputTab() {
                   )
                 }
               >
-                {token}
+                <span className="font-mono">{token}</span>
+                <span className="text-muted">{t(key)}</span>
               </Button>
             ))}
           </div>
@@ -314,8 +326,26 @@ function StorageTab() {
   const { t, tf } = useI18n();
   const info = useEngine((state) => state.info);
   const call = useEngine((state) => state.call);
+  const syncTempDir = useEngine((state) => state.syncTempDir);
   const settings = useSettings();
   const [usage, setUsage] = useState<TempUsage | null>(null);
+
+  const applyTempDir = (dir: string | null) => {
+    settings.set('tempDir', dir);
+    void syncTempDir().then(refresh);
+  };
+
+  const [picking, setPicking] = useState(false);
+
+  const chooseTempDir = () => {
+    if (isTauri()) {
+      void nativePickDirectory().then((dir) => {
+        if (dir) applyTempDir(dir);
+      });
+      return;
+    }
+    setPicking(true);
+  };
 
   const refresh = useCallback(() => {
     call<TempUsage>('temp.stat', {})
@@ -342,6 +372,7 @@ function StorageTab() {
         : t('settings.nothing'),
     );
     refresh();
+    if (result.removedJobs) void useJobs.getState().refresh();
   };
 
   return (
@@ -354,9 +385,36 @@ function StorageTab() {
           </Button>
         }
       >
-        <FieldRow label={t('settings.tempDir')}>
-          <div className="min-w-0 truncate rounded-control bg-raised px-2.5 py-1.5 font-mono text-[12px] leading-5 text-ink" title={info?.tempDir ?? ''}>
-            {info?.tempDir ?? '—'}
+        <FieldRow label={t('settings.tempDir')} htmlFor="temp-dir">
+          <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <Input
+              id="temp-dir"
+              className="min-w-0 flex-1 font-mono"
+              placeholder={info?.defaultTempDir ?? ''}
+              value={settings.tempDir ?? ''}
+              onChange={(event) => settings.set('tempDir', event.target.value || null)}
+              onBlur={() => applyTempDir(settings.tempDir)}
+            />
+            <Button variant="outline" size="sm" icon="folder" className="h-8 shrink-0 rounded-control px-2.5 text-[11.5px]" onClick={chooseTempDir}>
+              {t('settings.choose')}
+            </Button>
+            <DirectoryPicker
+              open={picking}
+              initialPath={settings.tempDir || info?.tempDir}
+              onOpenChange={setPicking}
+              onPick={applyTempDir}
+            />
+            {settings.tempDir ? (
+              <Button variant="outline" size="sm" icon="reset" className="h-8 shrink-0 rounded-control px-2.5 text-[11.5px]" onClick={() => applyTempDir(null)}>
+                {t('settings.useDefault')}
+              </Button>
+            ) : null}
+          </div>
+          <p className="form-hint">{t('settings.tempDirHint')}</p>
+          <div className="flex min-w-0 items-center gap-2 text-[11.5px] leading-5 text-faint">
+            <span className="shrink-0">{t('settings.tempDirActive')}</span>
+            <span className="min-w-0 truncate font-mono" title={info?.tempDir ?? ''}>{info?.tempDir ?? '—'}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat label={t('settings.statJobs')} value={String(usage?.jobs ?? '—')} />
@@ -366,6 +424,7 @@ function StorageTab() {
               label={t('settings.statAge')}
               value={usage?.oldestAt ? `${Math.max(0, Math.round((Date.now() - usage.oldestAt) / 86_400_000))}d` : '—'}
             />
+          </div>
           </div>
         </FieldRow>
 
@@ -377,7 +436,10 @@ function StorageTab() {
           />
         </SettingRow>
 
-        <SettingRow label={t('settings.cleanupOnClose')} hint={t('settings.cleanupOnCloseHint')}>
+        <SettingRow
+          label={t('settings.cleanupOnClose')}
+          hint={isTauri() ? t('settings.cleanupOnCloseHint') : `${t('settings.cleanupOnCloseHint')} · ${t('settings.desktopOnly')}`}
+        >
           <Switch
             checked={settings.cleanupTempOnClose}
             onChange={(value) => settings.set('cleanupTempOnClose', value)}
@@ -534,7 +596,7 @@ function AboutTab() {
       <Group title={t('settings.security')} description={t('settings.securityHint')}>
         <div className="flex min-w-0 flex-col">
           {securityItems.map(({ key, icon }) => (
-            <div key={key} className="flex min-w-0 items-center gap-2.5 py-2.5">
+            <div key={key} className="flex min-w-0 items-center gap-2.5 px-2 py-2.5">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
                 <Icon name={icon} size={13} />
               </span>
@@ -567,7 +629,7 @@ function AboutTab() {
             {transportMode() === 'tauri' ? t('settings.engineMode.tauri') : t('settings.engineMode.web')}
           </DefinitionRow>
         </dl>
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 py-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-2 py-3">
           <span className="text-[11px] leading-4 text-faint">{t('settings.copyright')}</span>
           <ResetDialog />
         </div>

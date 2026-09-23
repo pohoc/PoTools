@@ -1,6 +1,6 @@
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import type { FileRef, JobGlobals } from '@potools/core';
 import type { PDFDocument } from 'pdf-lib';
 import { EngineError } from '../errors.ts';
@@ -9,18 +9,85 @@ import type { ResolvedInput } from '../types.ts';
 import { loadDocument } from './pdf.ts';
 import { normalizePdfBytes } from './render.ts';
 
-export const TEMP_ROOT = resolve(process.env.POTOOLS_TEMP ?? join(tmpdir(), 'potools'));
+export function defaultTempRoot(): string {
+  return join(tmpdir(), 'potools');
+}
+
+let tempRoot = resolve(process.env.POTOOLS_TEMP ?? defaultTempRoot());
+
+export function tempRootDir(): string {
+  return tempRoot;
+}
+
+/** Empty or null falls back to the OS temp folder. Returns the applied root. */
+export function setTempRootDir(dir: string | null | undefined): string {
+  const next = String(dir ?? '').trim();
+  tempRoot = resolve(next || defaultTempRoot());
+  return tempRoot;
+}
 
 export async function ensureDir(dir: string): Promise<void> {
   await mkdir(dir, { recursive: true });
 }
 
+export interface DirListing {
+  /** Folder actually listed; equals `requested` unless it does not exist yet. */
+  path: string;
+  /** Path the caller asked for, so a not-yet-created folder stays selectable. */
+  requested: string;
+  parent: string | null;
+  dirs: Array<{ name: string; path: string }>;
+  quick: Array<{ id: QuickLocation; path: string }>;
+}
+
+export type QuickLocation = 'home' | 'documents' | 'downloads' | 'desktop';
+
+const QUICK_DIRS: Array<[QuickLocation, string]> = [
+  ['documents', 'Documents'],
+  ['downloads', 'Downloads'],
+  ['desktop', 'Desktop'],
+];
+
+/** Existing standard folders offered as one-click jump targets. */
+async function quickLocations(home: string): Promise<DirListing['quick']> {
+  const candidates: Array<[QuickLocation, string]> = [['home', home], ...QUICK_DIRS.map(([id, name]) => [id, join(home, name)] as [QuickLocation, string])];
+  const checked = await Promise.all(candidates.map(async ([id, path]) =>
+    (await readdir(path).then(() => true, () => false)) ? { id, path } : null,
+  ));
+  return checked.filter((entry): entry is { id: QuickLocation; path: string } => entry !== null);
+}
+
+/** Read-only folder listing that backs the in-app directory picker. */
+export async function browseDirs(input: string | null): Promise<DirListing> {
+  const home = resolve(homedir());
+  const requested = resolve(String(input ?? '').trim() || home);
+  let path = requested;
+  let entries = await readdir(path, { withFileTypes: true }).catch(() => null);
+  // A saved folder may not exist yet; browse the nearest ancestor that does.
+  while (!entries) {
+    const parent = dirname(path);
+    if (parent === path) throw new EngineError('unreadable_file', `无法读取目录：${path}`);
+    path = parent;
+    entries = await readdir(path, { withFileTypes: true }).catch(() => null);
+  }
+  return {
+    path,
+    requested,
+    parent: dirname(path) === path ? null : dirname(path),
+    quick: await quickLocations(home),
+    dirs: entries
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+      .map((entry) => ({ name: entry.name, path: join(path, entry.name) }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+  };
+}
+
 export function tempJobDir(jobId: string): string {
-  return join(TEMP_ROOT, 'jobs', safeSegment(jobId));
+  return join(tempRoot, 'jobs', safeSegment(jobId));
 }
 
 export function tempInboxDir(jobId: string): string {
-  return join(TEMP_ROOT, 'inbox', safeSegment(jobId));
+  return join(tempRoot, 'inbox', safeSegment(jobId));
 }
 
 function safeSegment(value: string): string {
@@ -38,7 +105,13 @@ export async function readInput(file: FileRef, jobId = 'adhoc'): Promise<Resolve
     try {
       bytes = new Uint8Array(await readFile(file.path));
     } catch (error) {
-      throw new EngineError('unreadable_file', `无法读取 ${file.name || file.path}: ${String(error)}`);
+      const missing = (error as NodeJS.ErrnoException).code === 'ENOENT';
+      throw new EngineError(
+        'unreadable_file',
+        missing
+          ? `${file.name || file.path} 已不存在，可能已被移动、删除或清理`
+          : `无法读取 ${file.name || file.path}: ${String(error)}`,
+      );
     }
   } else if (file.dataBase64) {
     bytes = new Uint8Array(Buffer.from(file.dataBase64, 'base64'));

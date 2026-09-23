@@ -89,6 +89,33 @@
   .ui-button { transition-property: background-color, border-color, color, box-shadow; }
 }
 
+/* Pressed choice (mode chips, position cells, page-range and slider presets,
+   category filters). These rules stay unlayered so they beat Tailwind's
+   utilities, and the [aria-pressed] attribute gives them the specificity needed
+   to outrank `.ui-button-*` — which is why the old `bg-accent-soft` states on
+   Buttons never rendered. */
+.option-chip[aria-pressed='true'] {
+  border-color: rgb(var(--ui-accent));
+  background: rgb(var(--ui-accent));
+  color: rgb(var(--ui-accent-ink));
+}
+
+.option-chip[aria-pressed='true']:hover {
+  background: rgb(var(--ui-accent) / 0.88);
+}
+
+/* Small quick-fill pills that sit beside an input or slider. HeroUI's `.button`
+   sets an explicit height, so min-height alone cannot shrink them. */
+.option-chip-pill {
+  height: 24px;
+  min-height: 24px;
+  border-radius: var(--ui-radius-pill);
+  padding: 0 var(--ui-space-2);
+  font-size: var(--ui-font-helper);
+  font-weight: 450;
+  line-height: 1.2;
+}
+
 /* Token-owned segmented control used by theme and language settings. */
 .ui-segmented {
   display: inline-flex;

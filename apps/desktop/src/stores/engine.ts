@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { EngineInfo, JobRequest, RpcMethodName } from 'core';
 import { getTransport, resetTransport, type TransportStatus } from '../lib/transport.ts';
 import { isTauri } from '../lib/tauri.ts';
+import '../lib/devdebug.ts';
 import { useSettings } from '../lib/settings.ts';
 
 interface EngineState {
@@ -9,8 +10,12 @@ interface EngineState {
   info: EngineInfo | null;
   error: string | null;
   started: boolean;
+  /** Keeps the startup screen up while a manual reconnect is in flight. */
+  reconnecting: boolean;
   boot: () => Promise<void>;
   reconnect: () => Promise<void>;
+  /** Pushes the saved scratch folder into a running engine. */
+  syncTempDir: () => Promise<void>;
   call: <T>(method: RpcMethodName, params?: Record<string, unknown>) => Promise<T>;
 }
 
@@ -26,7 +31,8 @@ function applyJobDefaults(job: JobRequest): JobRequest {
       ...job.globals,
     },
     output: {
-      dir: settings.outputDir ?? null,
+      // An unset preference means "use the platform folder the engine reports".
+      dir: settings.outputDir || useEngine.getState().info?.defaultOutputDir || null,
       // Native mode reads artifacts from staged files, so keeping a second
       // base64 copy in the Node heap is unnecessary.
       wantBytes: !isTauri(),
@@ -40,6 +46,7 @@ export const useEngine = create<EngineState>((set, get) => ({
   info: null,
   error: null,
   started: false,
+  reconnecting: false,
 
   boot: async () => {
     if (get().started) return;
@@ -49,6 +56,7 @@ export const useEngine = create<EngineState>((set, get) => ({
     try {
       const info = await transport.start({ concurrency: useSettings.getState().concurrency });
       set({ info, error: null });
+      await get().syncTempDir();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       // A packaged shell can still fail to expose IPC (e.g. an untrusted dev
@@ -60,6 +68,7 @@ export const useEngine = create<EngineState>((set, get) => ({
         try {
           const info = await http.start();
           set({ info, error: null });
+          await get().syncTempDir();
           return;
         } catch {
           // fall through and report the original failure
@@ -70,9 +79,31 @@ export const useEngine = create<EngineState>((set, get) => ({
   },
 
   reconnect: async () => {
+    // The state above can coalesce into one paint, so the screen is held by an
+    // explicit flag: a localhost handshake alone would be over in milliseconds.
+    const startedAt = Date.now();
     resetTransport();
-    set({ started: false, info: null, status: 'connecting' });
-    await get().boot();
+    set({ started: false, info: null, status: 'connecting', reconnecting: true });
+    try {
+      await get().boot();
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 700) await new Promise((resolve) => setTimeout(resolve, 700 - elapsed));
+    } finally {
+      set({ reconnecting: false });
+    }
+  },
+
+  syncTempDir: async () => {
+    const info = get().info;
+    if (!info) return;
+    const dir = useSettings.getState().tempDir;
+    if ((dir || info.defaultTempDir) === info.tempDir) return;
+    try {
+      const next = await get().call<{ tempDir: string }>('engine.setTempDir', { dir });
+      set({ info: { ...info, tempDir: next.tempDir } });
+    } catch {
+      // The engine may already be offline; the next boot applies the setting.
+    }
   },
 
   call: async <T>(method: RpcMethodName, params: Record<string, unknown> = {}): Promise<T> => {
@@ -89,6 +120,9 @@ export const useEngine = create<EngineState>((set, get) => ({
     return result;
   },
 }));
+
+window.__potoolsEngine = <T>(method: RpcMethodName, params: Record<string, unknown> = {}) =>
+  useEngine.getState().call<T>(method, params);
 
 export function transportMode(): 'web' | 'tauri' {
   return getTransport().mode;

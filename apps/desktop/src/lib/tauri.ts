@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { EngineInfo } from 'core';
 
-export type AcceptKind = 'pdf' | 'image' | 'raster' | 'portrait' | 'office' | 'officeFormats' | 'legacyWord' | 'legacyExcel' | 'legacyPresentation' | 'ofd' | 'markdown';
+export type AcceptKind = 'pdf' | 'image' | 'raster' | 'portrait' | 'ofd' | 'markdown';
 
 /**
  * Checked lazily because the injected IPC globals may not exist while this
@@ -27,15 +27,6 @@ export const ACCEPT_EXTENSIONS: Record<AcceptKind, { name: string; extensions: s
     mime: '.jpg,.jpeg,.png,.webp,.tif,.tiff',
   },
   portrait: { name: '人像照片', extensions: ['jpg', 'jpeg', 'png', 'webp'], mime: '.jpg,.jpeg,.png,.webp' },
-  office: {
-    name: 'Office',
-    extensions: ['docx', 'xlsx', 'pptx'],
-    mime: '.docx,.xlsx,.pptx',
-  },
-  officeFormats: { name: 'Microsoft Office', extensions: ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'], mime: '.doc,.docx,.xls,.xlsx,.ppt,.pptx' },
-  legacyWord: { name: 'Word 97–2003', extensions: ['doc'], mime: '.doc,application/msword' },
-  legacyExcel: { name: 'Excel 97–2003', extensions: ['xls'], mime: '.xls,application/vnd.ms-excel' },
-  legacyPresentation: { name: 'PowerPoint 97–2003', extensions: ['ppt'], mime: '.ppt,application/vnd.ms-powerpoint' },
   ofd: { name: 'OFD', extensions: ['ofd'], mime: '.ofd' },
   markdown: {
     name: 'Markdown',
@@ -49,11 +40,6 @@ const FILTERS: Record<AcceptKind, { name: string; extensions: string[] }[]> = {
   image: [{ name: ACCEPT_EXTENSIONS.image.name, extensions: ACCEPT_EXTENSIONS.image.extensions }],
   raster: [{ name: ACCEPT_EXTENSIONS.raster.name, extensions: ACCEPT_EXTENSIONS.raster.extensions }],
   portrait: [{ name: ACCEPT_EXTENSIONS.portrait.name, extensions: ACCEPT_EXTENSIONS.portrait.extensions }],
-  office: [{ name: ACCEPT_EXTENSIONS.office.name, extensions: ACCEPT_EXTENSIONS.office.extensions }],
-  officeFormats: [{ name: ACCEPT_EXTENSIONS.officeFormats.name, extensions: ACCEPT_EXTENSIONS.officeFormats.extensions }],
-  legacyWord: [{ name: ACCEPT_EXTENSIONS.legacyWord.name, extensions: ACCEPT_EXTENSIONS.legacyWord.extensions }],
-  legacyExcel: [{ name: ACCEPT_EXTENSIONS.legacyExcel.name, extensions: ACCEPT_EXTENSIONS.legacyExcel.extensions }],
-  legacyPresentation: [{ name: ACCEPT_EXTENSIONS.legacyPresentation.name, extensions: ACCEPT_EXTENSIONS.legacyPresentation.extensions }],
   ofd: [{ name: ACCEPT_EXTENSIONS.ofd.name, extensions: ACCEPT_EXTENSIONS.ofd.extensions }],
   markdown: [
     { name: ACCEPT_EXTENSIONS.markdown.name, extensions: ACCEPT_EXTENSIONS.markdown.extensions },

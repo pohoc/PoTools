@@ -23,16 +23,6 @@ Image processing uses sharp under Apache-2.0 and platform-specific libvips binar
 - sharp: https://github.com/lovell/sharp
 - libvips: https://github.com/libvips/libvips
 
-## ONLYOFFICE Document Builder 9.4.0 (optional Office conversion runtime)
-
-PoTools can invoke the upstream Document Builder command-line program as a separate local process for Office conversions. The package is not fetched by the installed application; the build only stages a platform-matched archive when `POTOOLS_DOCUMENTBUILDER_ARCHIVE` is supplied. Conversion inputs and outputs stay on the device.
-
-The upstream project is dual-licensed under AGPL-3.0 or a commercial license. The corresponding license and distribution materials must be retained from the exact upstream archive. A release that redistributes this runtime must first satisfy one of those licensing routes, including the applicable source-code and notice requirements. This integration does not itself grant redistribution rights.
-
-- Source: https://github.com/ONLYOFFICE/DocumentBuilder
-- CLI documentation: https://api.onlyoffice.com/docs/document-builder/using-cli/overview/
-- Release archives: https://github.com/ONLYOFFICE/DocumentBuilder/releases/tag/v9.4.0
-
 ## MediaPipe Tasks Vision and Selfie Segmentation model
 
 PoTools bundles `@mediapipe/tasks-vision` 1.0.1 from Google AI Edge and the Selfie Segmentation model used for local person masking. The code and model are provided under the Apache License, Version 2.0. The license text is in `Apache-2.0.txt`.

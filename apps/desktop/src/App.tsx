@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell.tsx';
-import { Button, Icon, ThemeProvider, Toaster, TooltipProvider } from '@potools/ui';
+import { Button, Icon, ThemeProvider, Toaster } from '@potools/ui';
 import { Home } from './pages/Home.tsx';
 import { ToolPage } from './pages/ToolPage.tsx';
 import { QueuePage } from './pages/QueuePage.tsx';
@@ -18,6 +18,7 @@ export function App() {
   const boot = useEngine((state) => state.boot);
   const reconnect = useEngine((state) => state.reconnect);
   const status = useEngine((state) => state.status);
+  const reconnecting = useEngine((state) => state.reconnecting);
   const error = useEngine((state) => state.error);
   const attach = useJobs((state) => state.attach);
   const locale = useSettings((state) => state.locale);
@@ -52,13 +53,12 @@ export function App() {
     document.title = t('app.name');
   }, [locale, t]);
 
-  if (status !== 'ready') {
+  if (status !== 'ready' || reconnecting) {
     return <EngineStartupScreen error={status === 'offline' ? error : null} retry={() => void reconnect()} />;
   }
 
   return (
     <ThemeProvider mode={theme} onModeChange={(mode) => useSettings.getState().set('theme', mode)}>
-      <TooltipProvider delayDuration={250}>
       <AppShell>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -69,7 +69,6 @@ export function App() {
         </Routes>
       </AppShell>
       <Toaster />
-      </TooltipProvider>
     </ThemeProvider>
   );
 }

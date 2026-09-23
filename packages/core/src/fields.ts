@@ -57,7 +57,7 @@ export type ToolField =
         /** Values written alongside this choice — used by UI-only presets. */
         applies?: Record<string, FieldValue>;
       }>;
-      presentation?: 'position-grid' | 'cards';
+      presentation?: 'position-grid' | 'chips';
     })
   | (FieldCommon & {
       type: 'slider';

@@ -53,6 +53,8 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
   const { t, tf } = useI18n();
   const settings = useSettings();
   const call = useEngine((state) => state.call);
+  const info = useEngine((state) => state.info);
+  const outputDir = settings.outputDir || info?.defaultOutputDir || '';
 
   if (!job) {
     return (
@@ -115,7 +117,7 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
       }
       aside={
         <span className="flex shrink-0 items-center gap-2">
-          {job.artifacts.length ? (
+          {job.artifacts.some((artifact) => !artifact.stagedMissing) ? (
             <Button
               size="sm"
               variant="ghost"
@@ -203,7 +205,9 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
                 <span className="block text-[11px] leading-4 text-faint">
                   {formatBytes(artifact.sizeBytes)}
                   {artifact.page ? ` · p${artifact.page}` : ''}
-                  {artifact.path ? '' : ' · temp'}
+                  {artifact.stagedMissing
+                    ? ` · ${t('result.tempCleaned')}`
+                    : artifact.path ? '' : ` · ${t('result.inTemp')}`}
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-1">
@@ -212,7 +216,7 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
                     {t('result.printShort')}
                   </Button>
                 ) : null}
-                {artifact.path ? (
+                {artifact.path && !artifact.stagedMissing ? (
                   <Button
                     size="sm"
                     variant="quiet"
@@ -245,9 +249,7 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
 
       <div className="flex items-center gap-2 border-t border-line px-4 py-2.5 text-[11.5px] text-faint">
         <Icon name="folder" size={13} />
-        <span className="truncate" title={settings.outputDir ?? ''}>
-          {settings.outputDir ?? t('result.noDir')}
-        </span>
+        <span className="truncate" title={outputDir}>{outputDir || t('result.noDir')}</span>
       </div>
     </Section>
   );

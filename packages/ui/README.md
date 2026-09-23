@@ -33,7 +33,7 @@ PoTools 的共享 React UI 基础包。它只负责可复用的视觉语言、�
 - 页面不应直接从 `@heroui/react` 导入核心控件，也不应复制 `packages/ui/src/components`。
 - Button 的 `primary/default` 是主操作，`secondary/outline` 是次操作，`ghost/quiet/link` 只用于低强调操作，`danger` 仅用于破坏性操作。
 - 表单控件统一使用 `surface` 背景、`line` 边框、`accent` 焦点环；不得通过页面 class 单独改成纯白、纯黑或蓝色。
-- Tooltip 只补充图标按钮、截断文案和非显而易见状态，不重复已经可见的说明文字。
+- 图标按钮、截断文案的补充说明用原生 `title`（配合 `aria-label`）；本包不再提供 Tooltip 组件，需要悬浮卡片时再评估。
 
 ### 质量门槛
 

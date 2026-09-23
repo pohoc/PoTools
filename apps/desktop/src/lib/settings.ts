@@ -6,6 +6,8 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   locale: Locale;
   outputDir: string | null;
+  /** Scratch folder for staged results; null follows the OS temp folder. */
+  tempDir: string | null;
   namePattern: string;
   concurrency: number;
   fontPath: string | null;
@@ -20,6 +22,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   locale: 'zh-CN',
   outputDir: null,
+  tempDir: null,
   namePattern: '{name}-{tool}',
   concurrency: 1,
   fontPath: null,

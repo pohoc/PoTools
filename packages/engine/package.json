@@ -13,7 +13,7 @@
     "dev": "tsx watch src/index.ts serve --http --port 8787",
     "start": "tsx src/index.ts serve --stdio",
     "serve:http": "tsx src/index.ts serve --http --port 8787",
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/engine.mjs --external:sharp --external:mupdf",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/engine.mjs --external:sharp --external:mupdf --external:onnxruntime-node",
     "typecheck": "tsc --noEmit",
     "selfcheck": "tsx src/index.ts selfcheck",
     "samples": "tsx scripts/make-samples.ts",

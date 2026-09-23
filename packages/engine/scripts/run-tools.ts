@@ -17,8 +17,6 @@ function formatKb(bytes: number): string {
 import { createEngine, type Engine } from '../src/rpc.ts';
 import { DAY_MS, formatInZone, parseFlex, zonedParts } from '../src/tools/time-core.ts';
 import { openRaster } from '../src/lib/render.ts';
-import { writeDocx, writePptx, writeXlsx } from '../src/lib/office.ts';
-import { convertOfficeLocally } from '../src/lib/document-builder.ts';
 
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -448,6 +446,15 @@ async function main(): Promise<void> {
   await assertArtifacts('repair', await run(engine, 'repair', [photos], { recompress: true }), 3);
   await assertArtifacts('extract-images', await run(engine, 'extract-images', [photos], { format: 'original', minBytes: 0 }));
   await assertArtifacts('extract-images → webp', await run(engine, 'extract-images', [photos], { format: 'webp', minBytes: 0 }));
+  const imagesAll = await run(engine, 'extract-images', [photos], { format: 'original', minBytes: 0, pages: 'all' });
+  const imagesFirst = await run(engine, 'extract-images', [photos], { format: 'original', minBytes: 0, pages: '1' });
+  record(
+    'extract-images page scope',
+    imagesFirst.progress.state === 'succeeded'
+      && imagesFirst.artifacts.length > 0
+      && imagesFirst.artifacts.length < imagesAll.artifacts.length,
+    `page 1 = ${imagesFirst.artifacts.length}, all = ${imagesAll.artifacts.length}`,
+  );
   await assertArtifacts('extract-text', await run(engine, 'extract-text', [a], { granularity: 'single' }));
   await assertArtifacts('extract-text per page', await run(engine, 'extract-text', [a], { granularity: 'per-page' }), undefined);
   await assertArtifacts(
@@ -518,24 +525,11 @@ async function main(): Promise<void> {
 
   // 9e. format imports (fixtures are produced by the same writers above)
   counter += 1;
-  const docx = file('sample-office.docx');
-  counter += 1;
-  const xlsx = file('sample-office.xlsx');
-  counter += 1;
-  const pptx = file('sample-office.pptx');
-  counter += 1;
   const ofd = file('sample-office.ofd');
   counter += 1;
   const md = file('sample-office.md');
-  await assertPdfText(
-    'import word→pdf',
-    await run(engine, 'word-to-pdf', [docx]),
-    1,
-    ['本地化转换测试', 'The quick brown fox', '导出 docx/xlsx/pptx'],
-  );
-  await assertPdfText('import excel→pdf', await run(engine, 'excel-to-pdf', [xlsx]), 1, ['收入', 'Q1', '增长', '12%']);
-  await assertPdfText('import ppt→pdf', await run(engine, 'ppt-to-pdf', [pptx]), 1, ['本地化转换测试']);
   await assertPdfText('import ofd→pdf', await run(engine, 'ofd-to-pdf', [ofd]), 2, ['OFD 往返测试', 'Page two 第二页']);
+  await assertPdfText('import ofd→pdf page range', await run(engine, 'ofd-to-pdf', [ofd], { pages: '2' }), 1, ['Page two 第二页']);
   await assertPdfText(
     'import markdown→pdf',
     await run(engine, 'markdown-to-pdf', [md]),
@@ -543,64 +537,6 @@ async function main(): Promise<void> {
     ['标题一', '列表甲', 'const a = 1;'],
   );
 
-  // Office conversion fixtures are generated and converted with the same local runtime shipped by the app.
-  const fixtureDir = await mkdtemp(join(tmpdir(), 'potools-office-fixtures-'));
-  const conversionIds = ['doc-to-docx', 'docx-to-doc', 'xls-to-xlsx', 'xlsx-to-xls', 'ppt-to-pptx', 'pptx-to-ppt'];
-  try {
-    const [docxBytes, xlsxBytes, pptxBytes] = await Promise.all([
-      writeDocx({ title: 'PoTools conversion sample', blocks: [{ kind: 'paragraph', text: 'Office conversion fixture', page: 1, bold: false }], imageFor: () => null, pageBreaks: true, contentWidth: 500 }),
-      writeXlsx([{ name: 'Sheet1', rows: [['Quarter', 'Value'], ['Q1', '12']] }]),
-      writePptx({
-        title: 'PoTools conversion sample',
-        slides: [{
-          widthIn: 8,
-          heightIn: 11,
-          image: new Uint8Array(await readFile(resolve(SAMPLES, 'sample-scan-2.png'))),
-          lines: [
-            { text: '本地化转换测试', xIn: 0.5, yIn: 0.5, wIn: 7, hIn: 0.5, size: 22, bold: true, color: '000000' },
-            { text: '导出 docx/xlsx/pptx', xIn: 0.5, yIn: 1.1, wIn: 7, hIn: 0.5, size: 16, bold: false, color: '000000' },
-          ],
-        }],
-      }),
-    ]);
-    const originals = { docx: docxBytes, xlsx: xlsxBytes, pptx: pptxBytes };
-    const legacy = {
-      doc: await convertOfficeLocally(docxBytes, 'docx', 'doc'),
-      xls: await convertOfficeLocally(xlsxBytes, 'xlsx', 'xls'),
-      ppt: await convertOfficeLocally(pptxBytes, 'pptx', 'ppt'),
-    };
-    const refs = new Map<string, FileRef>();
-    for (const [extension, bytes] of Object.entries({ ...originals, ...legacy })) {
-      const path = join(fixtureDir, `sample.${extension}`);
-      await writeFile(path, bytes);
-      refs.set(extension, { id: `office-${extension}`, name: `sample.${extension}`, path });
-    }
-    for (const [tool, sourceExtension] of [
-      ['doc-to-docx', 'doc'], ['docx-to-doc', 'docx'],
-      ['xls-to-xlsx', 'xls'], ['xlsx-to-xls', 'xlsx'],
-      ['ppt-to-pptx', 'ppt'], ['pptx-to-ppt', 'pptx'],
-    ] as Array<[ToolId, string]>) {
-      const source = refs.get(sourceExtension)!;
-      const job = await run(engine, tool, [source]);
-      const ok = job.progress.state === 'succeeded' && job.artifacts.length > 0;
-      record(`office conversion ${tool}`, ok, ok ? `${job.artifacts.length} output` : job.error?.message ?? job.progress.state);
-    }
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    for (const id of conversionIds) {
-      if ((error as { code?: string })?.code === 'unsupported') recordSkipped(`office conversion ${id}`, detail);
-      else record(`office conversion ${id}`, false, detail);
-    }
-  } finally {
-    await rm(fixtureDir, { recursive: true, force: true });
-  }
-
-  const notDocx = await run(engine, 'word-to-pdf', [a]);
-  record(
-    'rejects non-Office input',
-    notDocx.progress.state === 'failed' && notDocx.error?.code === 'bad_request',
-    notDocx.error?.message.slice(0, 60) ?? 'unexpectedly succeeded',
-  );
 
   // 10. failure paths
   const corrupt = resolve(SAMPLES, 'corrupt.pdf');
@@ -650,6 +586,38 @@ async function main(): Promise<void> {
     'temp.clean keeps newest',
     cleaned.keptJobs >= 2 && cleaned.removedJobs > 0,
     `removed ${cleaned.removedJobs}, kept ${cleaned.keptJobs}, freed ${(cleaned.freedBytes / 1024).toFixed(0)} KB`,
+  );
+
+  let vanished: { jobId: string; artifactId: string } | null = null;
+  for (const item of engine.manager.list()) {
+    for (const artifact of item.artifacts) {
+      // The engine serves from its own staged copy, not the output-dir copy.
+      const staged = engine.manager.artifactPath(item.id, artifact.id);
+      if (staged && !(await stat(staged).then(() => true, () => false))) {
+        vanished = { jobId: item.id, artifactId: artifact.id };
+        break;
+      }
+    }
+    if (vanished) break;
+  }
+  const vanishedError = vanished
+    ? await engine.call('file.write', { ...vanished, dir: OUT_DIR, name: 'cleaned-artifact.pdf' })
+      .then(() => null, (error: unknown) => error as { message?: string })
+    : null;
+  record(
+    'saving a cleaned artifact',
+    !!vanished && /已被清理/.test(String(vanishedError?.message ?? '')),
+    vanished ? String(vanishedError?.message ?? 'unexpectedly succeeded').slice(0, 44) : 'no cleaned artifact to probe',
+  );
+  const flagged = vanished
+    ? ((await engine.call('job.list', {})) as JobSnapshot[])
+      .find((item) => item.id === vanished.jobId)
+      ?.artifacts.find((item) => item.id === vanished.artifactId)
+    : undefined;
+  record(
+    'job.list flags cleaned artifacts',
+    !!flagged && flagged.stagedMissing === true && !flagged.path,
+    flagged ? `stagedMissing=${String(flagged.stagedMissing)} path=${flagged.path ?? 'null'}` : 'no flagged artifact',
   );
 
   // 12. non-job endpoints
@@ -753,20 +721,6 @@ async function main(): Promise<void> {
 
   // 16. round trips through the new formats
   {
-    const toWord = await run(engine, 'pdf-to-word', [a]);
-    const docxRef: FileRef = {
-      id: 'roundtrip-docx',
-      name: 'roundtrip.docx',
-      path: toWord.artifacts[0]?.path ?? '',
-    };
-    const backToPdf = await run(engine, 'word-to-pdf', [docxRef]);
-    const text = backToPdf.artifacts[0]?.path ? await rasterText(backToPdf.artifacts[0].path) : '';
-    record(
-      'round trip PDF→docx→PDF',
-      text.includes('第一季度报告') && text.includes('Lorem ipsum'),
-      text ? 'text survived' : 'no text after round trip',
-    );
-
     const toOfd = await run(engine, 'pdf-to-ofd', [a], { mode: 'text' });
     const ofdRef: FileRef = { id: 'roundtrip-ofd', name: 'roundtrip.ofd', path: toOfd.artifacts[0]?.path ?? '' };
     const ofdBack = await run(engine, 'ofd-to-pdf', [ofdRef]);
@@ -806,8 +760,6 @@ async function main(): Promise<void> {
     );
 
     for (const [id, file] of [
-      ['excel-to-pdf', a],
-      ['ppt-to-pdf', a],
       ['ofd-to-pdf', a],
     ] as Array<[ToolId, FileRef]>) {
       const job = await run(engine, id, [file]);
@@ -1452,6 +1404,104 @@ async function main(): Promise<void> {
   const repairJob = await run(engine, 'image-watermark-clean', [jpg], { repairPng: mark.toString('base64') });
   record('watermark repair emits PNG', repairJob.progress.state === 'succeeded' && Boolean(repairJob.artifacts[0]?.name.endsWith('.png')),
     repairJob.progress.state === 'succeeded' ? repairJob.artifacts[0]?.name ?? 'no artifact' : repairJob.error?.message ?? 'no artifact');
+  // PDF 侧结果校验：这些工具此前只有 coverage 冒烟断言
+  {
+    // Job events strip dataBase64, so the probe text has to be read back from disk.
+    const pdfText = async (job: JobSnapshot) => {
+      const target = job.artifacts[0]?.path;
+      if (!target) return '';
+      const read = await run(engine, 'extract-text', [{ id: `probe-${(counter += 1)}`, name: 'probe.pdf', path: target }], { granularity: 'single', pageMarkers: false, pages: 'all' });
+      const txt = read.artifacts[0]?.path;
+      return txt ? await readFile(txt, 'utf8') : '';
+    };
+    const bytesOf = async (job: JobSnapshot) => (job.artifacts[0]?.path ? await readFile(job.artifacts[0].path as string) : new Uint8Array());
+
+    const nupJob = await run(engine, 'nup', [a], { perSheet: 2, pageSize: 'a4', order: 'horizontal', orientation: 'auto', gap: 8, margin: 12, border: false, pages: 'all' });
+    const nupPdf = nupJob.artifacts[0]?.path ? await inspectPdf(nupJob.artifacts[0].path) : undefined;
+    record('n-up packs 2 pages per A4 sheet', nupJob.progress.state === 'succeeded' && nupPdf?.count === 2 && nupPdf.pages[0]?.w === 595 && nupPdf.pages[0]?.h === 842,
+      nupPdf ? `${nupPdf.count} sheets, ${nupPdf.pages[0]?.w}×${nupPdf.pages[0]?.h}` : nupJob.error?.message ?? 'no artifact');
+
+    const hfJob = await run(engine, 'header-footer', [a], { header: '内部资料页眉', footer: '{n} / {total}', headerAlign: 'center', footerAlign: 'center', fontSize: 10, margin: 24, color: '#374151', skipFirst: false, pages: 'all' });
+    const hfText = hfJob.artifacts[0]?.path ? await pdfText(hfJob) : '';
+    const hfFooter = /\d+\s*\/\s*3\b/.test(hfText);
+    record('header and footer land on the page', hfJob.progress.state === 'succeeded' && hfText.includes('内部资料页眉') && hfFooter,
+      hfText ? `header=${hfText.includes('内部资料页眉')} footer=${hfFooter}` : (hfJob.error?.message ?? 'no text read back'));
+
+    const pickJob = await run(engine, 'extract-pages', [a], { pages: '1,3', oneFilePerGroup: false });
+    const pickPdf = pickJob.artifacts[0]?.path ? await inspectPdf(pickJob.artifacts[0].path) : undefined;
+    record('extract pages keeps only the selection', pickJob.progress.state === 'succeeded' && pickPdf?.count === 2, `${pickPdf?.count ?? 0} pages`);
+
+    const dropJob = await run(engine, 'delete-pages', [a], { pages: '2' });
+    const dropPdf = dropJob.artifacts[0]?.path ? await inspectPdf(dropJob.artifacts[0].path) : undefined;
+    record('delete pages removes exactly one page', dropJob.progress.state === 'succeeded' && dropPdf?.count === 2, `${dropPdf?.count ?? 0} pages left`);
+
+    const htmlJob = await run(engine, 'pdf-to-html', [a], { embedImages: true, dpi: 144 });
+    const html = new TextDecoder().decode(await bytesOf(htmlJob));
+    record('pdf to HTML emits a document with the text', /<html/i.test(html) && html.includes('第一季度'), `${html.length} chars`);
+
+    const mdJob = await run(engine, 'pdf-to-markdown', [a], { includeImages: true, pageBreaks: false });
+    const md = new TextDecoder().decode(await bytesOf(mdJob));
+    record('pdf to Markdown keeps headings or text', md.trim().length > 20 && /\S/.test(md), `${md.trim().split('\n').length} lines`);
+
+    const csvJob = await run(engine, 'pdf-to-csv', [a], { delimiter: 'comma', columnGap: 8, sheetPerPage: true });
+    const csv = new TextDecoder().decode(await bytesOf(csvJob));
+    record('pdf to CSV writes rows', csv.split('\n').filter((line) => line.trim()).length >= 1, `${csv.split('\n').length} lines`);
+
+    const epubJob = await run(engine, 'pdf-to-epub', [a], { chapterBy: 'page', includeImages: true });
+    const epub = await bytesOf(epubJob);
+    record('pdf to EPUB is a real zip container', epub[0] === 0x50 && epub[1] === 0x4b && epub.length > 512, `${epub.length} bytes, magic ${String.fromCharCode(epub[0] ?? 0)}${String.fromCharCode(epub[1] ?? 0)}`);
+  }
+
+  // 图片工具的结果校验：此前每个只有「产物存在且非空」一条冒烟断言
+  {
+    const srcBytes = (await stat(jpg.path as string)).size;
+    const job = await run(engine, 'image-compress', [jpg], { format: 'jpeg', quality: 40, maxEdge: 0 });
+    const out = job.artifacts[0]?.path;
+    const meta = out ? await sharp(out).metadata() : undefined;
+    const bytes = out ? (await stat(out)).size : 0;
+    record('image compress cuts bytes, keeps pixels', job.progress.state === 'succeeded' && bytes > 0 && bytes < srcBytes,
+      out ? `${srcBytes} B → ${bytes} B (${(100 - bytes / srcBytes * 100).toFixed(0)}% smaller), ${meta?.width}×${meta?.height} ${meta?.format}` : job.error?.message ?? 'no artifact');
+
+    const resized = await run(engine, 'image-resize', [jpg], { width: 400, height: 400, fit: 'inside', withoutEnlargement: true });
+    const rPath = resized.artifacts[0]?.path;
+    const rMeta = rPath ? await sharp(rPath).metadata() : undefined;
+    record('image resize fits inside the box', resized.progress.state === 'succeeded' && rMeta?.width === 400 && (rMeta?.height ?? 0) <= 400,
+      rPath ? `${rMeta?.width}×${rMeta?.height}` : resized.error?.message ?? 'no artifact');
+
+    const cropped = await run(engine, 'image-crop', [wide], { aspect: '1:1', position: 'centre' });
+    const cPath = cropped.artifacts[0]?.path;
+    const cMeta = cPath ? await sharp(cPath).metadata() : undefined;
+    record('image crop honours the 1:1 aspect', cropped.progress.state === 'succeeded' && !!cMeta?.width && cMeta.width === cMeta.height,
+      cPath ? `${cMeta?.width}×${cMeta?.height}` : cropped.error?.message ?? 'no artifact');
+
+    const turned = await run(engine, 'image-rotate', [jpg], { angle: 90 });
+    const tPath = turned.artifacts[0]?.path;
+    const tMeta = tPath ? await sharp(tPath).metadata() : undefined;
+    const srcMeta = await sharp(jpg.path as string).metadata();
+    record('image rotate 90° swaps the canvas', turned.progress.state === 'succeeded' && tMeta?.width === srcMeta.height && tMeta?.height === srcMeta.width,
+      tPath ? `${srcMeta.width}×${srcMeta.height} → ${tMeta?.width}×${tMeta?.height}` : turned.error?.message ?? 'no artifact');
+
+    const converted = await run(engine, 'image-convert', [png], { format: 'webp', quality: 80 });
+    const vPath = converted.artifacts[0]?.path;
+    const vMeta = vPath ? await sharp(vPath).metadata() : undefined;
+    record('image convert changes the container', converted.progress.state === 'succeeded' && vMeta?.format === 'webp',
+      vPath ? `${png.name} → ${converted.artifacts[0]?.name} (${vMeta?.width}×${vMeta?.height})` : converted.error?.message ?? 'no artifact');
+
+    const infoJob = await run(engine, 'image-info', [jpg], {});
+    const infoRaw = infoJob.artifacts[0]?.dataBase64
+      ? Buffer.from(infoJob.artifacts[0].dataBase64, 'base64').toString('utf8')
+      : infoJob.artifacts[0]?.path ? await readFile(infoJob.artifacts[0].path, 'utf8') : '';
+    const infoJson = JSON.parse(infoRaw || '[]') as Array<Record<string, unknown>>;
+    record('image info reports real dimensions', infoJob.progress.state === 'succeeded' && Number(infoJson[0]?.width) === srcMeta.width && Boolean(infoJson[0]?.format),
+      `${infoJson[0]?.width}×${infoJson[0]?.height} ${infoJson[0]?.format}, ${infoJson[0]?.bytes} B`);
+
+    const sheet = await run(engine, 'images-to-pdf', [jpg, png], {});
+    const sheetPath = sheet.artifacts[0]?.path;
+    const sheetPdf = sheetPath ? await inspectPdf(sheetPath) : undefined;
+    record('images to PDF puts every input on its own page', sheet.progress.state === 'succeeded' && sheetPdf?.count === 2,
+      sheetPdf ? `${sheetPdf.count} pages` : sheet.error?.message ?? 'no artifact');
+  }
+
   const extraFiles: Partial<Record<ToolId, () => FileRef[]>> = {
   'images-to-pdf': () => [jpg, png],
     'image-compress': () => [jpg, png],
@@ -1462,9 +1512,6 @@ async function main(): Promise<void> {
     'image-info': () => [jpg, png],
     'extract-images': () => [photos],
     'compress': () => [photos],
-    'word-to-pdf': () => [docx],
-    'excel-to-pdf': () => [xlsx],
-    'ppt-to-pdf': () => [pptx],
     'image-cutout': () => [portraitRef],
     'image-id-photo': () => [portraitRef],
     'image-metadata-clean': () => [jpg],
@@ -1491,10 +1538,6 @@ async function main(): Promise<void> {
     const id = tool.id;
     if (id === 'invoice-organize') {
       record('coverage invoice-organize', invoiceOrganizerCoverage, invoiceOrganizerCoverage ? 'RPC scan → archive → undo passed' : 'RPC contract failed above');
-      continue;
-    }
-    if (['doc-to-docx', 'docx-to-doc', 'xls-to-xlsx', 'xlsx-to-xls', 'ppt-to-pptx', 'pptx-to-ppt'].includes(id)) {
-      recordSkipped(`coverage ${byId.get(id)?.id ?? id}`, 'six real-format conversions were exercised with dedicated fixtures above');
       continue;
     }
     if (tool.requiresInput === false) {

@@ -1,6 +1,6 @@
 import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Badge, Button, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Icon, Tooltip, TooltipContent, TooltipTrigger } from '@potools/ui';
+import { Badge, Button, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Icon } from '@potools/ui';
 import { TitleBar } from './TitleBar.tsx';
 import { Status } from './Status.tsx';
 import { useI18n } from '../i18n/index.tsx';
@@ -18,9 +18,10 @@ const NAV = [
 ];
 
 /**
- * HeroUI v3's Tooltip.Trigger has no `asChild` — it always mounts a `div[role=button]`,
- * which would add a nameless second tab stop per row. `render` projects the trigger
- * props onto the row element instead, so a row stays one focusable control.
+ * HeroUI v3's Tooltip.Trigger wraps its child in a PressResponder, which only
+ * stays silent for react-aria children: a plain row anchor or button logs a
+ * warning and needs an extra wrapper. Rail labels are plain text, so they use
+ * the browser tooltip instead and keep each row a single tab stop.
  */
 function RailTip({
   rail,
@@ -31,18 +32,7 @@ function RailTip({
   label: string;
   children: (trigger: object) => ReactNode;
 }) {
-  if (!rail) return <>{children({})}</>;
-  return (
-    <Tooltip delayDuration={400}>
-      <TooltipTrigger
-        render={(props) => {
-          const { className: _className, role: _role, children: _children, ...trigger } = props;
-          return <>{children(trigger)}</>;
-        }}
-      />
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
-  );
+  return <>{children(rail ? { title: label } : {})}</>;
 }
 
 function NavRow({
@@ -238,13 +228,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </RailTip>
               ) : null}
               {!rail ? (
-                <div className="px-3 pt-2 text-center">
+                <div className="sidebar-copyright flex justify-center px-1 pt-2">
                   <a
                     href="mailto:po.hoc4@gmail.com"
-                    className="sidebar-copyright inline-block text-[10px] leading-4 text-faint transition hover:text-muted"
+                    className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                     title={`${t('settings.copyright')} · pohoc <po.hoc4@gmail.com>`}
                   >
-                    v{APP_VERSION} · MIT · pohoc
+                    <Badge variant="outline" className="px-2 text-[10px]">
+                      <span className="font-mono">v{APP_VERSION}</span> · MIT · pohoc
+                    </Badge>
                   </a>
                 </div>
               ) : null}

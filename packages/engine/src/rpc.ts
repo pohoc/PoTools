@@ -4,11 +4,11 @@ import { promisify } from 'node:util';
 import { copyFile, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve, sep } from 'node:path';
 import { platform } from 'node:os';
-import type { EngineInfo, FileRef, JobGlobals, PageThumb, ProbedPdf, RpcMethodName, ToolId } from '@potools/core';
+import type { EngineInfo, FileRef, JobGlobals, JobSnapshot, PageThumb, ProbedPdf, RpcMethodName, ToolId } from '@potools/core';
 import { PROTOCOL_VERSION, TOOL_LIST } from '@potools/core';
 import { JobManager } from './jobs.ts';
 import { TOOL_IMPL_MAP } from './tools/index.ts';
-import { loadPdf, readInput, TEMP_ROOT } from './lib/files.ts';
+import { browseDirs, defaultTempRoot, loadPdf, readInput, setTempRootDir, tempRootDir } from './lib/files.ts';
 import { runTextTool } from './lib/text-run.ts';
 import { cleanTemp, tempUsage } from './lib/temp.ts';
 import { defaultOutputDir } from './lib/platform.ts';
@@ -38,7 +38,7 @@ export async function createEngine(options: { concurrency?: number } = {}): Prom
     selfCheckFont(),
   ]);
 
-  const base: EngineInfo = {
+  const base: Omit<EngineInfo, 'tempDir' | 'defaultTempDir'> = {
     name: '@potools/engine',
     version: packageJson.version,
     protocol: PROTOCOL_VERSION,
@@ -46,7 +46,6 @@ export async function createEngine(options: { concurrency?: number } = {}): Prom
     nodeVersion: process.version,
     pid: process.pid,
     defaultOutputDir: defaultOutputDir(),
-    tempDir: TEMP_ROOT,
     features: {
       rasterizer: rasterizer ? 'mupdf' : 'none',
       imageCodec,
@@ -55,8 +54,11 @@ export async function createEngine(options: { concurrency?: number } = {}): Prom
     },
   };
 
+  // tempDir is read live: `engine.setTempDir` changes it after boot.
   const info = (): EngineInfo => ({
     ...base,
+    tempDir: tempRootDir(),
+    defaultTempDir: defaultTempRoot(),
     features: {
       ...base.features,
       busy: manager.list().some((job) => job.progress.state === 'running'),
@@ -78,6 +80,8 @@ async function dispatch(
   switch (method) {
     case 'engine.ping':
       return { pong: Date.now() };
+    case 'engine.setTempDir':
+      return { tempDir: setTempRootDir(typeof params.dir === 'string' ? params.dir : null) };
     case 'engine.info':
       return info();
     case 'tools.list':
@@ -93,9 +97,11 @@ async function dispatch(
     case 'job.cancel':
       return { cancelled: manager.cancel(String(params.jobId ?? '')) };
     case 'job.list':
-      return manager.list();
+      return annotateArtifacts(manager);
     case 'job.clear':
       return { removed: manager.clear(params.jobIds as string[] | undefined) };
+    case 'fs.browse':
+      return browseDirs(typeof params.path === 'string' ? params.path : null);
     case 'file.probe':
       return probeFile(params.file as FileRef);
     case 'file.bytes': {
@@ -116,9 +122,8 @@ async function dispatch(
     case 'shell.print':
       return printFile(String(params.path ?? ''));
     case 'temp.stat':
-      return tempUsage(TEMP_ROOT);
-    case 'temp.clean':
-      return cleanTemp(TEMP_ROOT, {
+      return tempUsage(tempRootDir());    case 'temp.clean':
+      return cleanTemp(tempRootDir(), {
         olderThanDays: Number(params.olderThanDays ?? 0),
         keepJobs: Number(params.keepJobs ?? 0),
         protect: new Set(
@@ -236,6 +241,10 @@ async function saveArtifact(manager: JobManager, params: Record<string, unknown>
     (jobId && artifactId ? manager.artifactPath(jobId, artifactId) : undefined) ??
     (params.from ? withinTemp(String(params.from)) : undefined);
   if (!staged) throw new EngineError('bad_request', '找不到该产物');
+  // The queue keeps finished jobs visible, but a cleanup can empty their files.
+  if (!(await stat(staged).then((info) => info.isFile(), () => false))) {
+    throw new EngineError('bad_request', '该产物的临时文件已被清理，请重新运行');
+  }
   const dir = params.dir ? String(params.dir) : null;
   if (!dir) return { path: staged, name: basename(staged) };
   await stat(dir).catch(() => {
@@ -260,10 +269,33 @@ async function freePath(dir: string, name: string): Promise<string> {
   }
 }
 
+/**
+ * Re-reads the disk so a cleaned-up job cannot be offered as still saveable:
+ * `path` drops when the reported file is gone, `stagedMissing` when only the
+ * engine's own staged copy is.
+ */
+async function annotateArtifacts(manager: JobManager): Promise<JobSnapshot[]> {
+  const exists = (path: string | null | undefined) =>
+    path ? stat(path).then((info) => info.isFile(), () => false) : Promise.resolve(false);
+  return Promise.all(manager.list().map(async (job) => ({
+    ...job,
+    artifacts: await Promise.all(job.artifacts.map(async (artifact) => {
+      const staged = manager.artifactPath(job.id, artifact.id);
+      const stagedMissing = staged ? !(await exists(staged)) : false;
+      if (!stagedMissing && (await exists(artifact.path))) return artifact;
+      return {
+        ...artifact,
+        stagedMissing,
+        path: stagedMissing || artifact.path === staged ? null : artifact.path,
+      };
+    })),
+  })));
+}
+
 /** Only ever copies files the engine itself staged. */
 function withinTemp(path: string): string | null {
   const resolved = resolve(path);
-  return resolved.startsWith(`${TEMP_ROOT}${sep}`) ? resolved : null;
+  return resolved.startsWith(`${tempRootDir()}${sep}`) ? resolved : null;
 }
 
 function dedupeName(name: string): string {

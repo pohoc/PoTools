@@ -1,4 +1,4 @@
-import { PDFName, PDFRawStream } from 'pdf-lib';
+import { PDFDict, PDFDocument, PDFName, PDFObject, PDFRawStream, PDFStream } from 'pdf-lib';
 import { parsePageRanges } from '@potools/core';
 import { loadPdf } from '../lib/files.ts';
 import { createDocument, copyPagesInto, stripXmp } from '../lib/pdf.ts';
@@ -17,7 +17,37 @@ const IMAGE_EXTS: Record<string, string> = {
   FlateDecode: 'png',
 };
 
-/** Pulls every embedded raster out of the document, skipping tiny artwork. */
+/** Form XObjects may nest; the depth cap keeps a cyclic resource tree from looping. */
+const XOBJECT_DEPTH = 4;
+
+/** Image streams one page references, including images nested in form XObjects. */
+function pageImages(doc: PDFDocument, page: number): PDFRawStream[] {
+  const found: PDFRawStream[] = [];
+  const asDict = (value: PDFObject | undefined): PDFDict | undefined => {
+    const resolved = doc.context.lookup(value);
+    return resolved instanceof PDFDict ? resolved : undefined;
+  };
+  const walk = (resources: PDFDict | undefined, depth: number): void => {
+    if (!resources || depth > XOBJECT_DEPTH) return;
+    const xobjects = asDict(resources.get(PDFName.of('XObject')));
+    if (!xobjects) return;
+    for (const name of xobjects.keys()) {
+      const entry = doc.context.lookup(xobjects.get(name));
+      if (!(entry instanceof PDFStream)) continue;
+      const subtype = String(entry.dict.get(PDFName.of('Subtype')) ?? '');
+      if (subtype === '/Image') {
+        if (entry instanceof PDFRawStream) found.push(entry);
+      } else if (subtype === '/Form') {
+        // A form without its own Resources inherits the page's, per the PDF spec.
+        walk(asDict(entry.dict.get(PDFName.of('Resources'))) ?? resources, depth + 1);
+      }
+    }
+  };
+  walk(asDict(doc.getPage(page - 1).node.Resources()), 0);
+  return found;
+}
+
+/** Pulls the rasters referenced by the selected pages, skipping tiny artwork. */
 const extractImages: ToolImpl = {
   id: 'extract-images',
   async run(ctx) {
@@ -29,36 +59,41 @@ const extractImages: ToolImpl = {
     for (const [index, input] of ctx.inputs.entries()) {
       const doc = await loadPdf(input, ctx.globals);
       const stem = baseName(input.name);
+      const selection = parsePageRanges(str(ctx.options, 'pages'), doc.getPageCount());
+      const seen = new Set<PDFRawStream>();
       let counter = 0;
-      for (const [, object] of doc.context.enumerateIndirectObjects()) {
-        if (!(object instanceof PDFRawStream)) continue;
-        const dict = object.dict;
-        if (dict.get(PDFName.of('Subtype'))?.toString() !== '/Image') continue;
-        if (dict.get(PDFName.of('ImageMask'))?.toString() === 'true') continue;
-        const bytes = object.contents;
-        if (!bytes || bytes.byteLength < minBytes) continue;
-        const filter = String(dict.get(PDFName.of('Filter'))?.toString() ?? '').replace('/', '');
-        const native = IMAGE_EXTS[filter] ?? 'bin';
-        if (native === 'bin') continue;
-        counter += 1;
-        emitted += 1;
-        const name = `${stem}-img${String(counter).padStart(2, '0')}`;
-        if (wanted === 'original' || !sharp) {
-          await ctx.emit({ name: `${name}.${native}`, kind: 'image', bytes, sourceFileId: input.id });
-          continue;
-        }
-        try {
-          const png = await sharp(Buffer.from(bytes), { failOn: 'none' }).png().toBuffer();
-          const converted = await transcodePng(new Uint8Array(png), { format: wanted as RasterFormat, quality: 90 });
-          await ctx.emit({
-            name: `${name}.${wanted === 'jpeg' ? 'jpg' : wanted}`,
-            kind: 'image',
-            bytes: converted,
-            sourceFileId: input.id,
-          });
-        } catch {
-          // Some codecs (JBIG2/CCITT) are not decodable by sharp: keep the original.
-          await ctx.emit({ name: `${name}.${native}`, kind: 'image', bytes, sourceFileId: input.id });
+      for (const page of selection) {
+        for (const object of pageImages(doc, page)) {
+          if (seen.has(object)) continue;
+          seen.add(object);
+          const dict = object.dict;
+          if (dict.get(PDFName.of('ImageMask'))?.toString() === 'true') continue;
+          const bytes = object.contents;
+          if (!bytes || bytes.byteLength < minBytes) continue;
+          const filter = String(dict.get(PDFName.of('Filter'))?.toString() ?? '').replace('/', '');
+          const native = IMAGE_EXTS[filter] ?? 'bin';
+          if (native === 'bin') continue;
+          counter += 1;
+          emitted += 1;
+          const name = `${stem}-img${String(counter).padStart(2, '0')}`;
+          if (wanted === 'original' || !sharp) {
+            await ctx.emit({ name: `${name}.${native}`, kind: 'image', bytes, page, sourceFileId: input.id });
+            continue;
+          }
+          try {
+            const png = await sharp(Buffer.from(bytes), { failOn: 'none' }).png().toBuffer();
+            const converted = await transcodePng(new Uint8Array(png), { format: wanted as RasterFormat, quality: 90 });
+            await ctx.emit({
+              name: `${name}.${wanted === 'jpeg' ? 'jpg' : wanted}`,
+              kind: 'image',
+              bytes: converted,
+              page,
+              sourceFileId: input.id,
+            });
+          } catch {
+            // Some codecs (JBIG2/CCITT) are not decodable by sharp: keep the original.
+            await ctx.emit({ name: `${name}.${native}`, kind: 'image', bytes, page, sourceFileId: input.id });
+          }
         }
       }
       if (!counter) ctx.warnings.push(`${stem}：未找到符合条件的图片`);

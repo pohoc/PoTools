@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm --filter @potools/desktop dev",
     "devUrl": "http://127.0.0.1:5199",
-    "beforeBuildCommand": "node scripts/prepare-engine-runtime.mjs && pnpm --filter @potools/engine build && node scripts/prepare-document-builder.mjs && node scripts/prepare-ocr-runtime.mjs && pnpm --filter @potools/desktop build",
+    "beforeBuildCommand": "node scripts/prepare-engine-runtime.mjs && pnpm --filter @potools/engine build && node scripts/prepare-ocr-runtime.mjs && pnpm --filter @potools/desktop build",
     "frontendDist": "../dist"
   },
   "app": {

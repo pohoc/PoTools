@@ -60,8 +60,8 @@ async function main(): Promise<void> {
     const ttlDays = Number(process.env.POTOOLS_TEMP_TTL_DAYS ?? 7);
     if (ttlDays > 0) {
       const { cleanTemp } = await import('./lib/temp.ts');
-      const { TEMP_ROOT } = await import('./lib/files.ts');
-      const cleaned = await cleanTemp(TEMP_ROOT, { olderThanDays: ttlDays, keepJobs: 1 }).catch(() => null);
+      const { tempRootDir } = await import('./lib/files.ts');
+      const cleaned = await cleanTemp(tempRootDir(), { olderThanDays: ttlDays, keepJobs: 1 }).catch(() => null);
       if (cleaned?.removedJobs) {
         logger.info('swept stale temp jobs', {
           removed: cleaned.removedJobs,

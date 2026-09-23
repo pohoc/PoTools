@@ -11,9 +11,8 @@ This grant covers only material copyrightable by the PoTools authors. Third-part
 | Component | Current use | License | Required before distribution |
 | --- | --- | --- | --- |
 | MuPDF.js 1.28.1 | Bundled in the local engine for PDF processing | AGPL-3.0-or-later | May be distributed through an AGPL-compliant open-source route, under an applicable commercial license, or replaced. |
-| ONLYOFFICE Document Builder 9.4.0 | Optional runtime staged only when `POTOOLS_DOCUMENTBUILDER_ARCHIVE` is set | AGPLv3 with upstream additional terms, or commercial | May be redistributed under the applicable upstream AGPL terms or a commercial agreement, with the required source and notices. |
 
-The first row applies to the current packaged app even when no Document Builder archive is supplied. An AGPL-compliant open-source distribution is a valid route for these components; the project does not have to obtain a commercial license solely to publish open source. The MIT project license covers PoTools-authored code, while the combined installer must meet the terms of every bundled component and must not be represented as MIT-only.
+The table row applies to the current packaged app. An AGPL-compliant open-source distribution is a valid route for these components; the project does not have to obtain a commercial license solely to publish open source. The MIT project license covers PoTools-authored code, while the combined installer must meet the terms of every bundled component and must not be represented as MIT-only.
 
 ## Bundled third-party material
 
@@ -27,10 +26,9 @@ The first row applies to the current packaged app even when no Document Builder 
 ## Release checklist
 
 1. Choose and document an AGPL-compliant open-source route, an applicable commercial license, or a replacement for MuPDF for the exact runtime and app distribution model.
-2. If Document Builder is staged, retain the exact archive's complete license and attribution materials; record whether distribution follows the upstream AGPL terms or a commercial agreement. The AGPL route is an open-source distribution option.
-3. Regenerate `apps/desktop/public/licenses/DEPENDENCY_LICENSES.json` with `pnpm licenses:inventory`; review it alongside `pnpm licenses list --json -r --long` and `cargo metadata --format-version 1 --manifest-path apps/desktop/src-tauri/Cargo.toml`.
-4. Review newly added, unknown, dual-licensed, copyleft, model, and platform-specific components; retain the chosen license text and copyright notices in the installed app.
-5. Inspect each platform installer and confirm its About/license view exposes the applicable notices and license texts.
-6. Verify the release source archive contains the exact source and build instructions needed for whichever dependency licensing route was selected.
+2. Regenerate `apps/desktop/public/licenses/DEPENDENCY_LICENSES.json` with `pnpm licenses:inventory`; review it alongside `pnpm licenses list --json -r --long` and `cargo metadata --format-version 1 --manifest-path apps/desktop/src-tauri/Cargo.toml`.
+3. Review newly added, unknown, dual-licensed, copyleft, model, and platform-specific components; retain the chosen license text and copyright notices in the installed app.
+4. Inspect each platform installer and confirm its About/license view exposes the applicable notices and license texts.
+5. Verify the release source archive contains the exact source and build instructions needed for whichever dependency licensing route was selected.
 
 This checklist records current engineering findings, not a legal opinion. Reassess it when dependency versions, build resources, or release targets change.

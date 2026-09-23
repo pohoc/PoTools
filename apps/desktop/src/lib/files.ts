@@ -21,15 +21,9 @@ export function acceptsFor(kind: AcceptKind): string {
 
 /** Maps a descriptor's `accept` string onto a picker filter. */
 export function kindFor(accept: string): AcceptKind {
-  if (accept.includes('application/msword') || accept.split(',').includes('.doc')) return 'legacyWord';
-  if (accept.includes('application/vnd.ms-excel') || accept.split(',').includes('.xls')) return 'legacyExcel';
-  if (accept.includes('application/vnd.ms-powerpoint') || accept.split(',').includes('.ppt')) return 'legacyPresentation';
   if (accept === 'image/jpeg,image/png,image/webp') return 'portrait';
   if (accept === 'image/*') return 'image';
   if (accept.startsWith('image/')) return 'raster';
-  if (accept.includes('officedocument') || accept.includes('msword') || accept.includes('spreadsheetml')) {
-    return 'office';
-  }
   if (accept.includes('ofd')) return 'ofd';
   if (accept.includes('markdown') || accept.includes('text/plain')) return 'markdown';
   return 'pdf';

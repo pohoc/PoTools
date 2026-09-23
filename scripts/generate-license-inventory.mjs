@@ -69,14 +69,6 @@ components.push(
     repository: 'https://github.com/nodejs/node/tree/v22.20.0',
   },
   {
-    ecosystem: 'external-runtime',
-    name: 'ONLYOFFICE Document Builder',
-    version: '9.4.0 (optional)',
-    license: 'AGPL-3.0 with upstream additional terms or commercial license',
-    author: 'Ascensio System SIA',
-    repository: 'https://github.com/ONLYOFFICE/DocumentBuilder',
-  },
-  {
     ecosystem: 'model',
     name: 'MediaPipe Selfie Segmentation',
     version: 'float16 latest',

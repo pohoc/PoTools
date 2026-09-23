@@ -114,9 +114,6 @@ const DPI_FIELD: ToolField = {
   ],
 };
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-const DOC_MIME = 'application/msword,.doc';
-const XLS_MIME = 'application/vnd.ms-excel,.xls';
-const PPT_MIME = 'application/vnd.ms-powerpoint,.ppt';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/tiff';
@@ -138,7 +135,7 @@ const imageFields = (tool: 'compress' | 'resize' | 'crop' | 'rotate' | 'convert'
   if (tool === 'resize') return [
     { type: 'number', key: 'width', labelKey: 'opt.image.width', default: 1600, min: 1, max: 16000, suffixKey: 'unit.px', row: 'size' },
     { type: 'number', key: 'height', labelKey: 'opt.image.height', default: 1600, min: 1, max: 16000, suffixKey: 'unit.px', row: 'size' },
-    { type: 'select', key: 'fit', labelKey: 'opt.image.fit', default: 'inside', options: [
+    { type: 'select', key: 'fit', labelKey: 'opt.image.fit', descriptionKey: 'opt.image.fit.hint', default: 'inside', options: [
       { value: 'inside', labelKey: 'opt.image.fitInside' }, { value: 'cover', labelKey: 'opt.image.fitCover' },
       { value: 'fill', labelKey: 'opt.image.fitFill' },
     ] },
@@ -183,7 +180,7 @@ const imageCutoutFields: ToolField[] = [
 ];
 
 const idPhotoFields: ToolField[] = [
-  { type: 'select', key: 'size', labelKey: 'opt.idPhoto.size', default: 'one-inch', presentation: 'cards', options: [
+  { type: 'select', key: 'size', labelKey: 'opt.idPhoto.size', default: 'one-inch', options: [
     { value: 'one-inch', labelKey: 'opt.idPhoto.oneInch', descriptionKey: 'opt.idPhoto.oneInch.hint' },
     { value: 'two-inch', labelKey: 'opt.idPhoto.twoInch', descriptionKey: 'opt.idPhoto.twoInch.hint' },
   ] },
@@ -287,13 +284,12 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'mode',
         labelKey: 'opt.split.mode',
-        descriptionKey: 'opt.split.mode.hint',
         default: 'each-page',
-        presentation: 'cards',
+        presentation: 'chips',
         options: [
           { value: 'each-page', labelKey: 'opt.split.mode.each', descriptionKey: 'opt.split.mode.each.hint' },
           { value: 'every-n', labelKey: 'opt.split.mode.everyN', descriptionKey: 'opt.split.mode.everyN.hint' },
-          { value: 'ranges', labelKey: 'opt.split.mode.ranges', descriptionKey: 'opt.split.mode.ranges.hint' },
+          { value: 'ranges', labelKey: 'opt.split.mode.ranges' },
           { value: 'halves', labelKey: 'opt.split.mode.halves', descriptionKey: 'opt.split.mode.halves.hint' },
           { value: 'manual', labelKey: 'opt.split.mode.manual', descriptionKey: 'opt.split.mode.manual.hint' },
         ],
@@ -450,6 +446,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'text',
         key: 'text',
         labelKey: 'opt.watermark.text',
+        descriptionKey: 'opt.watermark.text.hint',
         default: '机密文件',
         maxLength: 120,
         required: true,
@@ -472,6 +469,11 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         max: 200,
         step: 1,
         unit: 'pt',
+        presets: [
+          { value: 24, labelKey: 'opt.fontSize.small' },
+          { value: 48, labelKey: 'opt.fontSize.standard' },
+          { value: 72, labelKey: 'opt.fontSize.large' },
+        ],
         row: 'c',
       },
       {
@@ -483,6 +485,11 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         max: 100,
         step: 1,
         unit: 'percent',
+        presets: [
+          { value: 12, labelKey: 'opt.opacity.light' },
+          { value: 22, labelKey: 'opt.opacity.standard' },
+          { value: 40, labelKey: 'opt.opacity.strong' },
+        ],
         row: 'c',
       },
       {
@@ -534,7 +541,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
           { value: 'below', labelKey: 'opt.watermark.layerBelow' },
         ],
       },
-      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all', section: 'advanced' },
+      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all' },
     ],
   },
   {
@@ -600,6 +607,11 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         max: 48,
         step: 1,
         unit: 'pt',
+        presets: [
+          { value: 9, labelKey: 'opt.fontSize.small' },
+          { value: 11, labelKey: 'opt.fontSize.standard' },
+          { value: 14, labelKey: 'opt.fontSize.large' },
+        ],
         row: 'c',
       },
       { type: 'color', key: 'color', labelKey: 'opt.color', default: '#111827', row: 'c' },
@@ -610,7 +622,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         default: false,
         section: 'advanced',
       },
-      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all', section: 'advanced' },
+      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all' },
     ],
   },
   {
@@ -647,7 +659,9 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'boolean',
         key: 'stripXmp',
         labelKey: 'opt.metadata.stripXmp',
+        descriptionKey: 'opt.metadata.stripXmp.hint',
         default: true,
+        showIf: { field: 'mode', in: ['write', 'clear'] },
         section: 'advanced',
       },
     ],
@@ -672,15 +686,16 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         default: 'balanced',
         uiOnly: true,
         options: [
-          { value: 'extreme', labelKey: 'opt.compress.extreme', applies: { imageQuality: 45, maxDpi: 96 } },
-          { value: 'balanced', labelKey: 'opt.compress.balanced', applies: { imageQuality: 70, maxDpi: 150 } },
-          { value: 'quality', labelKey: 'opt.compress.quality', applies: { imageQuality: 88, maxDpi: 220 } },
+          { value: 'extreme', labelKey: 'opt.compress.extreme', descriptionKey: 'opt.compress.extreme.hint', applies: { imageQuality: 45, maxDpi: 96 } },
+          { value: 'balanced', labelKey: 'opt.compress.balanced', descriptionKey: 'opt.compress.balanced.hint', applies: { imageQuality: 70, maxDpi: 150 } },
+          { value: 'quality', labelKey: 'opt.compress.quality', descriptionKey: 'opt.compress.quality.hint', applies: { imageQuality: 88, maxDpi: 220 } },
         ],
       },
       {
         type: 'slider',
         key: 'imageQuality',
         labelKey: 'opt.compress.imageQuality',
+        descriptionKey: 'opt.compress.imageQuality.hint',
         default: 70,
         min: 20,
         max: 96,
@@ -692,6 +707,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'slider',
         key: 'maxDpi',
         labelKey: 'opt.compress.maxDpi',
+        descriptionKey: 'opt.compress.maxDpi.hint',
         default: 150,
         min: 72,
         max: 300,
@@ -761,6 +777,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
           { value: 150, labelKey: 'opt.images.dpi.standard' },
           { value: 300, labelKey: 'opt.images.dpi.print' },
         ],
+        section: 'layout',
         row: 'a',
       },
       {
@@ -777,6 +794,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
           { value: 85, labelKey: 'opt.image.quality.standard' },
           { value: 95, labelKey: 'opt.image.quality.high' },
         ],
+        section: 'layout',
         showIf: { field: 'format', in: ['jpeg', 'webp'] },
       },
       {
@@ -808,6 +826,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'pageSize',
         labelKey: 'opt.pageSize',
         default: 'auto',
+        section: 'layout',
         row: 'a',
         options: [
           { value: 'auto', labelKey: 'opt.pageSize.auto' },
@@ -820,6 +839,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'orientation',
         labelKey: 'opt.orientation',
         default: 'auto',
+        section: 'layout',
         row: 'a',
         options: [
           { value: 'auto', labelKey: 'opt.orientation.auto' },
@@ -832,6 +852,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'fit',
         labelKey: 'opt.images.fit',
         default: 'contain',
+        section: 'layout',
         row: 'b',
         options: [
           { value: 'contain', labelKey: 'opt.images.fitContain' },
@@ -849,9 +870,10 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         step: 1,
         unit: 'pt',
         displayUnit: 'mm',
+        section: 'layout',
         row: 'b',
       },
-      { type: 'color', key: 'background', labelKey: 'opt.images.background', default: '#ffffff' },
+      { type: 'color', key: 'background', labelKey: 'opt.images.background', default: '#ffffff', section: 'layout' },
       {
         type: 'slider',
         key: 'imageQuality',
@@ -883,6 +905,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'target',
         labelKey: 'opt.resize.target',
         default: 'a4',
+        section: 'layout',
         row: 'a',
         options: [
           { value: 'a4', labelKey: 'opt.pageSize.a4' },
@@ -890,6 +913,19 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
           { value: 'letter', labelKey: 'opt.pageSize.letter' },
           { value: 'match-first', labelKey: 'opt.pageSize.matchFirst' },
           { value: 'scale', labelKey: 'opt.resize.byScale' },
+        ],
+      },
+      {
+        type: 'select',
+        key: 'orientation',
+        labelKey: 'opt.orientation',
+        default: 'keep',
+        section: 'layout',
+        row: 'a',
+        options: [
+          { value: 'keep', labelKey: 'opt.orientation.keep' },
+          { value: 'portrait', labelKey: 'opt.orientation.portrait' },
+          { value: 'landscape', labelKey: 'opt.orientation.landscape' },
         ],
       },
       {
@@ -901,19 +937,8 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         max: 400,
         step: 5,
         unit: 'percent',
+        section: 'layout',
         showIf: { field: 'target', in: ['scale'] },
-      },
-      {
-        type: 'select',
-        key: 'orientation',
-        labelKey: 'opt.orientation',
-        default: 'keep',
-        row: 'a',
-        options: [
-          { value: 'keep', labelKey: 'opt.orientation.keep' },
-          { value: 'portrait', labelKey: 'opt.orientation.portrait' },
-          { value: 'landscape', labelKey: 'opt.orientation.landscape' },
-        ],
       },
       {
         type: 'number',
@@ -924,6 +949,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         max: 72,
         suffixKey: 'unit.pt',
         displayUnit: 'mm',
+        section: 'layout',
         row: 'b',
       },
       {
@@ -955,12 +981,13 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         labelKey: 'opt.edgePreset',
         default: 'none',
         uiOnly: true,
+        section: 'layout',
         options: EDGE_PRESETS,
       },
-      { type: 'number', key: 'top', labelKey: 'opt.edge.top', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'e1' },
-      { type: 'number', key: 'bottom', labelKey: 'opt.edge.bottom', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'e1' },
-      { type: 'number', key: 'left', labelKey: 'opt.edge.left', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'e2' },
-      { type: 'number', key: 'right', labelKey: 'opt.edge.right', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'e2' },
+      { type: 'number', key: 'top', labelKey: 'opt.edge.top', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', section: 'layout', row: 'e1' },
+      { type: 'number', key: 'bottom', labelKey: 'opt.edge.bottom', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', section: 'layout', row: 'e1' },
+      { type: 'number', key: 'left', labelKey: 'opt.edge.left', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', section: 'layout', row: 'e2' },
+      { type: 'number', key: 'right', labelKey: 'opt.edge.right', default: 0, min: 0, max: 400, suffixKey: 'unit.mm', displayUnit: 'mm', section: 'layout', row: 'e2' },
       {
         type: 'boolean',
         key: 'shrinkToContent',
@@ -969,7 +996,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         default: false,
         section: 'advanced',
       },
-      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all', section: 'advanced' },
+      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all' },
     ],
   },
   {
@@ -995,6 +1022,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         step: 2,
         unit: 'pt',
         displayUnit: 'mm',
+        section: 'layout',
         row: 'm1',
       },
       {
@@ -1002,6 +1030,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'sides',
         labelKey: 'opt.margins.sides',
         default: 'all',
+        section: 'layout',
         row: 'm1',
         options: [
           { value: 'all', labelKey: 'opt.margins.all' },
@@ -1036,6 +1065,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'perSheet',
         labelKey: 'opt.nup.perSheet',
         default: 2,
+        section: 'layout',
         row: 'n1',
         options: [
           { value: 2, labelKey: 'opt.nup.two' },
@@ -1049,6 +1079,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'pageSize',
         labelKey: 'opt.pageSize',
         default: 'a4',
+        section: 'layout',
         row: 'n1',
         options: [
           { value: 'a4', labelKey: 'opt.pageSize.a4' },
@@ -1061,6 +1092,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'order',
         labelKey: 'opt.nup.order',
         default: 'horizontal',
+        section: 'layout',
         row: 'n2',
         options: [
           { value: 'horizontal', labelKey: 'opt.nup.orderHorizontal' },
@@ -1072,6 +1104,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'orientation',
         labelKey: 'opt.orientation',
         default: 'auto',
+        section: 'layout',
         row: 'n2',
         options: [
           { value: 'auto', labelKey: 'opt.orientation.auto' },
@@ -1079,8 +1112,8 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
           { value: 'landscape', labelKey: 'opt.orientation.landscape' },
         ],
       },
-      { type: 'number', key: 'gap', labelKey: 'opt.nup.gap', default: 8, min: 0, max: 60, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'n3' },
-      { type: 'number', key: 'margin', labelKey: 'opt.margin', default: 12, min: 0, max: 60, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'n3' },
+      { type: 'number', key: 'gap', labelKey: 'opt.nup.gap', default: 8, min: 0, max: 60, suffixKey: 'unit.mm', displayUnit: 'mm', section: 'layout', row: 'n3' },
+      { type: 'number', key: 'margin', labelKey: 'opt.margin', default: 12, min: 0, max: 60, suffixKey: 'unit.mm', displayUnit: 'mm', section: 'layout', row: 'n3' },
       { type: 'boolean', key: 'border', labelKey: 'opt.nup.border', default: false, section: 'advanced' },
     ],
   },
@@ -1097,12 +1130,12 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     artifactKind: 'pdf',
     keywords: ['页眉', '页脚', 'header', 'footer'],
     fields: [
-      { type: 'text', key: 'header', labelKey: 'opt.header.text', default: '', maxLength: 120, placeholderKey: 'opt.text.optional' },
-      { type: 'text', key: 'footer', labelKey: 'opt.footer.text', default: '{n} / {total}', maxLength: 120 },
+      { type: 'text', key: 'header', labelKey: 'opt.header.text', descriptionKey: 'opt.header.text.hint', default: '', maxLength: 120, placeholderKey: 'opt.text.optional' },
+      { type: 'text', key: 'footer', labelKey: 'opt.footer.text', descriptionKey: 'opt.footer.text.hint', default: '{n} / {total}', maxLength: 120 },
       {
         type: 'select',
         key: 'headerAlign',
-        labelKey: 'opt.text.align',
+        labelKey: 'opt.header.align',
         default: 'center',
         row: 'h1',
         options: [
@@ -1114,7 +1147,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
       {
         type: 'select',
         key: 'footerAlign',
-        labelKey: 'opt.text.align',
+        labelKey: 'opt.footer.align',
         default: 'center',
         row: 'h1',
         options: [
@@ -1123,11 +1156,15 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
           { value: 'right', labelKey: 'opt.align.right' },
         ],
       },
-      { type: 'slider', key: 'fontSize', labelKey: 'opt.fontSize', default: 10, min: 6, max: 28, step: 1, unit: 'pt', row: 'h2' },
+      { type: 'slider', key: 'fontSize', labelKey: 'opt.fontSize', default: 10, min: 6, max: 28, step: 1, unit: 'pt', presets: [
+        { value: 9, labelKey: 'opt.fontSize.small' },
+        { value: 10, labelKey: 'opt.fontSize.standard' },
+        { value: 12, labelKey: 'opt.fontSize.large' },
+      ], row: 'h2' },
       { type: 'number', key: 'margin', labelKey: 'opt.margin', default: 24, min: 6, max: 90, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'h2' },
       { type: 'color', key: 'color', labelKey: 'opt.color', default: '#374151' },
       { type: 'boolean', key: 'skipFirst', labelKey: 'opt.pageNumbers.skipFirst', default: false, section: 'advanced' },
-      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all', section: 'advanced' },
+      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all' },
     ],
   },
   {
@@ -1176,7 +1213,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     artifactKind: 'pdf',
     keywords: ['修复', 'repair', '损坏'],
     fields: [
-      { type: 'boolean', key: 'recompress', labelKey: 'opt.repair.recompress', default: true },
+      { type: 'boolean', key: 'recompress', labelKey: 'opt.repair.recompress', descriptionKey: 'opt.repair.recompress.hint', default: true },
       { type: 'boolean', key: 'stripMetadata', labelKey: 'opt.compress.stripMetadata', default: false, section: 'advanced' },
     ],
   },
@@ -1197,6 +1234,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'format',
         labelKey: 'opt.images.format',
+        descriptionKey: 'opt.extract.format.hint',
         default: 'original',
         row: 'x1',
         options: [
@@ -1211,14 +1249,14 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         key: 'minBytes',
         labelKey: 'opt.extract.minSize',
         descriptionKey: 'opt.extract.minSize.hint',
-        default: 10,
+        default: 0,
         min: 0,
         max: 500,
         step: 10,
         unit: 'kb',
-        row: 'x1',
+        section: 'advanced',
       },
-      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all', section: 'advanced' },
+      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all' },
     ],
   },
   {
@@ -1238,6 +1276,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         type: 'select',
         key: 'granularity',
         labelKey: 'opt.extract.granularity',
+        descriptionKey: 'opt.extract.granularity.hint',
         default: 'single',
         options: [
           { value: 'single', labelKey: 'opt.extract.singleFile' },
@@ -1245,7 +1284,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         ],
       },
       { type: 'boolean', key: 'pageMarkers', labelKey: 'opt.extract.pageMarkers', descriptionKey: 'opt.extract.pageMarkers.hint', default: true },
-      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all', section: 'advanced' },
+      { type: 'pageRanges', key: 'pages', labelKey: 'opt.pages', default: 'all' },
     ],
   },
   {
@@ -1538,106 +1577,6 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         ],
       },
       DPI_FIELD,
-    ],
-  },
-  {
-    id: 'word-to-pdf',
-    nameKey: 'tool.wordToPdf.name',
-    descKey: 'tool.wordToPdf.desc',
-    category: 'convert',
-    icon: 'word',
-    order: 140,
-    accept: DOCX_MIME,
-    multiFile: true,
-    layout: 'standard',
-    artifactKind: 'pdf',
-    keywords: ['word', 'docx', '转 pdf'],
-    fields: [
-      {
-        type: 'select',
-        key: 'pageSize',
-        labelKey: 'opt.pageSize',
-        default: 'a4',
-        row: 'a',
-        options: [
-          { value: 'a4', labelKey: 'opt.pageSize.a4' },
-          { value: 'letter', labelKey: 'opt.pageSize.letter' },
-          { value: 'a5', labelKey: 'opt.pageSize.a5' },
-        ],
-      },
-      { type: 'number', key: 'margin', labelKey: 'opt.margin', default: 56, min: 0, max: 120, suffixKey: 'unit.mm', displayUnit: 'mm', row: 'a' },
-    ],
-  },
-  { id: 'doc-to-docx', nameKey: 'tool.docToDocx.name', descKey: 'tool.docToDocx.desc', category: 'convert', icon: 'word', order: 135, accept: DOC_MIME, multiFile: true, layout: 'standard', artifactKind: 'docx', keywords: ['doc', 'docx', 'word', '旧版 word'], fields: [] },
-  { id: 'docx-to-doc', nameKey: 'tool.docxToDoc.name', descKey: 'tool.docxToDoc.desc', category: 'convert', icon: 'word', order: 136, accept: `${DOCX_MIME},.docx`, multiFile: true, layout: 'standard', artifactKind: 'doc', keywords: ['docx', 'doc', 'word'], fields: [] },
-  { id: 'xls-to-xlsx', nameKey: 'tool.xlsToXlsx.name', descKey: 'tool.xlsToXlsx.desc', category: 'convert', icon: 'excel', order: 137, accept: XLS_MIME, multiFile: true, layout: 'standard', artifactKind: 'xlsx', keywords: ['xls', 'xlsx', 'excel', '旧版表格'], fields: [] },
-  { id: 'xlsx-to-xls', nameKey: 'tool.xlsxToXls.name', descKey: 'tool.xlsxToXls.desc', category: 'convert', icon: 'excel', order: 138, accept: `${XLSX_MIME},.xlsx`, multiFile: true, layout: 'standard', artifactKind: 'xls', keywords: ['xlsx', 'xls', 'excel'], fields: [] },
-  { id: 'ppt-to-pptx', nameKey: 'tool.pptToPptx.name', descKey: 'tool.pptToPptx.desc', category: 'convert', icon: 'ppt', order: 139, accept: PPT_MIME, multiFile: true, layout: 'standard', artifactKind: 'pptx', keywords: ['ppt', 'pptx', 'powerpoint', '旧版演示文稿'], fields: [] },
-  { id: 'pptx-to-ppt', nameKey: 'tool.pptxToPpt.name', descKey: 'tool.pptxToPpt.desc', category: 'convert', icon: 'ppt', order: 140, accept: `${PPTX_MIME},.pptx`, multiFile: true, layout: 'standard', artifactKind: 'ppt', keywords: ['pptx', 'ppt', 'powerpoint'], fields: [] },
-  {
-    id: 'excel-to-pdf',
-    nameKey: 'tool.excelToPdf.name',
-    descKey: 'tool.excelToPdf.desc',
-    category: 'convert',
-    icon: 'excel',
-    order: 141,
-    accept: XLSX_MIME,
-    multiFile: true,
-    layout: 'standard',
-    artifactKind: 'pdf',
-    keywords: ['excel', 'xlsx', '工作表', '转 pdf'],
-    fields: [
-      {
-        type: 'select',
-        key: 'pageSize',
-        labelKey: 'opt.pageSize',
-        default: 'a4',
-        row: 'a',
-        options: [
-          { value: 'a4', labelKey: 'opt.pageSize.a4' },
-          { value: 'a3', labelKey: 'opt.pageSize.a3' },
-          { value: 'letter', labelKey: 'opt.pageSize.letter' },
-        ],
-      },
-      {
-        type: 'select',
-        key: 'orientation',
-        labelKey: 'opt.orientation',
-        default: 'auto',
-        row: 'a',
-        options: [
-          { value: 'auto', labelKey: 'opt.orientation.auto' },
-          { value: 'portrait', labelKey: 'opt.orientation.portrait' },
-          { value: 'landscape', labelKey: 'opt.orientation.landscape' },
-        ],
-      },
-      { type: 'boolean', key: 'repeatHeader', labelKey: 'opt.convert.repeatHeader', default: true },
-    ],
-  },
-  {
-    id: 'ppt-to-pdf',
-    nameKey: 'tool.pptToPdf.name',
-    descKey: 'tool.pptToPdf.desc',
-    category: 'convert',
-    icon: 'ppt',
-    order: 142,
-    accept: PPTX_MIME,
-    multiFile: true,
-    layout: 'standard',
-    artifactKind: 'pdf',
-    keywords: ['ppt', 'pptx', '幻灯片', '转 pdf'],
-    fields: [
-      {
-        type: 'select',
-        key: 'pageSize',
-        labelKey: 'opt.convert.slideSize',
-        default: 'slide',
-        row: 'a',
-        options: [
-          { value: 'slide', labelKey: 'opt.convert.slideKeep' },
-          { value: 'a4', labelKey: 'opt.pageSize.a4' },
-        ],
-      },
     ],
   },
   {
@@ -3473,8 +3412,8 @@ const TOOL_WORKFLOW_BY_ID: Record<ToolId, ToolWorkflow> = {
   watermark: 'annotation', 'page-numbers': 'annotation', 'header-footer': 'annotation',
   'pdf-to-images': 'conversion', 'images-to-pdf': 'conversion', 'pdf-to-word': 'conversion', 'pdf-to-excel': 'conversion',
   'pdf-to-ppt': 'conversion', 'pdf-to-markdown': 'conversion', 'pdf-to-html': 'conversion', 'pdf-to-csv': 'conversion',
-  'pdf-to-rtf': 'conversion', 'pdf-to-epub': 'conversion', 'pdf-to-ofd': 'conversion', 'word-to-pdf': 'conversion', 'doc-to-docx': 'conversion', 'docx-to-doc': 'conversion', 'xls-to-xlsx': 'conversion', 'xlsx-to-xls': 'conversion', 'ppt-to-pptx': 'conversion', 'pptx-to-ppt': 'conversion',
-  'excel-to-pdf': 'conversion', 'ppt-to-pdf': 'conversion', 'ofd-to-pdf': 'conversion', 'markdown-to-pdf': 'conversion',
+  'pdf-to-rtf': 'conversion', 'pdf-to-epub': 'conversion', 'pdf-to-ofd': 'conversion',
+  'ofd-to-pdf': 'conversion', 'markdown-to-pdf': 'conversion',
   'extract-images': 'extraction', 'extract-text': 'extraction',
   compress: 'optimization', repair: 'optimization', 'remove-blank': 'optimization',
   'image-compress': 'image-processing', 'image-resize': 'image-processing', 'image-crop': 'image-processing',
