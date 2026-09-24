@@ -86,6 +86,7 @@ internal static class Program
             var options = ReadParameterValues(task, "AdditionalOptions");
             var directories = ReadParameterValues(task, "AdditionalLibraryDirectories");
             var objectFiles = ReadParameterValues(task, "ObjectFiles")
+                .Concat(ReadParameterValues(task, "Source"))
                 .Where(value => value.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
                 .Select(value => Path.IsPathRooted(value) ? Path.GetFullPath(value) : Path.GetFullPath(Path.Combine(source, value)))
                 .Where(path => IsInsideSource(path, source) && File.Exists(path))
