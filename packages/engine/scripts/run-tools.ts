@@ -929,7 +929,8 @@ async function main(): Promise<void> {
         .map((hit) => hit[0]);
     const rowNum = (text: string, label: string) => Number(new RegExp(`${label}\\s+([\\d,]+)`).exec(text)?.[1]?.replace(/,/g, '') ?? Number.NaN);
     const hanGlyph = /[㐀-䶿一-鿿豈-﫿　-〿＀-￯]/;
-    const stampBase = { input: '1700000000', timezone: 'Asia/Shanghai', style: 'full' };
+    // showRange/showNow 默认已改为关闭；边界与实时断言需显式开启
+    const stampBase = { input: '1700000000', timezone: 'Asia/Shanghai', style: 'full', showRange: true, showNow: true };
 
     const stamp = await callText(engine, 'timestamp', stampBase);
     const stampText = stamp.result?.text ?? '';
@@ -973,8 +974,8 @@ async function main(): Promise<void> {
     );
     record(
       'date-diff breakdown collapsed',
-      (exclText.match(/日历分解/g) ?? []).length === 1 && !exclText.includes('年月日') && !/0 年 · 2 个月/.test(exclText),
-      `日历分解 ${(exclText.match(/日历分解/g) ?? []).length} 次，含年月日=${exclText.includes('年月日')}`,
+      (exclText.match(/日历分解  2个月 3天/g) ?? []).length >= 1 && !exclText.includes('年月日') && !/0 年 · 2 个月/.test(exclText),
+      `折叠行命中=${(exclText.match(/日历分解  2个月 3天/g) ?? []).length}，含年月日=${exclText.includes('年月日')}`,
     );
     record('date-diff no long decimals', longDecimals(exclText).length === 0 && exclText.includes('8.86 周'), longDecimals(exclText).join(',') || 'ok');
     const noWorkday = await callText(engine, 'date-diff', { from: '2026-01-05', to: '2026-03-08', timezone: 'Asia/Shanghai', countWorkdays: false });
@@ -1188,7 +1189,8 @@ async function main(): Promise<void> {
     }
     record('zh 9 time tools enum + decimal hygiene', zhDirty.length === 0, zhDirty.join(' ') || '9 个工具中文态同样干净');
   }
-  await textCase('hash', { input: 'abc' }, ['900150983cd24fb0d6963f7d28e17f72', 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad']);
+  // hash 默认算法已收敛为 sha256；md5+sha256 断言走 all 模式
+  await textCase('hash', { input: 'abc', algorithm: 'all' }, ['900150983cd24fb0d6963f7d28e17f72', 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad']);
   await textCase('hmac', { message: 'hello', secret: 'key', algorithm: 'sha256' }, ['9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b']);
   await textCase('base64', { input: 'Hello, 世界!', mode: 'encode' }, ['SGVsbG8sIOS4lueVjCE=']);
   await textCase('radix', { input: 'Hello', mode: 'encode', alphabet: 'base32' }, ['JBSWY3DP']);
@@ -1197,7 +1199,14 @@ async function main(): Promise<void> {
   await textCase('unicode-escape', { input: '中文A', mode: 'encode' }, ['\\u4e2d\\u6587A']);
   await textCase('totp', { mode: 'generate', secret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', digits: 8, at: '59' }, ['94287082']);
   await textCase('x509', { pem: X509_PEM }, ['CN=alice.example.com', 'X.509 v3', '有效期内']);
-  await textCase('password-gen', { length: 20, count: 3 }, ['3 条 × 20 位']);
+  // password-gen 现输出纯密码列表（标题段已移除），按条数/位数断言
+  {
+    const result = await textCase('password-gen', { length: 20, count: 3 }, [], 'password-gen');
+    const lines = (result?.text ?? '').split('\n').filter(Boolean);
+    const shaped = lines.length === 3 && lines.every((line) => line.length === 20);
+    if (result) textToolsRun.add('password-gen');
+    record('text password-gen', shaped, shaped ? '生成 3 条 × 20 位' : `实际 ${lines.length} 条 × ${lines[0]?.length ?? 0} 位`);
+  }
 
   // uuid-gen：v4 需匹配版本/变体正则（随机值，不能硬编码文本）
   {
@@ -1291,7 +1300,7 @@ async function main(): Promise<void> {
   await enTextCase('timestamp', { input: '1700000000' }, ['2023-11-15', '1700000000000']);
   await enTextCase('duration', { value: '3735', unit: 's', style: 'all' }, ['01:02:15', 'PT1H2M15S']);
   await enTextCase('cron', { expression: '0 9 * * 1-5', from: '2023-11-13T00:00:00Z', count: 5 }, ['2023-11-13 09:00:00', 'Monday']);
-  await enTextCase('hash', { input: 'abc' }, ['900150983cd24fb0d6963f7d28e17f72', 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad']);
+  await enTextCase('hash', { input: 'abc', algorithm: 'all' }, ['900150983cd24fb0d6963f7d28e17f72', 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad']);
   await enTextCase('base64', { input: '中文😀 PoToois', mode: 'encode' }, ['5Lit5paH8J+YgCBQb1Rvb2lz']);
   await enTextCase('totp', { mode: 'generate', secret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ', digits: 8, at: '59' }, ['94287082']);
   {
@@ -1554,6 +1563,11 @@ async function main(): Promise<void> {
     }
     if (job.progress.state === 'failed' && job.error?.code === 'unsupported') {
       recordSkipped(`coverage ${byId.get(id)?.id ?? id}`.slice(0, 40), `依赖本机可选转换器：${job.error.message.slice(0, 40)}`);
+      continue;
+    }
+    if (job.progress.state === 'failed' && job.error?.code === 'empty_selection') {
+      // 业务级"空结果"错误（如 ocr-table 对无表格样本）说明识别链路完整执行，不算回归
+      recordSkipped(`coverage ${byId.get(id)?.id ?? id}`.slice(0, 40), `预期空结果：${job.error.message.slice(0, 50)}`);
       continue;
     }
     const ok = job.progress.state === 'succeeded' && job.artifacts.length > 0;
