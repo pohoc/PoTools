@@ -87,6 +87,8 @@ fn build_node_embed() {
     println!("cargo:rerun-if-changed={}", bundle.display());
     println!("cargo:rerun-if-changed={}", link_manifest.display());
     println!("cargo:rustc-env=POTOOLS_ENGINE_BUNDLE={}", bundle.display());
+    // 嵌入 Node 后镜像巨大，发行构建无需 PDB，关闭 /DEBUG 避免生成数 GB 调试文件
+    println!("cargo:rustc-link-arg=/DEBUG:NONE");
 
     let mut cpp = cc::Build::new();
     cpp.cpp(true)
