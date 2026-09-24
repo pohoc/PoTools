@@ -7,7 +7,7 @@ using StructuredTask = Microsoft.Build.Logging.StructuredLogger.Task;
 
 internal static class Program
 {
-    private const string ExporterVersion = "1.1.2";
+    private const string ExporterVersion = "1.1.3";
     private static readonly HashSet<string> WindowsSystemLibraries = new(StringComparer.OrdinalIgnoreCase)
     {
         "advapi32", "bcrypt", "comctl32", "comdlg32", "crypt32", "dbghelp", "dnsapi",
@@ -85,12 +85,17 @@ internal static class Program
             var dependencies = ReadParameterValues(task, "AdditionalDependencies");
             var options = ReadParameterValues(task, "AdditionalOptions");
             var directories = ReadParameterValues(task, "AdditionalLibraryDirectories");
-            var objectFiles = Directory
+            var allObjects = Directory
                 .EnumerateFiles(Path.Combine(source, "out"), "*.obj", SearchOption.AllDirectories)
                 .Select(Path.GetFullPath)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Where(path => IsNativeCoffObject(path, architecture))
                 .ToList();
+            var nativeObjects = allObjects.Where(path => IsNativeCoffObject(path, architecture)).ToList();
+            var nonNative = allObjects.Except(nativeObjects).ToList();
+            Console.WriteLine($"Object scan: {allObjects.Count} total, {nativeObjects.Count} native COFF, {nonNative.Count} excluded.");
+            foreach (var sample in nonNative.Take(10))
+                Console.WriteLine("  excluded: " + sample);
+            var objectFiles = nativeObjects;
             if (dependencies.Count == 0)
                 throw new InvalidOperationException("Node Link task has no readable AdditionalDependencies parameter.");
             if (objectFiles.Count == 0)
