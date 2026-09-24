@@ -291,7 +291,19 @@ fn link_node_libraries(manifest: &Path, lib_dir: &Path) {
             );
         }
         match kind {
-            "static" => println!("cargo:rustc-link-lib=static={name}"),
+            // static 追加库（node_extras）也以全路径 link-arg 传入：manifest 中它排在
+            // whole 库之后，命令行顺序保证它只在 whole-archive 未满足的符号上按需拉取，
+            // 避免与 libnode 内重复编译的 obj（node_string.obj 等）产生 duplicate symbol。
+            "static" => {
+                let library = lib_dir.join(format!("{name}.lib"));
+                if !library.is_file() {
+                    panic!(
+                        "Node embed SDK is missing static library: {}",
+                        library.display()
+                    );
+                }
+                println!("cargo:rustc-link-arg={}", library.display());
+            }
             "whole" => {
                 has_whole_libnode |= name == "libnode";
                 let library = lib_dir.join(format!("{name}.lib"));
