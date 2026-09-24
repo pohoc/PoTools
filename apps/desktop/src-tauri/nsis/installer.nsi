@@ -164,6 +164,12 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 !define MUI_LANGDLL_REGISTRY_KEY "${MANUPRODUCTKEY}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
+!if "${LICENSE}" != ""
+  !define POTOOLS_LICENSE_DIR "${__FILEDIR__}\..\..\..\..\..\license"
+  LicenseLangString PoToolsLicense 1033 "${POTOOLS_LICENSE_DIR}\English.rtf"
+  LicenseLangString PoToolsLicense 2052 "${POTOOLS_LICENSE_DIR}\ChineseSimplified.rtf"
+!endif
+
 ; Installer pages, must be ordered as they appear
 ; 1. Welcome Page
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
@@ -172,7 +178,7 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 ; 2. License Page (if defined)
 !if "${LICENSE}" != ""
   !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
-  !insertmacro MUI_PAGE_LICENSE "${LICENSE}"
+  !insertmacro MUI_PAGE_LICENSE "$(PoToolsLicense)"
 !endif
 
 ; 3. Install mode (if it is set to `both`)
@@ -492,6 +498,13 @@ Function .onInit
 
   !if "${DISPLAYLANGUAGESELECTOR}" == "true"
     !insertmacro MUI_LANGDLL_DISPLAY
+  !else
+    ; Match Chinese Windows UI locales to the Simplified Chinese resources.
+    System::Call 'kernel32::GetUserDefaultUILanguage() i .r0'
+    IntOp $0 $0 & 1023
+    StrCpy $LANGUAGE ${LANG_ENGLISH}
+    StrCmp $0 4 0 +2
+      StrCpy $LANGUAGE ${LANG_SIMPCHINESE}
   !endif
 
   !insertmacro SetContext
@@ -924,6 +937,25 @@ Function CreateOrUpdateStartMenuShortcut
     Return
   ${EndIf}
 
+  ; Recreate existing shortcuts on updates so Windows reloads the current
+  ; executable icon instead of keeping a stale shortcut icon cache entry.
+  ${If} $UpdateMode = 1
+    !if "${STARTMENUFOLDER}" != ""
+      ${If} ${FileExists} "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
+        Delete "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
+        CreateShortcut "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\${MAINBINARYNAME}.exe" 0
+        !insertmacro SetLnkAppUserModelId "$SMPROGRAMS\$AppStartMenuFolder\${PRODUCTNAME}.lnk"
+      ${EndIf}
+    !else
+      ${If} ${FileExists} "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+        Delete "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+        CreateShortcut "$SMPROGRAMS\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\${MAINBINARYNAME}.exe" 0
+        !insertmacro SetLnkAppUserModelId "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+      ${EndIf}
+    !endif
+    Return
+  ${EndIf}
+
   ; Skip creating shortcut if in update mode or no shortcut mode
   ; but always create if migrating from wix
   ${If} $WixMode = 0
@@ -950,6 +982,16 @@ Function CreateOrUpdateDesktopShortcut
   Pop $0
   ${If} $0 = 1
     !insertmacro SetShortcutTarget "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
+    Return
+  ${EndIf}
+
+  ; Refresh an existing desktop shortcut during updates to pick up the new icon.
+  ${If} $UpdateMode = 1
+    ${If} ${FileExists} "$DESKTOP\${PRODUCTNAME}.lnk"
+      Delete "$DESKTOP\${PRODUCTNAME}.lnk"
+      CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe" "" "$INSTDIR\${MAINBINARYNAME}.exe" 0
+      !insertmacro SetLnkAppUserModelId "$DESKTOP\${PRODUCTNAME}.lnk"
+    ${EndIf}
     Return
   ${EndIf}
 

@@ -16,5 +16,8 @@
         "hiddenTitle": true
       }
     ]
+  },
+  "bundle": {
+    "licenseFile": null
   }
 }
