@@ -129,5 +129,9 @@ try {
 } catch {
     Write-Host "ERROR: $($_.Exception.Message)"
     Write-Host "Failure diagnostics retained in: $work"
+    if (Test-Path -LiteralPath $logPath -PathType Leaf) {
+        Write-Host 'Last 80 vcbuild log lines:'
+        Get-Content -LiteralPath $logPath -Tail 80
+    }
     throw
 }

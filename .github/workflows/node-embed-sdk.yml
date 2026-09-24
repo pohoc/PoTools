@@ -42,3 +42,4 @@ jobs:
           name: node-embed-sdk-${{ matrix.architecture }}-diagnostics
           path: node-sdk/.node-embed-sdk-*/*.log
           if-no-files-found: ignore
+          include-hidden-files: true
