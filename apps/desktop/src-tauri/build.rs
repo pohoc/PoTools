@@ -95,11 +95,14 @@ fn build_node_embed() {
         .includes(include_dirs)
         .define("NODE_WANT_INTERNALS", "1")
         .warnings(false);
-    // MSVC 风格驱动用 /EHsc；交叉编译时的 GNU 风格 clang 只认 -fexceptions
+    // MSVC 风格驱动用 /EHsc + 静态 CRT；交叉编译的 GNU 风格 clang 需显式对齐
+    // Node SDK 静态库的 MT_StaticRelease 运行时标记（Rust msvc target 默认 crt-static）
     if cpp.get_compiler().is_like_msvc() {
-        cpp.flag("/EHsc");
+        cpp.flag("/EHsc").static_crt(true);
     } else {
-        cpp.flag("-fexceptions");
+        cpp.flag("-fexceptions")
+            .flag("-fms-runtime-lib=static_lib")
+            .define("_MT", None);
     }
     if let Some(sysroot) = env::var_os("POTOOLS_WIN_MSVC_SYSROOT") {
         let sysroot = PathBuf::from(sysroot);
