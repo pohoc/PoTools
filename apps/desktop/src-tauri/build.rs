@@ -1,8 +1,8 @@
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use sha2::{Digest, Sha256};
 
 fn main() {
     println!("cargo:rerun-if-env-changed=POTOOLS_NODE_EMBED_SDK");
@@ -142,9 +142,8 @@ fn verify_embedded_config() {
 fn verify_sdk_metadata(sdk: &Path, target: &str, node_version: &str, manifest: &Path) {
     let metadata_path = sdk.join("build-metadata.json");
     let metadata: serde_json::Value = serde_json::from_slice(
-        &fs::read(&metadata_path).unwrap_or_else(|error| {
-            panic!("cannot read {}: {error}", metadata_path.display())
-        }),
+        &fs::read(&metadata_path)
+            .unwrap_or_else(|error| panic!("cannot read {}: {error}", metadata_path.display())),
     )
     .unwrap_or_else(|error| panic!("invalid {}: {error}", metadata_path.display()));
     let architecture = if target == "x86_64-pc-windows-msvc" {
@@ -180,16 +179,25 @@ fn verify_sdk_metadata(sdk: &Path, target: &str, node_version: &str, manifest: &
             || name.contains('\\')
             || !metadata_entries.insert((kind.to_string(), name.to_string()))
         {
-            panic!("{} contains an invalid or duplicate library entry", metadata_path.display());
+            panic!(
+                "{} contains an invalid or duplicate library entry",
+                metadata_path.display()
+            );
         }
         if matches!(kind, "static" | "whole") {
             let library_path = sdk.join("lib").join(format!("{name}.lib"));
             let expected_hash = entry["fileSha256"].as_str().unwrap_or_default();
             if expected_hash.len() != 64 || hash_file(&library_path) != expected_hash {
-                panic!("{} is missing or its SHA-256 does not match SDK metadata", library_path.display());
+                panic!(
+                    "{} is missing or its SHA-256 does not match SDK metadata",
+                    library_path.display()
+                );
             }
         } else if kind != "system" {
-            panic!("{} has an unsupported library kind '{kind}'", metadata_path.display());
+            panic!(
+                "{} has an unsupported library kind '{kind}'",
+                metadata_path.display()
+            );
         }
     }
 
