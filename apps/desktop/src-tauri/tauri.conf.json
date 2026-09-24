@@ -47,7 +47,11 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../../../packages/engine/dist": "engine"
+      "../../../packages/engine/dist/node": "engine/node",
+      "../../../packages/engine/dist/engine.mjs": "engine/engine.mjs",
+      "../../../packages/engine/dist/node-runtime-LICENSE.txt": "engine/node-runtime-LICENSE.txt",
+      "../../../packages/engine/dist/node_modules": "engine/node_modules",
+      "../../../packages/engine/dist/ocr-models": "engine/ocr-models"
     },
     "windows": {
       "webviewInstallMode": {
