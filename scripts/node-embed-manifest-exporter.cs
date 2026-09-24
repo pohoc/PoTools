@@ -437,7 +437,10 @@ internal static class Program
             var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
             process.WaitForExit();
             if (process.ExitCode != 0)
-                throw new InvalidOperationException($"lib.exe failed to archive {objectFiles.Count} node link objects: {output[..Math.Min(output.Length, 2000)]}");
+            {
+                var tail = output.Length > 3000 ? output[^3000..] : output;
+                throw new InvalidOperationException($"lib.exe failed to archive {objectFiles.Count} node link objects: {tail}");
+            }
             RequireFile(outputLibrary, "archived node_extras.lib");
         }
         finally
