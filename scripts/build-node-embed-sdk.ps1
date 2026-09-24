@@ -57,7 +57,7 @@ try {
     Push-Location $source
     try {
         $archArgument = if ($Architecture -eq 'x64') { 'x64' } else { 'x86' }
-        $command = 'call vcbuild.bat release ' + $archArgument + ' vs2022 no-cctest binlog > "' + $logPath + '" 2>&1'
+        $command = 'call vcbuild.bat release ' + $archArgument + ' vs2022 no-cctest openssl-no-asm binlog > "' + $logPath + '" 2>&1'
         $start = New-Object System.Diagnostics.ProcessStartInfo
         $start.FileName = Join-Path $env:WINDIR 'System32/cmd.exe'
         $start.Arguments = '/d /s /c "' + $command + '"'
