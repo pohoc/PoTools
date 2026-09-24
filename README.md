@@ -103,7 +103,7 @@ pnpm samples
 - Linux：在目标架构的 Linux 主机运行 `pnpm package:linux`，输出到固定的 `release/Linux/`。x64、ARM64 配置 AppImage、DEB、RPM；ARMv7、PowerPC64 LE、IBM Z（s390x）配置 DEB、RPM。各架构须在对应的原生 Linux 环境分别构建；ARMv7 还要求 ARMv7 hard-float 主机，PowerPC 必须为小端。x64、ARM64 可从 Ubuntu 22.04 或 Debian 12 起构建；ARMv7、PowerPC64 LE、s390x 的 Sharp 运行库要求 glibc 2.36 或更新版本。构建成功不代表信创发行版已兼容，仍需在具体目标系统验证 WebKitGTK 4.1 等运行依赖。
 - 仅打包单一架构时使用 `pnpm package:windows:x64` 或 `pnpm package:windows:x86`；产物仍归入同一个 `release/Windows/`，不会散落到架构 target 目录作为最终交付路径。带 `:build` 后缀的命令只用于底层构建验证。
 
-Windows 打包前需准备 Node 静态嵌入 SDK，并设置 `POTOOLS_NODE_EMBED_SDK_ROOT` 指向 SDK 根目录。目录必须包含 `x86_64-pc-windows-msvc/` 和/或 `i686-pc-windows-msvc/`；SDK 用 `scripts/build-node-embed-sdk.ps1` 从对应版本、干净检出的 Node 源码构建。没有目标架构 SDK 时，打包会停止，不会生成依赖 sidecar 的绿色包。
+Windows 打包前需准备 Node 静态嵌入 SDK，并设置 `POTOOLS_NODE_EMBED_SDK_ROOT` 指向 SDK 根目录。目录必须包含 `x86_64-pc-windows-msvc/` 和/或 `i686-pc-windows-msvc/`；SDK 用 `scripts/build-node-embed-sdk.ps1` 从对应版本、干净检出的 Node 源码构建，也可从「Build Node embed SDK」workflow（`po/node-embed-sdk-build` 分支）的 artifact 直接下载。没有目标架构 SDK 时，打包会停止，不会生成依赖 sidecar 的绿色包。
 
 Rust/Tauri 的构建缓存仍位于 `apps/desktop/src-tauri/target/`，日常交付请从 `release/` 目录取包。Windows 安装版和绿色版启动时都会检查 WebView2；系统缺少时会自动从微软下载并静默安装，需要网络连接。应用不会把用户文档发送到网络。
 
