@@ -7,7 +7,7 @@ using StructuredTask = Microsoft.Build.Logging.StructuredLogger.Task;
 
 internal static class Program
 {
-    private const string ExporterVersion = "1.0.0";
+    private const string ExporterVersion = "1.0.1";
     private static readonly HashSet<string> WindowsSystemLibraries = new(StringComparer.OrdinalIgnoreCase)
     {
         "advapi32", "bcrypt", "comctl32", "comdlg32", "crypt32", "dbghelp", "dnsapi",
@@ -365,10 +365,16 @@ internal static class Program
     {
         var nodeHeaders = Path.Combine(source, "src");
         var v8Headers = Path.Combine(source, "deps/v8/include");
-        var generatedHeaders = Path.Combine(source, "out/Release/obj/gen");
+        // GYP 的 ninja/make 后端生成树在 obj/gen；Windows vcbuild 的 msvs 后端在 obj/global_intermediate。
+        var generatedHeaders = new[]
+        {
+            Path.Combine(source, "out/Release/obj/gen"),
+            Path.Combine(source, "out/Release/obj/global_intermediate"),
+        }.FirstOrDefault(Directory.Exists);
         RequireDirectory(nodeHeaders, "Node headers (src)");
         RequireDirectory(v8Headers, "V8 headers");
-        RequireDirectory(generatedHeaders, "generated Node headers");
+        if (generatedHeaders is null)
+            throw new DirectoryNotFoundException("Missing generated Node headers: checked out/Release/obj/gen and out/Release/obj/global_intermediate.");
         CopyHeaderTree(nodeHeaders, Path.Combine(output, "include/node"));
         CopyHeaderTree(v8Headers, Path.Combine(output, "include/v8"));
         CopyHeaderTree(generatedHeaders, Path.Combine(output, "include/generated"));
