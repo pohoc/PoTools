@@ -96,7 +96,16 @@ pnpm tauri dev
 pnpm samples
 ```
 
-打包：`pnpm tauri build`（`beforeBuildCommand` 会把本地运行时 bundle 到 `packages/engine/dist` 并作为 resource 一起装进安装包）。应用运行期间不下载任何运行时，也不会把文档发往网络。
+桌面发行包使用两个平台目录，避免把 Rust target、缓存和构建中间文件当成最终软件包：
+
+- macOS：`pnpm package:macos`，发行文件输出到 `release/macOS/`。
+- Windows：`pnpm package:windows`，目标输出位于 `release/Windows/`，包含 x64、x86 安装版和绿色 ZIP。绿色 ZIP 的打包规则只收录一个 `PoTools.exe`；静态 Node SDK、实际链接与目标机运行仍需完成验证。
+- Linux：在目标架构的 Linux 主机运行 `pnpm package:linux`，输出到固定的 `release/Linux/`。x64、ARM64 配置 AppImage、DEB、RPM；ARMv7、PowerPC64 LE、IBM Z（s390x）配置 DEB、RPM。各架构须在对应的原生 Linux 环境分别构建；ARMv7 还要求 ARMv7 hard-float 主机，PowerPC 必须为小端。x64、ARM64 可从 Ubuntu 22.04 或 Debian 12 起构建；ARMv7、PowerPC64 LE、s390x 的 Sharp 运行库要求 glibc 2.36 或更新版本。构建成功不代表信创发行版已兼容，仍需在具体目标系统验证 WebKitGTK 4.1 等运行依赖。
+- 仅打包单一架构时使用 `pnpm package:windows:x64` 或 `pnpm package:windows:x86`；产物仍归入同一个 `release/Windows/`，不会散落到架构 target 目录作为最终交付路径。带 `:build` 后缀的命令只用于底层构建验证。
+
+Windows 打包前需准备 Node 静态嵌入 SDK，并设置 `POTOOLS_NODE_EMBED_SDK_ROOT` 指向 SDK 根目录。目录必须包含 `x86_64-pc-windows-msvc/` 和/或 `i686-pc-windows-msvc/`；SDK 用 `scripts/build-node-embed-sdk.ps1` 从对应版本、干净检出的 Node 源码构建。没有目标架构 SDK 时，打包会停止，不会生成依赖 sidecar 的绿色包。
+
+Rust/Tauri 的构建缓存仍位于 `apps/desktop/src-tauri/target/`，日常交付请从 `release/` 目录取包。Windows 安装版和绿色版启动时都会检查 WebView2；系统缺少时会自动从微软下载并静默安装，需要网络连接。应用不会把用户文档发送到网络。
 
 ## 4. 验证
 
@@ -123,11 +132,15 @@ pnpm tauri dev         # 桌面版：Rust 启动即拉起 Node sidecar
 - 桌面：Rust 宿主 spawn `packages/engine` 的 Node 进程（`serve --stdio`），ndjson 握手 + `engine_write` 双向通信有日志佐证；
 - 浏览器模式：上传→执行→进度事件→产物列表全链路走通（Vite 代理会缓冲 SSE，因此事件流直连引擎端口）。
 
+Linux 包依赖目标系统的 WebKitGTK 4.1。当前配置了 x64、ARM64、ARMv7 hard-float、PowerPC64 LE 与 IBM Z（s390x）五种构建目标，但尚无这些架构的完整发行验收记录。UOS、银河麒麟、openEuler 等信创系统需按具体产品版本验证 WebKitGTK 4.1、GTK 3、AppIndicator 与 glibc；x64/ARM64 的 Sharp 运行库最低需要 glibc 2.28，ARMv7、PowerPC64 LE、s390x 最低需要 glibc 2.36。后三种架构的 OCR 使用 WebAssembly。LoongArch、申威、RISC-V 尚未配置完整的 Node、Rust/Tauri、WebKitGTK 和原生依赖组合；当前不作发行版认证兼容声明。
+
+Debian/Ubuntu 构建机需安装 Tauri 的 Linux 开发依赖（包括 `libwebkit2gtk-4.1-dev`、GTK、OpenSSL、AppIndicator 和 librsvg）。x64/ARM64 可用 Ubuntu 22.04 或 Debian 12 作为构建基线；ARMv7、PowerPC64 LE、s390x 应从提供 glibc 2.36 或更新版本的原生构建环境制作发行包。
+
 ## 5. 打包说明
 
 - `src-tauri/.cargo/config.toml` 把 crates.io 换成了 `rsproxy.cn` 镜像（本机网络直连 crates.io 会卡死）。删掉该文件即回到官方源。
-- Windows x64 安装包会从 Node.js 官方发布构建下载并校验 Node 22.20.0，随包启动引擎；macOS/Linux 仍使用系统 Node，可用 `POTOOLS_NODE` 指定路径。
-- 引擎 bundle（`packages/engine/dist/engine.mjs`）刻意把 `sharp` 与 `mupdf` 留作外部依赖，因为它们是原生/WASM 包。当前安装包没有携带这两个模块，相关图片编解码和 PDF 光栅能力会返回明确错误（`error.noImageCodec` / `error.noRasterizer`，界面按 `hintKey` 翻译成中文提示）。开发模式用 `tsx` 直接跑源码，不受影响。
+- macOS/Linux 发行包仍使用旁置 Node runtime 和引擎资源；Linux 配置 x64、ARM64、ARMv7、PowerPC64 LE、IBM Z（s390x），运行时使用系统 WebKitGTK。Windows 绿色包采用单 EXE 嵌入路径，不应从这些平台的 sidecar 布局推断其运行方式。
+- Windows 单 EXE 构建路径将 Node 静态库、CommonJS engine bundle、MuPDF WASM、Sharp WASM、OCR 模型和 ONNX Runtime Web WASM 编入应用。嵌入式引擎已在隔离目录通过图片信息、JPEG 压缩和 OCR 文本检查；目标 Windows EXE 的链接、启动与完整工具回归仍未验证，不能宣称单 EXE 发行已保持全部工具行为。
 
 ## 6. 设置项
 
@@ -155,7 +168,7 @@ pnpm tauri dev         # 桌面版：Rust 启动即拉起 Node sidecar
 - **PDF 转 OFD 的文字模式**：字体小于 3 MB 时整份嵌入，否则只登记字体名（打开的机器需装有该字体）；OFD 矢量路径（PathObject）暂不导出。
 - **PDF 转图片类导出的图片**：MuPDF 的 structured text 在本 WASM 构建里不回报图片块，图片位置由内容流的 `cm ... Do` 反算，再从页面光栅中裁切；异常变换（旋转/斜切）下取包围盒。
 - **未实现**：OCR、电子签名、文档对比、添加密码——这些依赖外部二进制或额外的安全处理实现，尚未纳入。
-- 引擎以子进程方式运行；Windows x64 安装包自带 Node，macOS/Linux 桌面版需系统 Node，或通过 `POTOOLS_NODE` 指定路径。
+- 引擎以子进程方式运行；发行包自带匹配架构的 Node 和已配置的原生模块。Linux 当前配置 x64、ARM64、ARMv7、PowerPC64 LE、IBM Z（s390x）；LoongArch 仍缺少完整的 Node、ONNX Runtime、Sharp 运行时组合。
 
 ## 8. 版权与许可
 
