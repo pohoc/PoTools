@@ -7,7 +7,7 @@ using StructuredTask = Microsoft.Build.Logging.StructuredLogger.Task;
 
 internal static class Program
 {
-    private const string ExporterVersion = "1.1.3";
+    private const string ExporterVersion = "1.2.0";
     private static readonly HashSet<string> WindowsSystemLibraries = new(StringComparer.OrdinalIgnoreCase)
     {
         "advapi32", "bcrypt", "comctl32", "comdlg32", "crypt32", "dbghelp", "dnsapi",
@@ -163,6 +163,21 @@ internal static class Program
             var extrasLibrary = Path.Combine(output, "node_extras.lib");
             ArchiveObjects(libExe, objectFiles, extrasLibrary, architecture);
             AddStaticLibrary(libraries, copiedByName, extrasLibrary, "static");
+
+            // GYP also wires component libraries into node.exe via ProjectReference (v8_compiler,
+            // v8_turboshaft, …) which never appear in the Link task's AdditionalDependencies. They
+            // are consumed as plain archives after the whole-archive set, so collect them too.
+            var componentLibraryDirectory = Path.Combine(source, "out/Release/lib");
+            if (Directory.Exists(componentLibraryDirectory))
+            {
+                foreach (var component in Directory.EnumerateFiles(componentLibraryDirectory, "*.lib")
+                             .Select(Path.GetFullPath)
+                             .Where(path => !copiedByName.ContainsKey(Path.GetFileName(path)))
+                             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
+                {
+                    AddStaticLibrary(libraries, copiedByName, component, "static");
+                }
+            }
 
             if (!libraries.Any(l => l.Kind == "whole" && string.Equals(l.Name, "libnode", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("The complete manifest does not whole-archive libnode.lib.");
@@ -421,6 +436,7 @@ internal static class Program
 
     // /GL（全程序优化）对象是 LTCG 中间格式而非原生 COFF，lib.exe 可以归档但 lld-link 无法消费；
     // 其符号已由 whole-archive 的组件库提供，这里按 COFF 机器号过滤掉。
+    // /bigobj 对象是合法 COFF 变体（0x0+0xFFFF 签名，machine 位于 offset 20），lld-link 支持消费。
     private static bool IsNativeCoffObject(string path, string architecture)
     {
         var expected = architecture switch
@@ -429,9 +445,13 @@ internal static class Program
             "x86" => 0x14C,
             _ => throw new InvalidOperationException($"Unsupported architecture: {architecture}"),
         };
-        var bytes = new byte[2];
+        var bytes = new byte[22];
         using var stream = File.OpenRead(path);
-        return stream.Read(bytes, 0, 2) == 2 && BitConverter.ToUInt16(bytes, 0) == expected;
+        if (stream.Read(bytes, 0, bytes.Length) < bytes.Length) return false;
+        var machine = BitConverter.ToUInt16(bytes, 0) == 0 && BitConverter.ToUInt16(bytes, 4) == 0xFFFF
+            ? BitConverter.ToUInt16(bytes, 20)   // bigobj
+            : BitConverter.ToUInt16(bytes, 0);   // 标准 COFF
+        return machine == expected;
     }
 
     private static void ArchiveObjects(string libExe, List<string> objectFiles, string outputLibrary, string architecture)
