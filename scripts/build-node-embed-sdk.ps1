@@ -56,6 +56,12 @@ function Initialize-ToolchainLibraryEnvironment([string] $Architecture) {
         (Join-Path $sdkLibVersion.FullName "um\$libArch"),
         (Join-Path $sdkLibVersion.FullName "ucrt\$libArch")
     ) -join ';')
+
+    # lib.exe archives the node.exe target's loose objects into the SDK; the archiver is
+    # host-architecture independent, so the x64-host variant serves both targets.
+    $libExe = Join-Path $vcToolsInstallDir 'bin\Hostx64\x64\lib.exe'
+    if (-not (Test-Path -LiteralPath $libExe -PathType Leaf)) { throw "MSVC lib.exe not found: $libExe" }
+    $env:POTOOLS_LIB_EXE = $libExe
     Write-Host "Toolchain libraries: $env:LIB"
 }
 

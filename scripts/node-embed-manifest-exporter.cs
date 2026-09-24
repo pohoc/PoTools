@@ -7,7 +7,7 @@ using StructuredTask = Microsoft.Build.Logging.StructuredLogger.Task;
 
 internal static class Program
 {
-    private const string ExporterVersion = "1.0.1";
+    private const string ExporterVersion = "1.1.0";
     private static readonly HashSet<string> WindowsSystemLibraries = new(StringComparer.OrdinalIgnoreCase)
     {
         "advapi32", "bcrypt", "comctl32", "comdlg32", "crypt32", "dbghelp", "dnsapi",
@@ -85,8 +85,16 @@ internal static class Program
             var dependencies = ReadParameterValues(task, "AdditionalDependencies");
             var options = ReadParameterValues(task, "AdditionalOptions");
             var directories = ReadParameterValues(task, "AdditionalLibraryDirectories");
+            var objectFiles = ReadParameterValues(task, "ObjectFiles")
+                .Where(value => value.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+                .Select(value => Path.IsPathRooted(value) ? Path.GetFullPath(value) : Path.GetFullPath(Path.Combine(source, value)))
+                .Where(path => IsInsideSource(path, source) && File.Exists(path))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
             if (dependencies.Count == 0)
                 throw new InvalidOperationException("Node Link task has no readable AdditionalDependencies parameter.");
+            if (objectFiles.Count == 0)
+                throw new InvalidOperationException("Node Link task has no readable source-tree object inputs; node-only components (crdtp/inspector) would be missing from the SDK.");
 
             var wholeTokens = new List<string>();
             foreach (var option in options)
@@ -141,6 +149,15 @@ internal static class Program
                     throw new InvalidOperationException($"/WHOLEARCHIVE target is not a unique Node build library: {raw}");
                 AddStaticLibrary(libraries, copiedByName, resolved, "whole");
             }
+
+            // node.exe target links loose objects (crdtp/inspector protocol, node_main) that live in no
+            // component .lib; archive them so the SDK can satisfy those symbols without the binlog.
+            var libExe = Environment.GetEnvironmentVariable("POTOOLS_LIB_EXE");
+            if (string.IsNullOrWhiteSpace(libExe) || !File.Exists(libExe))
+                throw new InvalidOperationException("POTOOLS_LIB_EXE must point to the MSVC lib.exe used to archive node.exe link objects.");
+            var extrasLibrary = Path.Combine(output, "node_extras.lib");
+            ArchiveObjects(libExe, objectFiles, extrasLibrary, architecture);
+            AddStaticLibrary(libraries, copiedByName, extrasLibrary, "static");
 
             if (!libraries.Any(l => l.Kind == "whole" && string.Equals(l.Name, "libnode", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("The complete manifest does not whole-archive libnode.lib.");
@@ -395,6 +412,39 @@ internal static class Program
             copied++;
         }
         if (copied == 0) throw new InvalidOperationException($"No C/C++ headers found under {source}");
+    }
+
+    private static void ArchiveObjects(string libExe, List<string> objectFiles, string outputLibrary, string architecture)
+    {
+        var machine = architecture switch
+        {
+            "x64" => "X64",
+            "x86" => "X86",
+            _ => throw new InvalidOperationException($"Unsupported architecture: {architecture}"),
+        };
+        var responseFile = Path.Combine(Path.GetTempPath(), $"node-embed-obj-{Guid.NewGuid():N}.rsp");
+        try
+        {
+            File.WriteAllLines(responseFile, objectFiles.Select(path => '"' + path + '"'));
+            var info = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = libExe,
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                Arguments = $"/MACHINE:{machine} /OUT:\"" + outputLibrary + "\" @\"" + responseFile + "\"",
+            };
+            using var process = System.Diagnostics.Process.Start(info)!;
+            var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+                throw new InvalidOperationException($"lib.exe failed to archive {objectFiles.Count} node link objects: {output[..Math.Min(output.Length, 2000)]}");
+            RequireFile(outputLibrary, "archived node_extras.lib");
+        }
+        finally
+        {
+            File.Delete(responseFile);
+        }
     }
 
     private static string Hash(string path)
