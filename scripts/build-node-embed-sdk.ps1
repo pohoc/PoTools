@@ -25,6 +25,40 @@ function Resolve-ExistingDirectory([string] $Path, [string] $Label) {
     return $resolved
 }
 
+function Initialize-ToolchainLibraryEnvironment([string] $Architecture) {
+    $libArch = if ($Architecture -eq 'x64') { 'x64' } else { 'x86' }
+
+    $vsWhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    if (-not (Test-Path -LiteralPath $vsWhere -PathType Leaf)) { throw 'vswhere.exe is required to locate the MSVC toolchain libraries.' }
+    $installPath = (& $vsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
+    if (-not $installPath -or -not (Test-Path -LiteralPath $installPath -PathType Container)) { throw 'Visual Studio with the C++ workload is required.' }
+
+    $msvcRoot = Join-Path $installPath 'VC\Tools\MSVC'
+    $msvcVersion = Get-ChildItem -LiteralPath $msvcRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { ($_.Name -as [version]) -and (Test-Path -LiteralPath (Join-Path $_.FullName "lib\$libArch") -PathType Container) } |
+        Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
+    if (-not $msvcVersion) { throw "No MSVC toolchain under $msvcRoot provides lib\$libArch." }
+    $vcToolsInstallDir = $msvcVersion.FullName
+
+    $sdkKey = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0'
+    $sdkProperty = Get-ItemProperty -Path $sdkKey -ErrorAction SilentlyContinue
+    if (-not $sdkProperty -or -not $sdkProperty.InstallationFolder) { throw 'Windows 10/11 SDK location not found in registry.' }
+    $windowsSdkDir = ([string]$sdkProperty.InstallationFolder).TrimEnd('\') + '\'
+    $sdkLibVersion = Get-ChildItem -LiteralPath (Join-Path $windowsSdkDir 'Lib') -Directory -ErrorAction SilentlyContinue |
+        Where-Object { ($_.Name -as [version]) -and (Test-Path -LiteralPath (Join-Path $_.FullName "um\$libArch") -PathType Container) } |
+        Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
+    if (-not $sdkLibVersion) { throw "No Windows SDK under $windowsSdkDir provides Lib\*\um\$libArch." }
+
+    $env:VCToolsInstallDir = $vcToolsInstallDir
+    $env:WindowsSdkDir = $windowsSdkDir
+    $env:LIB = (@(
+        (Join-Path $vcToolsInstallDir "lib\$libArch"),
+        (Join-Path $sdkLibVersion.FullName "um\$libArch"),
+        (Join-Path $sdkLibVersion.FullName "ucrt\$libArch")
+    ) -join ';')
+    Write-Host "Toolchain libraries: $env:LIB"
+}
+
 if ($env:OS -ne 'Windows_NT') { throw 'This SDK builder must run in Windows PowerShell or PowerShell 7 on Windows.' }
 if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) { throw 'git.exe is required.' }
 if (-not (Get-Command dotnet.exe -ErrorAction SilentlyContinue)) { throw '.NET 8 SDK (dotnet.exe) is required to run the pinned binlog exporter.' }
@@ -105,6 +139,11 @@ try {
     $exporterSource = Join-Path $PSScriptRoot 'node-embed-manifest-exporter.cs'
     if (-not (Test-Path -LiteralPath $exporterSource -PathType Leaf)) { throw "Pinned exporter source is missing: $exporterSource" }
     Copy-Item -LiteralPath $exporterSource -Destination (Join-Path $projectDir 'Program.cs')
+
+    # vcbuild runs in an isolated cmd.exe, so this session has no MSVC environment.
+    # The exporter must resolve whitelisted system libraries (Dbghelp.lib etc.) to
+    # disk for its trusted-path check; seed LIB and the toolchain roots explicitly.
+    Initialize-ToolchainLibraryEnvironment -Architecture $Architecture
 
     $exportLog = Join-Path $work 'exporter.log'
     & dotnet.exe run --project $projectFile --configuration Release -- $binlogPath $source $stage $Target $NodeVersion $Architecture $NodeTagCommit 2>&1 | Tee-Object -FilePath $exportLog
