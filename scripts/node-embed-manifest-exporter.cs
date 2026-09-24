@@ -7,7 +7,7 @@ using StructuredTask = Microsoft.Build.Logging.StructuredLogger.Task;
 
 internal static class Program
 {
-    private const string ExporterVersion = "1.1.0";
+    private const string ExporterVersion = "1.1.1";
     private static readonly HashSet<string> WindowsSystemLibraries = new(StringComparer.OrdinalIgnoreCase)
     {
         "advapi32", "bcrypt", "comctl32", "comdlg32", "crypt32", "dbghelp", "dnsapi",
@@ -85,17 +85,15 @@ internal static class Program
             var dependencies = ReadParameterValues(task, "AdditionalDependencies");
             var options = ReadParameterValues(task, "AdditionalOptions");
             var directories = ReadParameterValues(task, "AdditionalLibraryDirectories");
-            var objectFiles = ReadParameterValues(task, "ObjectFiles")
-                .Concat(ReadParameterValues(task, "Source"))
-                .Where(value => value.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
-                .Select(value => Path.IsPathRooted(value) ? Path.GetFullPath(value) : Path.GetFullPath(Path.Combine(source, value)))
-                .Where(path => IsInsideSource(path, source) && File.Exists(path))
+            var objectFiles = Directory
+                .EnumerateFiles(Path.Combine(source, "out"), "*.obj", SearchOption.AllDirectories)
+                .Select(Path.GetFullPath)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
             if (dependencies.Count == 0)
                 throw new InvalidOperationException("Node Link task has no readable AdditionalDependencies parameter.");
             if (objectFiles.Count == 0)
-                throw new InvalidOperationException("Node Link task has no readable source-tree object inputs; node-only components (crdtp/inspector) would be missing from the SDK.");
+                throw new InvalidOperationException("Node build tree has no object files; node-only components (crdtp/inspector) would be missing from the SDK.");
 
             var wholeTokens = new List<string>();
             foreach (var option in options)
@@ -205,7 +203,7 @@ internal static class Program
                 }) + "\n",
                 new UTF8Encoding(false));
 
-            Console.WriteLine($"Exported {libraries.Count} linker entries ({copiedByName.Count} Node static libraries) for {target}.");
+            Console.WriteLine($"Exported {libraries.Count} linker entries ({copiedByName.Count} Node static libraries, {objectFiles.Count} link objects archived) for {target}.");
             return 0;
         }
         catch (Exception error)
