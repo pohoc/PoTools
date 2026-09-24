@@ -91,11 +91,16 @@ fn build_node_embed() {
     let mut cpp = cc::Build::new();
     cpp.cpp(true)
         .std("c++20")
-        .flag("/EHsc")
         .file("native/node_embed.cpp")
         .includes(include_dirs)
         .define("NODE_WANT_INTERNALS", "1")
         .warnings(false);
+    // MSVC 风格驱动用 /EHsc；交叉编译时的 GNU 风格 clang 只认 -fexceptions
+    if cpp.get_compiler().is_like_msvc() {
+        cpp.flag("/EHsc");
+    } else {
+        cpp.flag("-fexceptions");
+    }
     if let Some(sysroot) = env::var_os("POTOOLS_WIN_MSVC_SYSROOT") {
         let sysroot = PathBuf::from(sysroot);
         let standard_headers = sysroot.join("include/c++/msstl");
