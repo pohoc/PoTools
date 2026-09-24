@@ -1,0 +1,44 @@
+name: Build Node embed SDK
+
+on:
+  push:
+    branches: [po/node-embed-sdk-build]
+
+permissions:
+  contents: read
+
+jobs:
+  sdk:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            node: 22.20.0
+            target: x86_64-pc-windows-msvc
+          - architecture: x86
+            node: 20.20.2
+            target: i686-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned Node source
+        shell: pwsh
+        run: git clone --depth 1 --branch "v${{ matrix.node }}" https://github.com/nodejs/node.git node-source
+      - name: Build and export static Node SDK
+        shell: pwsh
+        run: ./scripts/build-node-embed-sdk.ps1 -Architecture ${{ matrix.architecture }} -NodeSourceRoot ./node-source -OutputRoot ./node-sdk
+      - name: Upload SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-embed-sdk-${{ matrix.architecture }}
+          path: node-sdk/${{ matrix.target }}
+          if-no-files-found: error
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-embed-sdk-${{ matrix.architecture }}-diagnostics
+          path: node-sdk/.node-embed-sdk-*/*.log
+          if-no-files-found: ignore
