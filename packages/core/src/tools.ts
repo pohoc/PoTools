@@ -1,3 +1,4 @@
+import { ID_PHOTO_SIZES } from './id-photo';
 import type { FileKind, ToolCategory, ToolId } from './protocol';
 import type { ToolField } from './fields';
 import { fieldsOf } from './fields';
@@ -185,10 +186,11 @@ const imageCutoutFields: ToolField[] = [
 ];
 
 const idPhotoFields: ToolField[] = [
-  { type: 'select', key: 'size', labelKey: 'opt.idPhoto.size', default: 'one-inch', options: [
-    { value: 'one-inch', labelKey: 'opt.idPhoto.oneInch', descriptionKey: 'opt.idPhoto.oneInch.hint' },
-    { value: 'two-inch', labelKey: 'opt.idPhoto.twoInch', descriptionKey: 'opt.idPhoto.twoInch.hint' },
-  ] },
+  { type: 'select', key: 'size', labelKey: 'opt.idPhoto.size', default: 'one-inch', options: Object.entries(ID_PHOTO_SIZES).map(([value, size]) => ({
+    value,
+    labelKey: size.labelKey,
+    descriptionKey: size.descriptionKey,
+  })) },
   { type: 'color', key: 'background', labelKey: 'opt.idPhoto.background', default: '#438edb' },
   { type: 'slider', key: 'maxFileKb', labelKey: 'opt.idPhoto.maxFileKb', descriptionKey: 'opt.idPhoto.maxFileKb.hint', default: 100, min: 10, max: 1000, step: 1, unit: 'kb', presets: [
     { value: 50, labelKey: 'opt.idPhoto.limit50' }, { value: 100, labelKey: 'opt.idPhoto.limit100' },
@@ -196,7 +198,7 @@ const idPhotoFields: ToolField[] = [
   ] },
   { type: 'slider', key: 'scale', labelKey: 'opt.idPhoto.scale', descriptionKey: 'opt.idPhoto.scale.hint', default: 100, min: 70, max: 130, step: 1, unit: 'percent' },
   { type: 'slider', key: 'verticalOffset', labelKey: 'opt.idPhoto.verticalOffset', descriptionKey: 'opt.idPhoto.verticalOffset.hint', default: 0, min: -20, max: 20, step: 1, unit: 'percent' },
-  { type: 'boolean', key: 'printSheet', labelKey: 'opt.idPhoto.printSheet', descriptionKey: 'opt.idPhoto.printSheet.hint', default: true },
+  { type: 'boolean', key: 'printSheet', labelKey: 'opt.idPhoto.printSheet', descriptionKey: 'opt.idPhoto.printSheet.hint', default: false },
 ];
 
 const imagePrintFields: ToolField[] = [
@@ -1807,7 +1809,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     id: 'image-id-photo', nameKey: 'tool.idPhoto.name', descKey: 'tool.idPhoto.desc', category: 'edit',
     icon: 'id-card', order: 270, accept: PORTRAIT_IMAGE_ACCEPT, multiFile: false, layout: 'standard', artifactKind: 'image',
-    keywords: ['证件照', '登记照', '一寸', '二寸', 'passport photo'], fields: idPhotoFields,
+    keywords: ['证件照', '登记照', '身份证', '社保卡', '驾驶证', '港澳通行证', '法考', '签证', '一寸', '二寸', 'passport photo'], fields: idPhotoFields,
   },
   { id: 'image-metadata-clean', nameKey: 'tool.imageMetadataClean.name', descKey: 'tool.imageMetadataClean.desc', category: 'metadata', icon: 'shield', order: 280, accept: IMAGE_ACCEPT, multiFile: true, layout: 'standard', artifactKind: 'image', keywords: ['EXIF', 'GPS', '隐私', 'metadata'], fields: [] },
   { id: 'image-print', nameKey: 'tool.imagePrint.name', descKey: 'tool.imagePrint.desc', category: 'convert', icon: 'printer', order: 290, accept: IMAGE_ACCEPT, multiFile: true, layout: 'standard', artifactKind: 'image', keywords: ['打印', 'A4', '纸张', 'print'], fields: imagePrintFields },

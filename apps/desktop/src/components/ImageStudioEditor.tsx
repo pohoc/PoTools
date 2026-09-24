@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FieldValue, ToolId } from 'core';
+import { getIdPhotoPrintSize, getIdPhotoSize, type FieldValue, type ToolId } from 'core';
 import { useI18n } from '../i18n/index.tsx';
 import { toFileRef, type PickedFile } from '../lib/files.ts';
 import { useEngine } from '../stores/engine.ts';
@@ -263,7 +263,8 @@ async function renderPrintSheet(file: File, options: Record<string, FieldValue>)
   const context = canvas.getContext('2d');
   if (!context) { image.close(); throw new Error('无法绘制打印预览'); }
   context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
-  const two = options.size === 'two-inch'; const w = two ? 413 : 295; const h = two ? 579 : 413; const gap = 24; const margin = 59;
+  const { width: w, height: h } = getIdPhotoPrintSize(options.size);
+  const gap = 24; const margin = 59;
   const columns = Math.max(1, Math.floor((canvas.width - 2 * margin + gap) / (w + gap)));
   const rows = Math.max(1, Math.floor((canvas.height - 2 * margin + gap) / (h + gap)));
   const x0 = Math.floor((canvas.width - (columns * w + (columns - 1) * gap)) / 2);
@@ -324,9 +325,9 @@ async function renderPreview(file: File, tool: ToolId, options: Record<string, F
   let outHeight = height;
   let crop: { x: number; y: number; width: number; height: number } | null = null;
   if (tool === 'image-id-photo') {
-    const twoInch = options.size === 'two-inch';
-    outWidth = twoInch ? 413 : 295;
-    outHeight = twoInch ? 579 : 413;
+    const size = getIdPhotoSize(options.size);
+    outWidth = size.width;
+    outHeight = size.height;
     crop = photoFrame(sourceContext.getImageData(0, 0, width, height), width, height,
       outWidth / outHeight, Number(options.scale) || 100, Number(options.verticalOffset) || 0);
   }
