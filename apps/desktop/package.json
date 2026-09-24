@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5199 --strictPort",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/check-embedded-registry.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri"
@@ -17,6 +17,7 @@
     "@open-file-viewer/core": "^0.1.47",
     "@open-file-viewer/react": "^0.1.47",
     "@potools/core": "workspace:*",
+    "@potools/engine": "workspace:*",
     "@potools/ui": "workspace:*",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.3",

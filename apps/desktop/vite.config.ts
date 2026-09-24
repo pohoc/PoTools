@@ -15,6 +15,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: '127.0.0.1',
     port: 5199,
     strictPort: true,
     proxy: {
@@ -30,6 +31,9 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     chunkSizeWarningLimit: 1200,
+  },
+  worker: {
+    format: 'es',
   },
   clearScreen: false,
   envPrefix: ['VITE_', 'POTOOLS_'],

@@ -14,7 +14,7 @@ class ErrorReportBoundary extends Component<{ children: ReactNode }, { error: Er
   state = { error: null as Error | null, copied: false };
   static getDerivedStateFromError(error: Error) { return { error }; }
   private onWindowError = (event: ErrorEvent) => this.setState({ error: event.error instanceof Error ? event.error : new Error(event.message || 'Unknown runtime error'), copied: false });
-  private onUnhandledRejection = (event: PromiseRejectionEvent) => this.setState({ error: event.reason instanceof Error ? event.reason : new Error('Unhandled asynchronous error'), copied: false });
+  private onUnhandledRejection = (event: PromiseRejectionEvent) => this.setState({ error: rejectionToError(event.reason), copied: false });
   componentDidMount() { window.addEventListener('error', this.onWindowError); window.addEventListener('unhandledrejection', this.onUnhandledRejection); }
   componentWillUnmount() { window.removeEventListener('error', this.onWindowError); window.removeEventListener('unhandledrejection', this.onUnhandledRejection); }
   componentDidCatch(error: Error, _info: ErrorInfo) { console.error('PoTools UI error', error.name, error.message); }
@@ -44,6 +44,31 @@ function safeErrorReport(error: Error, messages: Messages) {
     .replace(/(?:data:image\/[^;]+;base64,)[A-Za-z0-9+/=]+/g, messages['app.crash.imageOmitted'])
     .replace(/(?:[A-Za-z]:\\\\|\/)[^\s]+\.(?:jpg|jpeg|png|webp|tiff|pdf)/gi, messages['app.crash.filePath']);
   return redact(`PoTools UI error\nName: ${error.name}\nMessage: ${error.message}\nStack:\n${error.stack ?? '(unavailable)'}`);
+}
+
+function rejectionToError(reason: unknown): Error {
+  if (reason instanceof Error) return reason;
+  if (typeof reason === 'string') return new Error(reason);
+  if (reason && typeof reason === 'object') {
+    const value = reason as { name?: unknown; message?: unknown; stack?: unknown };
+    const error = new Error(
+      typeof value.message === 'string' && value.message
+        ? value.message
+        : safeStringify(reason),
+    );
+    if (typeof value.name === 'string' && value.name) error.name = value.name;
+    if (typeof value.stack === 'string' && value.stack) error.stack = value.stack;
+    return error;
+  }
+  return new Error(String(reason));
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return String(value);
+  }
 }
 
 const initial = bootstrapSettings();

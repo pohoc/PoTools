@@ -39,7 +39,13 @@ export async function startWindowDrag(): Promise<void> {
 }
 
 export async function closeWindow(): Promise<void> {
-  await (await win())?.close();
+  try {
+    await (await win())?.close();
+  } catch (error) {
+    // The close request can outlive the native webview during Windows exit.
+    // At that point the requested outcome (a closed window) is already met.
+    console.debug('PoTools window close completed during native teardown', error);
+  }
 }
 
 export async function isMaximized(): Promise<boolean> {
@@ -53,11 +59,33 @@ export function watchMaximized(handler: (maximized: boolean) => void): () => voi
   const unlisten = Promise.resolve().then(async () => {
     const target = await win();
     if (!target || disposed) return undefined;
-    handler(await target.isMaximized());
-    return target.onResized(async () => handler(await target.isMaximized()));
-  });
+    try {
+      handler(await target.isMaximized());
+      if (disposed) return undefined;
+      return await target.onResized(async () => {
+        if (disposed) return;
+        try {
+          handler(await target.isMaximized());
+        } catch {
+          // The native window may already be closing while its final resize
+          // event is being delivered. There is no UI state left to update.
+        }
+      });
+    } catch {
+      // Window setup can race with app shutdown (notably on Windows). This
+      // listener only drives a decorative button state, so a destroyed window
+      // is equivalent to having no listener.
+      return undefined;
+    }
+  }).catch(() => undefined);
   return () => {
     disposed = true;
-    void unlisten.then((stop) => stop?.());
+    void unlisten.then((stop) => {
+      try {
+        stop?.();
+      } catch {
+        // Tauri may have already removed listeners as the webview is destroyed.
+      }
+    });
   };
 }

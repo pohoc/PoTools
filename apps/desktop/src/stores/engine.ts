@@ -108,7 +108,7 @@ export const useEngine = create<EngineState>((set, get) => ({
 
   call: async <T>(method: RpcMethodName, params: Record<string, unknown> = {}): Promise<T> => {
     const transport = getTransport();
-    if (transport.status !== 'ready') {
+    if (transport.mode !== 'tauri' && transport.status !== 'ready') {
       await transport.start().catch(() => undefined);
     }
     const payload =

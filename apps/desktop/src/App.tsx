@@ -13,9 +13,49 @@ import { useI18n } from './i18n/index.tsx';
 import { useSettings } from './lib/settings.ts';
 import { TitleBar } from './components/TitleBar.tsx';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from './lib/tauri.ts';
+import { isMac } from './lib/window.ts';
+import { LicenseAgreement } from './components/LicenseAgreement.tsx';
+
+const MAC_LICENSE_ACCEPTANCE_KEY = 'potools.license.accepted.v1';
+
+function hasAcceptedMacLicense(): boolean {
+  if (!isMac()) return true;
+  try {
+    return localStorage.getItem(MAC_LICENSE_ACCEPTANCE_KEY) === 'accepted';
+  } catch {
+    return false;
+  }
+}
 
 export function App() {
+  const theme = useSettings((state) => state.theme);
+  const [licenseAccepted, setLicenseAccepted] = useState(hasAcceptedMacLicense);
+
+  const acceptLicense = () => {
+    try {
+      localStorage.setItem(MAC_LICENSE_ACCEPTANCE_KEY, 'accepted');
+    } catch {
+      // Keep this launch usable if the webview storage is unavailable.
+    }
+    setLicenseAccepted(true);
+  };
+
+  const declineLicense = () => {
+    void invoke('exit_app').catch(() => getCurrentWindow().close());
+  };
+
+  return (
+    <ThemeProvider mode={theme} onModeChange={(mode) => useSettings.getState().set('theme', mode)}>
+      {licenseAccepted
+        ? <MainApp />
+        : <LicenseAgreement onAccept={acceptLicense} onDecline={declineLicense} />}
+    </ThemeProvider>
+  );
+}
+
+function MainApp() {
   const boot = useEngine((state) => state.boot);
   const reconnect = useEngine((state) => state.reconnect);
   const status = useEngine((state) => state.status);
@@ -23,7 +63,6 @@ export function App() {
   const error = useEngine((state) => state.error);
   const attach = useJobs((state) => state.attach);
   const locale = useSettings((state) => state.locale);
-  const theme = useSettings((state) => state.theme);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -46,7 +85,13 @@ export function App() {
       if (disposed || !useSettings.getState().cleanupTempOnClose) return;
       const ttl = useSettings.getState().tempTtlDays;
       await useEngine.getState().call('temp.clean', { olderThanDays: ttl || 7, keepJobs: 1 }).catch(() => undefined);
-    }).then((unlisten) => { stop = unlisten; });
+    }).then((unlisten) => {
+      if (disposed) unlisten();
+      else stop = unlisten;
+    }).catch((error: unknown) => {
+      // Registration may lose a race with native window destruction.
+      console.debug('PoTools close listener unavailable', error);
+    });
     return () => { disposed = true; stop?.(); };
   }, []);
 
@@ -59,7 +104,7 @@ export function App() {
   }
 
   return (
-    <ThemeProvider mode={theme} onModeChange={(mode) => useSettings.getState().set('theme', mode)}>
+    <>
       <AppShell>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -70,7 +115,7 @@ export function App() {
         </Routes>
       </AppShell>
       <Toaster />
-    </ThemeProvider>
+    </>
   );
 }
 

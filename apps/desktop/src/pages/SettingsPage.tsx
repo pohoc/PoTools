@@ -557,7 +557,7 @@ function EngineTab() {
           <DefinitionRow term={t('settings.engineVersion')}>{info ? `${info.name} ${info.version}` : '—'}</DefinitionRow>
           <DefinitionRow term={t('settings.engineNode')}>{info?.nodeVersion ?? '—'}</DefinitionRow>
           <DefinitionRow term={t('settings.engineProtocol')}>{info ? `JSON-RPC v${info.protocol}` : '—'}</DefinitionRow>
-          <DefinitionRow term={t('settings.enginePid')}>{info ? String(info.pid) : '—'}</DefinitionRow>
+          <DefinitionRow term={t('settings.enginePid')}>{info?.pid ? String(info.pid) : '—'}</DefinitionRow>
           <DefinitionRow term={t('settings.platform')}>{platform}</DefinitionRow>
         </dl>
       </Group>
