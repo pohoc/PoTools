@@ -97,7 +97,9 @@ try {
     Push-Location $source
     try {
         $archArgument = if ($Architecture -eq 'x64') { 'x64' } else { 'x86' }
-        $command = 'call vcbuild.bat release ' + $archArgument + ' vs2022 no-cctest openssl-no-asm binlog > "' + $logPath + '" 2>&1'
+        # vcbuild 的 release 参数会隐式启用 ltcg（/GL）；lld-link 无法消费 /GL 对象，
+        # 故显式省略它——config 默认仍为 Release，只关闭全程序优化。
+        $command = 'call vcbuild.bat ' + $archArgument + ' vs2022 no-cctest openssl-no-asm binlog > "' + $logPath + '" 2>&1'
         $start = New-Object System.Diagnostics.ProcessStartInfo
         $start.FileName = Join-Path $env:WINDIR 'System32/cmd.exe'
         $start.Arguments = '/d /s /c "' + $command + '"'
