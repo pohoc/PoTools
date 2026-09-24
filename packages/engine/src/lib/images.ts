@@ -9,7 +9,7 @@ let sharpPromise: Promise<Sharp | null> | null = null;
 
 export async function getSharp(): Promise<Sharp | null> {
   if (!sharpPromise) {
-    sharpPromise = import('sharp')
+    sharpPromise = import(/* @vite-ignore */ 'sharp')
       .then((mod) => {
         const candidate = (mod as unknown as { default?: unknown }).default ?? mod;
         return typeof candidate === 'function' ? (candidate as Sharp) : null;

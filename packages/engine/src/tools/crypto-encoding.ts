@@ -1,9 +1,10 @@
-import { createHash, createHmac, getHashes } from 'node:crypto';
 import { EngineError } from '../errors.ts';
 import { localeOf, makeMsg } from '../lib/messages.ts';
 import type { ToolContext, ToolImpl } from '../types.ts';
 import { alignRows, emitText, joinBlocks, optBool, optNum, optSelect, optStr, section } from './time-core.ts';
 import type { Row } from './time-core.ts';
+import { hmacMd5, md5 } from './crypto-md5.ts';
+import { blake2b512 } from './crypto-blake2b.ts';
 
 type Msg = ReturnType<typeof makeMsg>;
 
@@ -93,11 +94,18 @@ function needText(msg: Msg, ctx: ToolContext, key: string, example: string): str
 }
 
 function textToBytes(text: string, charset: 'utf8' | 'latin1'): Uint8Array {
-  return charset === 'latin1' ? new Uint8Array(Buffer.from(text, 'latin1')) : new TextEncoder().encode(text);
+  return charset === 'latin1' ? Uint8Array.from({ length: text.length }, (_, index) => text.charCodeAt(index) & 0xff) : new TextEncoder().encode(text);
 }
 
 function utf8OrLossy(bytes: Uint8Array, charset: 'utf8' | 'latin1'): { text: string; lossy: boolean } {
-  if (charset === 'latin1') return { text: Buffer.from(bytes).toString('latin1'), lossy: false };
+  if (charset === 'latin1') {
+    let text = '';
+    const chunkSize = 0x8000;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      text += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+    }
+    return { text, lossy: false };
+  }
   try {
     return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), lossy: false };
   } catch {
@@ -321,12 +329,22 @@ function renderDigest(bytes: Uint8Array, format: DigestFormat): string {
   return format === 'hex' ? toHex(bytes) : encodeBase64(bytes, false);
 }
 
-function availableAlgorithms(): Set<string> {
+function webCryptoBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+async function availableAlgorithms(): Promise<Set<string>> {
+  const isNode = Boolean((globalThis as typeof globalThis & { process?: { versions?: { node?: string } } }).process?.versions?.node);
+  if (!isNode) return globalThis.crypto?.subtle ? new Set(['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'blake2b512']) : new Set(['md5', 'blake2b512']);
+  const { getHashes } = await import(/* @vite-ignore */ 'node:crypto');
   return new Set(getHashes().map((name) => name.toLowerCase()));
 }
 
-function pickAlgorithms(msg: Msg, requested: string, allowed: readonly HashName[], field: string, warnings: string[]): HashName[] {
-  const supported = allowed.filter((name) => availableAlgorithms().has(name));
+async function pickAlgorithms(msg: Msg, requested: string, allowed: readonly HashName[], field: string, warnings: string[]): Promise<HashName[]> {
+  const available = await availableAlgorithms();
+  const supported = allowed.filter((name) => available.has(name));
   if (requested === 'all') {
     if (!supported.length) throw bad(msg, field, msg('enc.error.noDigestAlgorithms'), 'md5');
     if (supported.length < allowed.length) {
@@ -338,13 +356,27 @@ function pickAlgorithms(msg: Msg, requested: string, allowed: readonly HashName[
   if (!allowed.includes(lowered)) {
     throw bad(msg, field, msg('enc.error.invalidAlgorithm', { value: requested, values: ['all', ...allowed].join(msg('common.list.sep')) }), 'all');
   }
-  if (!availableAlgorithms().has(lowered)) {
+  if (!available.has(lowered)) {
     throw bad(msg, field, msg('enc.error.algorithmUnavailable', { value: requested, values: supported.join(msg('common.list.sep')) }), supported[0] ?? 'md5');
   }
   return [lowered];
 }
 
-function digestBytes(bytes: Uint8Array, algorithm: HashName): Uint8Array {
+async function digestBytes(bytes: Uint8Array, algorithm: HashName): Promise<Uint8Array> {
+  if (algorithm === 'md5') return md5(bytes);
+  const isNode = Boolean((globalThis as typeof globalThis & { process?: { versions?: { node?: string } } }).process?.versions?.node);
+  if (algorithm === 'blake2b512' && !isNode) return blake2b512(bytes);
+  const webAlgorithm: Partial<Record<HashName, string>> = {
+    sha1: 'SHA-1',
+    sha256: 'SHA-256',
+    sha384: 'SHA-384',
+    sha512: 'SHA-512',
+  };
+  const name = webAlgorithm[algorithm];
+  if (name && globalThis.crypto?.subtle) {
+    return new Uint8Array(await globalThis.crypto.subtle.digest(name, webCryptoBuffer(bytes)));
+  }
+  const { createHash } = await import(/* @vite-ignore */ 'node:crypto');
   return new Uint8Array(createHash(algorithm).update(bytes).digest());
 }
 
@@ -362,9 +394,9 @@ const hashTool: ToolImpl = {
     const algorithm = optStr(ctx, 'algorithm', 'all') || 'all';
     const uppercase = optBool(ctx, 'uppercase', false);
     const bytes = inputAs === 'hex' ? decodeHex(msg, raw, 'input') : inputAs === 'base64' ? decodeBase64(msg, raw, 'input') : textToBytes(raw, 'utf8');
-    const names = pickAlgorithms(msg, algorithm, HASH_ALGORITHMS, 'algorithm', warnings);
+    const names = await pickAlgorithms(msg, algorithm, HASH_ALGORITHMS, 'algorithm', warnings);
     ctx.report({ percent: 45, phase: 'digest' });
-    const digests = names.map((name) => ({ name, value: formatHex(renderDigest(digestBytes(bytes, name), 'hex'), uppercase) }));
+    const digests = await Promise.all(names.map(async (name) => ({ name, value: formatHex(renderDigest(await digestBytes(bytes, name), 'hex'), uppercase) })));
     const blocks = [
       section(msg('enc.hash.section.results')),
       alignRows(digests.map((item) => [item.name, item.value] as Row)),
@@ -378,7 +410,8 @@ const hashTool: ToolImpl = {
     ];
     const notes = [msg('enc.hash.noteTrim')];
     if (inputAs !== 'text') notes.push(msg('enc.hash.noteInputAs', { inputAs: msg(INPUT_AS_LABEL[inputAs]), count: bytes.length }));
-    if (bytes.length !== Buffer.byteLength(raw, 'utf8')) notes.push(msg('enc.hash.noteRawLength', { rawBytes: Buffer.byteLength(raw, 'utf8'), usedBytes: bytes.length }));
+    const rawBytes = new TextEncoder().encode(raw).byteLength;
+    if (bytes.length !== rawBytes) notes.push(msg('enc.hash.noteRawLength', { rawBytes, usedBytes: bytes.length }));
     blocks.push(section(msg('common.section.notes')), notes.join('\n'));
     await emitText(ctx, 'hash.txt', joinBlocks(blocks));
     ctx.report({ percent: 100, phase: 'done' });
@@ -398,16 +431,27 @@ const hmacTool: ToolImpl = {
     const algorithm = optStr(ctx, 'algorithm', 'sha256') || 'sha256';
     const format = optSelect(ctx, 'format', ['hex', 'base64'] as const, 'hex');
     const uppercase = optBool(ctx, 'uppercase', false);
-    const names = pickAlgorithms(msg, algorithm, HMAC_ALGORITHMS, 'algorithm', warnings);
+    const names = await pickAlgorithms(msg, algorithm, HMAC_ALGORITHMS, 'algorithm', warnings);
     const keyBytes = textToBytes(secretRaw, 'utf8');
     const messageBytes = textToBytes(message, 'utf8');
     ctx.report({ percent: 40, phase: 'sign' });
-    const signed = names.map((name) => {
-      const mac = new Uint8Array(createHmac(name, keyBytes).update(messageBytes).digest());
+    const webAlgorithm: Partial<Record<HashName, string>> = { sha1: 'SHA-1', sha256: 'SHA-256', sha512: 'SHA-512' };
+    const signed = await Promise.all(names.map(async (name) => {
+      let mac: Uint8Array;
+      if (name === 'md5') {
+        mac = hmacMd5(keyBytes, messageBytes);
+      } else if (webAlgorithm[name] && globalThis.crypto?.subtle) {
+        const subtle = globalThis.crypto.subtle;
+        const key = await subtle.importKey('raw', webCryptoBuffer(keyBytes), { name: 'HMAC', hash: webAlgorithm[name] as string }, false, ['sign']);
+        mac = new Uint8Array(await subtle.sign('HMAC', key, webCryptoBuffer(messageBytes)));
+      } else {
+        const { createHmac } = await import(/* @vite-ignore */ 'node:crypto');
+        mac = new Uint8Array(createHmac(name, keyBytes).update(messageBytes).digest());
+      }
       const hex = renderDigest(mac, 'hex');
       const b64 = renderDigest(mac, 'base64');
       return { name, primary: format === 'hex' ? formatHex(hex, uppercase) : uppercase ? b64.toUpperCase() : b64, alt: format === 'hex' ? b64 : formatHex(hex, uppercase) };
-    });
+    }));
     const altLabel = format === 'hex' ? 'base64' : 'hex';
     const blocks = [
       section(msg('enc.hmac.section.results')),
@@ -470,7 +514,7 @@ const fileChecksumTool: ToolImpl = {
     const algorithm = optStr(ctx, 'algorithm', 'all') || 'all';
     const format = optSelect(ctx, 'format', ['hex', 'base64'] as const, 'hex');
     const expectedRaw = optStr(ctx, 'expected');
-    const names = pickAlgorithms(msg, algorithm, FILE_ALGORITHMS, 'algorithm', warnings);
+    const names = await pickAlgorithms(msg, algorithm, FILE_ALGORITHMS, 'algorithm', warnings);
     if (!ctx.inputs.length) throw new EngineError('empty_selection', msg('enc.checksum.error.emptySelection'), 'error.emptySelection');
     const expected = expectedRaw ? parseExpected(expectedRaw) : [];
     if (expectedRaw && !expected.length) {
@@ -494,7 +538,7 @@ const fileChecksumTool: ToolImpl = {
       const rows: Row[] = [];
       const verdicts: Row[] = [];
       for (const name of names) {
-        const digest = digestBytes(bytes, name);
+        const digest = await digestBytes(bytes, name);
         rows.push([name, renderDigest(digest, format)]);
         if (expected.length) {
           const hit = matchesExpected(expected, digest, name);
@@ -1095,7 +1139,7 @@ const unicodeEscapeTool: ToolImpl = {
           [msg('enc.label.outputChars'), codePoints(output)],
           [msg('enc.uni.label.nonAscii'), msg('enc.unit.pieces', { count: nonAscii })],
           [msg('enc.uni.label.escapeFragments'), style === 'unicode' ? (output.match(/\\u[0-9a-fA-F]{4}/g) ?? []).length : style === 'json' ? (output.match(/\\u[0-9a-fA-F]{4}/g) ?? []).length : (output.match(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]{1,31});/g) ?? []).length],
-          [msg('enc.uni.label.utf8Bytes'), Buffer.byteLength(raw, 'utf8')],
+          [msg('enc.uni.label.utf8Bytes'), new TextEncoder().encode(raw).byteLength],
         ]),
       );
       if (style === 'unicode') notes.push(msg('enc.uni.noteUnicode'));
@@ -1124,7 +1168,7 @@ const unicodeEscapeTool: ToolImpl = {
           [msg('enc.label.inputChars'), codePoints(raw)],
           [msg('enc.label.outputChars'), codePoints(decoded)],
           [msg('enc.uni.label.nonAscii'), msg('enc.unit.pieces', { count: [...decoded].filter((char) => (char.codePointAt(0) ?? 0) > 0x7e).length })],
-          [msg('enc.uni.label.utf8Bytes'), Buffer.byteLength(decoded, 'utf8')],
+          [msg('enc.uni.label.utf8Bytes'), new TextEncoder().encode(decoded).byteLength],
           [msg('enc.label.reencoded'), reEncoded === raw || (style === 'json' && reEncoded === raw.trim()) ? msg('common.value.yes') : msg('enc.uni.value.canonicalBelow')],
         ]),
       );
@@ -1154,3 +1198,7 @@ export const cryptoEncodingTools: ToolImpl[] = [
   urlCodecTool,
   unicodeEscapeTool,
 ];
+
+const EMBEDDED_ENCODING_IDS = new Set(['base64', 'radix', 'hex', 'url-codec', 'unicode-escape', 'hash', 'hmac']);
+
+export const embeddedCryptoEncodingTools = cryptoEncodingTools.filter((tool) => EMBEDDED_ENCODING_IDS.has(tool.id));

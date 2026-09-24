@@ -1,17 +1,35 @@
 import { XMLBuilder, XMLParser, XMLValidator } from 'fast-xml-parser';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import { Script } from 'node:vm';
 import bcrypt from 'bcryptjs';
-import { getServers, Resolver } from 'node:dns/promises';
-import { networkInterfaces, platform } from 'node:os';
-import { execFile } from 'node:child_process';
-import { isIP, isIPv6, createConnection } from 'node:net';
 import { EngineError } from '../errors.ts';
 import { localeOf, makeMsg } from '../lib/messages.ts';
 import type { ToolContext, ToolImpl } from '../types.ts';
 import { emitText, optBool, optNum, optStr } from './time-core.ts';
 
 type Msg = ReturnType<typeof makeMsg>;
+const byteLength = (value: string) => new TextEncoder().encode(value).byteLength;
+
+function encodeBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let offset = 0; offset < bytes.byteLength; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+
+function decodeBase64(payload: string): Uint8Array {
+  const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(normalized) || normalized.length % 4 === 1) {
+    throw new Error('Invalid base64');
+  }
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  if (encodeBase64(bytes).replace(/=+$/, '') !== normalized.replace(/=+$/, '')) {
+    throw new Error('Invalid base64');
+  }
+  return bytes;
+}
 
 function fail(msg: Msg, key: string): never {
   throw new EngineError('bad_request', msg(key));
@@ -40,7 +58,7 @@ const jsonFormat: ToolImpl = {
     const indent = Math.max(1, Math.min(8, Math.trunc(optNum(ctx, 'indent', 2))));
     const text = JSON.stringify(value, null, mode === 'minify' ? undefined : indent);
     await emitText(ctx, 'json-formatted.json', text);
-    return { extra: { mode, inputBytes: Buffer.byteLength(source), outputBytes: Buffer.byteLength(text) } };
+    return { extra: { mode, inputBytes: byteLength(source), outputBytes: byteLength(text) } };
   },
 };
 
@@ -53,7 +71,7 @@ const xmlFormat: ToolImpl = {
     const mode = optStr(ctx, 'mode') === 'minify' ? 'minify' : 'pretty';
     const text = new XMLBuilder({ ignoreAttributes: false, attributeNamePrefix: '@_', format: mode === 'pretty', indentBy: '  ', suppressEmptyNode: false }).build(parsed);
     await emitText(ctx, 'xml-formatted.xml', text);
-    return { extra: { mode, inputBytes: Buffer.byteLength(source), outputBytes: Buffer.byteLength(text) } };
+    return { extra: { mode, inputBytes: byteLength(source), outputBytes: byteLength(text) } };
   },
 };
 
@@ -73,7 +91,7 @@ const xmlJson: ToolImpl = {
       text = JSON.stringify(xmlParse(source, msg), null, 2);
     }
     await emitText(ctx, direction === 'json-xml' ? 'converted.xml' : 'converted.json', text);
-    return { extra: { direction, outputBytes: Buffer.byteLength(text) } };
+    return { extra: { direction, outputBytes: byteLength(text) } };
   },
 };
 
@@ -94,7 +112,7 @@ const yamlJson: ToolImpl = {
       fail(msg, direction === 'json-yaml' ? 'dev.error.json' : 'dev.error.yaml');
     }
     await emitText(ctx, direction === 'json-yaml' ? 'converted.yaml' : 'converted.json', text);
-    return { extra: { direction, outputBytes: Buffer.byteLength(text) } };
+    return { extra: { direction, outputBytes: byteLength(text) } };
   },
 };
 
@@ -109,6 +127,7 @@ const regexTest: ToolImpl = {
     if (!pattern) fail(msg, 'dev.error.regex');
     if (source.length > 1_000_000) fail(msg, 'dev.error.tooLarge');
     try {
+      const { Script } = await import(/* @vite-ignore */ 'node:vm');
       const script = mode === 'replace'
         ? new Script('new RegExp(pattern, flags); source.replace(new RegExp(pattern, flags), replacement)')
         : new Script('const scanFlags = flags.includes("g") ? flags : flags + "g"; [...source.matchAll(new RegExp(pattern, scanFlags))].slice(0, 1000).map((match) => ({ value: match[0], index: match.index, groups: match.slice(1) }))');
@@ -314,7 +333,7 @@ const bcryptTool: ToolImpl = {
     const mode = optStr(ctx, 'mode') === 'verify' ? 'verify' : 'hash';
     const password = optStr(ctx, 'bcryptPassword');
     if (!password) fail(msg, 'dev.error.empty');
-    if (Buffer.byteLength(password, 'utf8') > 72) fail(msg, 'dev.error.bcryptLength');
+    if (byteLength(password) > 72) fail(msg, 'dev.error.bcryptLength');
     if (mode === 'hash') {
       const rounds = Math.max(4, Math.min(12, Math.trunc(optNum(ctx, 'rounds', 10))));
       const hash = await bcrypt.hash(password, rounds);
@@ -406,7 +425,7 @@ const fileBase64: ToolImpl = {
     if (!ctx.inputs.length) throw new EngineError('empty_selection', makeMsg(localeOf(ctx))('dev.error.empty'));
     const file = ctx.inputs[0]!;
     if (file.bytes.byteLength > 8 * 1024 * 1024) fail(makeMsg(localeOf(ctx)), 'dev.error.tooLarge');
-    const encoded = Buffer.from(file.bytes).toString('base64');
+    const encoded = encodeBase64(file.bytes);
     await ctx.emit({ name: `${file.name}.base64.txt`, kind: 'text', bytes: new TextEncoder().encode(encoded) });
     return { extra: { sourceBytes: file.bytes.byteLength, encodedCharacters: encoded.length } };
   },
@@ -421,9 +440,9 @@ const base64File: ToolImpl = {
     const payload = source.replace(/^data:[^,]*;base64,/i, '').replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
     if (payload.length > 12 * 1024 * 1024) fail(msg, 'dev.error.tooLarge');
     if (!/^[A-Za-z0-9+/]*={0,2}$/.test(payload) || payload.length % 4 === 1) fail(msg, 'dev.error.base64');
-    const bytes = Buffer.from(payload, 'base64');
-    if (bytes.toString('base64').replace(/=+$/, '') !== payload.replace(/=+$/, '')) fail(msg, 'dev.error.base64');
-    await ctx.emit({ name, kind: 'binary', bytes: new Uint8Array(bytes) });
+    let bytes: Uint8Array;
+    try { bytes = decodeBase64(payload); } catch { fail(msg, 'dev.error.base64'); }
+    await ctx.emit({ name, kind: 'binary', bytes });
     return { extra: { filename: name, bytes: bytes.byteLength } };
   },
 };
@@ -436,6 +455,7 @@ const dnsLookup: ToolImpl = {
     const labels = hostname.split('.');
     if (!hostname || hostname.length > 253 || labels.some((label) => label.length > 63 || !/^[a-z\d_-]+$/i.test(label) || label.startsWith('-') || label.endsWith('-'))) fail(msg, 'dev.error.hostname');
     const type = optStr(ctx, 'recordType').toUpperCase();
+    const { Resolver } = await import(/* @vite-ignore */ 'node:dns/promises');
     const resolver = new Resolver({ timeout: 2500, tries: 1 });
     const method = ({ A: 'resolve4', AAAA: 'resolve6', MX: 'resolveMx', TXT: 'resolveTxt', NS: 'resolveNs', CNAME: 'resolveCname', SOA: 'resolveSoa' } as const)[type as 'A' | 'AAAA' | 'MX' | 'TXT' | 'NS' | 'CNAME' | 'SOA'];
     if (!method) fail(msg, 'dev.error.dnsType');
@@ -450,6 +470,118 @@ const dnsLookup: ToolImpl = {
     } finally {
       resolver.cancel();
     }
+  },
+};
+
+/** Desktop Worker implementation: DNS over HTTPS keeps lookup inside the EXE. */
+const embeddedDnsLookup: ToolImpl = {
+  id: 'dns-lookup',
+  async run(ctx) {
+    const msg = makeMsg(localeOf(ctx));
+    const hostname = optStr(ctx, 'hostname').replace(/\.$/, '').toLowerCase();
+    const labels = hostname.split('.');
+    if (!hostname || hostname.length > 253 || labels.some((label) => label.length > 63 || !/^[a-z\d_-]+$/i.test(label) || label.startsWith('-') || label.endsWith('-'))) fail(msg, 'dev.error.hostname');
+    const type = optStr(ctx, 'recordType').toUpperCase();
+    if (!['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME', 'SOA'].includes(type)) fail(msg, 'dev.error.dnsType');
+
+    const native = ctx.runtimeData?.nativeDns as { hostname?: string; recordType?: string; records?: string[] } | undefined;
+    let rawRecords: string[];
+    try {
+      if (native?.hostname === hostname && native.recordType === type && Array.isArray(native.records)) {
+        rawRecords = native.records;
+      } else {
+        // Browser-only use has no Tauri host, so it retains the public DoH path.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2500);
+        try {
+          const endpoint = new URL('https://dns.google/resolve');
+          endpoint.searchParams.set('name', hostname);
+          endpoint.searchParams.set('type', type);
+          const response = await fetch(endpoint, { headers: { accept: 'application/dns-json' }, signal: controller.signal });
+          if (!response.ok) fail(msg, 'dev.error.dnsLookup');
+          const payload = await response.json() as { Status?: number; Answer?: Array<{ type?: number; data?: string }> };
+          if (payload.Status !== 0 || !Array.isArray(payload.Answer)) fail(msg, 'dev.error.dnsLookup');
+          const typeCode: Record<string, number> = { A: 1, NS: 2, CNAME: 5, SOA: 6, MX: 15, TXT: 16, AAAA: 28 };
+          rawRecords = payload.Answer
+            .filter((answer) => answer.type === typeCode[type] && typeof answer.data === 'string')
+            .map((answer) => answer.data!);
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+      if (!rawRecords.length) fail(msg, 'dev.error.dnsLookup');
+      const lines = rawRecords.map((record) => {
+        const data = record;
+        if (type === 'TXT') {
+          const chunks = data.match(/"(?:\\.|[^"\\])*"/g);
+          return chunks ? chunks.map((chunk) => chunk.slice(1, -1)
+            .replace(/\\(\d{3})/g, (_match, octal: string) => String.fromCharCode(Number(octal)))
+            .replace(/\\([\\"])/g, '$1')).join('') : data;
+        }
+        if (type === 'MX') {
+          const [priority, ...exchange] = data.trim().split(/\s+/);
+          return JSON.stringify({ exchange: exchange.join('').replace(/\.$/, ''), priority: Number(priority) });
+        }
+        if (type === 'SOA') {
+          const [nsname, hostmaster, serial, refresh, retry, expire, minttl] = data.trim().split(/\s+/);
+          return JSON.stringify({ nsname: nsname?.replace(/\.$/, ''), hostmaster: hostmaster?.replace(/\.$/, ''), serial: Number(serial), refresh: Number(refresh), retry: Number(retry), expire: Number(expire), minttl: Number(minttl) });
+        }
+        return ['NS', 'CNAME'].includes(type) ? data.replace(/\.$/, '') : data;
+      });
+      await emitText(ctx, `dns-${type.toLowerCase()}-records.txt`, lines.join('\n'));
+      return { extra: { hostname, type, count: lines.length } };
+    } catch (error) {
+      if (error instanceof EngineError) throw error;
+      fail(msg, 'dev.error.dnsLookup');
+    }
+  },
+};
+
+const embeddedSystemNetwork: ToolImpl = {
+  id: 'system-network',
+  async run(ctx) {
+    const msg = makeMsg(localeOf(ctx));
+    const probe = ctx.runtimeData?.nativeNetwork as { kind?: string; stdout?: string; stderr?: string; dnsServers?: string; interfaceCount?: number } | undefined;
+    if (probe?.kind !== 'system-network') fail(msg, 'dev.error.networkUnavailable');
+    const lines = [`${msg('dev.localNetwork.dns')}: ${probe.dnsServers || '—'}`, probe.stdout?.trim(), probe.stderr?.trim()].filter(Boolean);
+    await emitText(ctx, 'local-network-info.txt', lines.join('\n\n'));
+    return { extra: { interfaces: probe.interfaceCount ?? 0 } };
+  },
+};
+
+const embeddedPingCheck: ToolImpl = {
+  id: 'ping-check',
+  async run(ctx) {
+    const msg = makeMsg(localeOf(ctx));
+    const host = optStr(ctx, 'host');
+    if (!hostIsValid(host)) fail(msg, 'dev.error.hostname');
+    const count = Math.max(1, Math.min(10, Math.trunc(optNum(ctx, 'count', 4))));
+    const result = ctx.runtimeData?.nativeNetwork as { kind?: string; stdout?: string; stderr?: string; errorCode?: string | null; connected?: boolean } | undefined;
+    if (result?.kind !== 'ping-check') fail(msg, 'dev.error.networkUnavailable');
+    if (result.errorCode === 'ENOENT') fail(msg, 'dev.error.pingUnavailable');
+    const reachable = result.connected === true;
+    const report = [`${msg('dev.localNetwork.target')}: ${host}`, `${msg('dev.localNetwork.status')}: ${msg(reachable ? 'dev.localNetwork.reachable' : 'dev.localNetwork.unreachable')}`, '', (result.stdout || result.stderr || result.errorCode || '').trim()].filter(Boolean).join('\n');
+    await emitText(ctx, 'ping-result.txt', report);
+    return { extra: { reachable: reachable ? 1 : 0, count } };
+  },
+};
+
+const embeddedTcpCheck: ToolImpl = {
+  id: 'tcp-check',
+  async run(ctx) {
+    const msg = makeMsg(localeOf(ctx));
+    const host = optStr(ctx, 'host');
+    const port = Math.trunc(optNum(ctx, 'port', 0));
+    if (!hostIsValid(host)) fail(msg, 'dev.error.hostname');
+    if (port < 1 || port > 65535) fail(msg, 'dev.error.port');
+    const result = ctx.runtimeData?.nativeNetwork as { kind?: string; errorCode?: string | null; connected?: boolean; elapsedMs?: number } | undefined;
+    if (result?.kind !== 'tcp-check') fail(msg, 'dev.error.networkUnavailable');
+    const connected = result.connected === true;
+    const elapsed = result.elapsedMs ?? 0;
+    const status = connected ? 'dev.localNetwork.connected' : result.errorCode === 'ETIMEDOUT' ? 'dev.localNetwork.timeout' : 'dev.localNetwork.refused';
+    const report = [`${msg('dev.localNetwork.target')}: ${host}:${port}`, `${msg('dev.localNetwork.status')}: ${msg(status)}`, `${msg('dev.localNetwork.elapsed')}: ${elapsed} ms`, ...(result.errorCode && result.errorCode !== 'ETIMEDOUT' ? [`${msg('dev.localNetwork.errorCode')}: ${result.errorCode}`] : [])].join('\n');
+    await emitText(ctx, 'tcp-connection-result.txt', report);
+    return { extra: { connected: connected ? 1 : 0, elapsedMs: elapsed } };
   },
 };
 
@@ -477,7 +609,7 @@ const urlInspect: ToolImpl = {
 };
 
 function ipv6Groups(input: string, msg: Msg): number[] {
-  if (!isIPv6(input)) fail(msg, 'dev.error.ipv6');
+  if (!isIPv6Address(input)) fail(msg, 'dev.error.ipv6');
   let source = input.toLowerCase();
   const ipv4 = source.match(/(?:^|:)(\d{1,3}(?:\.\d{1,3}){3})$/);
   if (ipv4) {
@@ -493,6 +625,23 @@ function ipv6Groups(input: string, msg: Msg): number[] {
   const groups = [...left, ...Array(Math.max(0, missing)).fill('0'), ...right].map((group) => Number.parseInt(group, 16));
   if (groups.length !== 8 || groups.some((group) => !Number.isFinite(group) || group > 0xffff)) fail(msg, 'dev.error.ipv6');
   return groups;
+}
+
+function isIPv6Address(input: string): boolean {
+  if (!input || input.includes('%') || input.includes(':::')) return false;
+  let source = input;
+  const ipv4 = source.match(/(?:^|:)(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (ipv4) {
+    const octets = ipv4[1]!.split('.');
+    if (octets.some((octet) => Number(octet) > 255)) return false;
+    source = `${source.slice(0, -ipv4[1]!.length)}${((Number(octets[0]) << 8) | Number(octets[1])).toString(16)}:${((Number(octets[2]) << 8) | Number(octets[3])).toString(16)}`;
+  }
+  const halves = source.split('::');
+  if (halves.length > 2) return false;
+  if (halves.length === 1 && (source.startsWith(':') || source.endsWith(':'))) return false;
+  const groups = source.split(':').filter(Boolean);
+  if (groups.some((group) => group.length > 4 || !/^[\da-f]+$/i.test(group))) return false;
+  return halves.length === 2 ? groups.length < 8 : groups.length === 8;
 }
 
 const ipv6Convert: ToolImpl = {
@@ -549,15 +698,24 @@ const portReference: ToolImpl = {
 };
 
 function hostIsValid(host: string): boolean {
-  if (isIP(host)) return true;
+  if (isIPv4Address(host) || isIPv6Address(host)) return true;
   if (!host || host.length > 253) return false;
   return host.split('.').every((label) => label.length > 0 && label.length <= 63 && /^[a-z\d_-]+$/i.test(label) && !label.startsWith('-') && !label.endsWith('-'));
+}
+
+function isIPv4Address(host: string): boolean {
+  const octets = host.split('.');
+  return octets.length === 4 && octets.every((octet) => /^\d{1,3}$/.test(octet) && Number(octet) <= 255);
 }
 
 const systemNetwork: ToolImpl = {
   id: 'system-network',
   async run(ctx) {
     const msg = makeMsg(localeOf(ctx));
+    const [{ networkInterfaces }, { getServers }] = await Promise.all([
+      import(/* @vite-ignore */ 'node:os'),
+      import(/* @vite-ignore */ 'node:dns/promises'),
+    ]);
     const interfaces = networkInterfaces();
     const lines = [`${msg('dev.localNetwork.dns')}: ${getServers().join(', ') || '—'}`];
     for (const name of Object.keys(interfaces).sort()) {
@@ -577,6 +735,10 @@ const pingCheck: ToolImpl = {
   id: 'ping-check',
   async run(ctx) {
     const msg = makeMsg(localeOf(ctx));
+    const [{ execFile }, { platform }] = await Promise.all([
+      import(/* @vite-ignore */ 'node:child_process'),
+      import(/* @vite-ignore */ 'node:os'),
+    ]);
     const host = optStr(ctx, 'host');
     if (!hostIsValid(host)) fail(msg, 'dev.error.hostname');
     const count = Math.max(1, Math.min(10, Math.trunc(optNum(ctx, 'count', 4))));
@@ -601,6 +763,7 @@ const tcpCheck: ToolImpl = {
   id: 'tcp-check',
   async run(ctx) {
     const msg = makeMsg(localeOf(ctx));
+    const { createConnection } = await import(/* @vite-ignore */ 'node:net');
     const host = optStr(ctx, 'host');
     const port = Math.trunc(optNum(ctx, 'port', 0));
     if (!hostIsValid(host)) fail(msg, 'dev.error.hostname');
@@ -625,7 +788,7 @@ const ipLookup: ToolImpl = {
   async run(ctx) {
     const msg = makeMsg(localeOf(ctx));
     const ip = optStr(ctx, 'ip');
-    if (ip && !isIP(ip)) fail(msg, 'dev.error.ipLookupAddress');
+    if (ip && !isIPv4Address(ip) && !isIPv6Address(ip)) fail(msg, 'dev.error.ipLookupAddress');
     let response: Response;
     try {
       const endpoint = `https://ip.bt.cn/ip_api.php${ip ? `?ip=${encodeURIComponent(ip)}` : ''}`;
@@ -659,3 +822,13 @@ const ipLookup: ToolImpl = {
 };
 
 export const developerTools: ToolImpl[] = [fileBase64, base64File, bcryptTool, jsonFormat, xmlFormat, xmlJson, yamlJson, regexTest, binaryCodec, caseConvert, userAgent, ipv4Convert, ipv4Subnet, colorConvert, robotsTxt, spfRecord, dmarcRecord, dnsLookup, urlInspect, ipv6Convert, portReference, systemNetwork, pingCheck, tcpCheck, ipLookup];
+
+const EMBEDDED_DEVELOPER_IDS = new Set([
+  'base64-file', 'bcrypt', 'json-format', 'xml-format', 'xml-json', 'yaml-json', 'binary-codec', 'case-convert',
+  'user-agent', 'ipv4-convert', 'ipv4-subnet', 'color-convert', 'robots-txt', 'spf-record', 'ip-lookup',
+  'dmarc-record', 'url-inspect', 'ipv6-convert', 'port-reference',
+]);
+
+export const embeddedDeveloperTools = developerTools.filter((tool) => EMBEDDED_DEVELOPER_IDS.has(tool.id));
+export const embeddedNetworkTools: ToolImpl[] = [embeddedDnsLookup, embeddedSystemNetwork, embeddedPingCheck, embeddedTcpCheck];
+export const embeddedDeveloperFileTools = developerTools.filter((tool) => tool.id === 'file-base64');

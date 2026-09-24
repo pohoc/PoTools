@@ -9,7 +9,7 @@ import { PROTOCOL_VERSION, TOOL_LIST } from '@potools/core';
 import { JobManager } from './jobs.ts';
 import { TOOL_IMPL_MAP } from './tools/index.ts';
 import { browseDirs, defaultTempRoot, loadPdf, readInput, setTempRootDir, tempRootDir } from './lib/files.ts';
-import { runTextTool } from './lib/text-run.ts';
+import { runTextToolWithImplementations } from './lib/text-run.ts';
 import { cleanTemp, tempUsage } from './lib/temp.ts';
 import { defaultOutputDir } from './lib/platform.ts';
 import { hasUniformSize, pagesInfo, readMetadata } from './lib/pdf.ts';
@@ -87,11 +87,11 @@ async function dispatch(
     case 'tools.list':
       return TOOL_LIST;
     case 'tool.run':
-      return runTextTool({
+      return runTextToolWithImplementations({
         tool: params.tool as ToolId,
         options: (params.options ?? {}) as Record<string, unknown>,
         globals: params.globals as JobGlobals | undefined,
-      });
+      }, TOOL_IMPL_MAP);
     case 'job.submit':
       return manager.submit(params.job as never);
     case 'job.cancel':

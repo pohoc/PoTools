@@ -10,6 +10,9 @@ import type { Box } from './pdf.ts';
 interface MupdfPixmap {
   getWidth(): number;
   getHeight(): number;
+  getStride(): number;
+  getNumberOfComponents(): number;
+  getPixels(): Uint8ClampedArray;
   asPNG(): ArrayBuffer;
   destroy(): void;
 }
@@ -23,6 +26,7 @@ interface MupdfPage {
   getBounds(): [number, number, number, number];
   toPixmap(matrix: unknown, colorspace: unknown, alpha: boolean, useCss: boolean): MupdfPixmap;
   toStructuredText(options?: unknown, area?: unknown): MupdfStructuredText;
+  destroy(): void;
 }
 
 interface MupdfDocument {
@@ -32,6 +36,7 @@ interface MupdfDocument {
   authenticatePassword(password: string): boolean;
   saveToBuffer(options: string): { asUint8Array(): Uint8Array };
   close(): void;
+  destroy(): void;
 }
 
 interface MupdfNamespace {
@@ -44,7 +49,10 @@ let modulePromise: Promise<MupdfNamespace | null> | null = null;
 
 export async function getMupdf(): Promise<MupdfNamespace | null> {
   if (!modulePromise) {
-    modulePromise = import('mupdf')
+    const embeddedModuleUrl = (globalThis as typeof globalThis & { __POTOOLS_MUPDF_MODULE_URL__?: string })
+      .__POTOOLS_MUPDF_MODULE_URL__;
+    const module = embeddedModuleUrl ? import(embeddedModuleUrl) : import('mupdf');
+    modulePromise = module
       .then((mod) => (mod as unknown as { default?: MupdfNamespace }).default ?? (mod as unknown as MupdfNamespace))
       .catch((error) => {
         logger.error('mupdf failed to load', { error: String(error) });
@@ -222,15 +230,14 @@ function clampFactor(base: number, widthPt: number, heightPt: number): number {
 
 /**
  * Repairs or decrypts a document MuPDF can read but pdf-lib cannot. MuPDF
- * writes plaintext output once authenticated, so an empty-password file
- * becomes editable through this path.
+ * writes plaintext output only after the supplied password authenticates.
  */
-export async function normalizePdfBytes(bytes: Uint8Array, label: string): Promise<Uint8Array> {
+export async function normalizePdfBytes(bytes: Uint8Array, label: string, password?: string | null): Promise<Uint8Array> {
   const mupdf = await getMupdf();
   if (!mupdf) return bytes;
   try {
     const doc = mupdf.Document.openDocument(new Uint8Array(bytes), 'application/pdf');
-    if (doc.needsPassword() && !doc.authenticatePassword('')) {
+    if (doc.needsPassword() && !doc.authenticatePassword(password ?? '')) {
       doc.close();
       return bytes;
     }

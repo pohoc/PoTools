@@ -111,7 +111,7 @@ const markdownToPdf: ToolImpl = {
         box,
         num(ctx.options, 'margin'),
         { size: num(ctx.options, 'fontSize'), lineHeight: 1.5, paragraphGap: 8, headingGap: 12, indent: 18 },
-        ctx.globals.fontPath,
+        async (doc, text) => (await textFont(doc, text, { fontPath: ctx.globals.fontPath })).font,
       );
       const folder = input.path ? dirname(input.path) : null;
       const cache = new Map<string, TypesetImage | null>();

@@ -132,7 +132,7 @@ export async function loadPdf(input: ResolvedInput, globals: JobGlobals = {}): P
     if (!(error instanceof EngineError)) throw error;
     if (error.code === 'encrypted_document' && !globals.password) throw error;
     logger.debug('retrying load through mupdf', { file: input.name, code: error.code });
-    const normalized = await normalizePdfBytes(input.bytes, input.name);
+    const normalized = await normalizePdfBytes(input.bytes, input.name, globals.password);
     try {
       return await loadDocument(normalized, input.name);
     } catch (retryError) {

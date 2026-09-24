@@ -98,7 +98,7 @@ export async function readDocModel(
           });
         });
       });
-      const images = pageImageRects(doc, page - 1).map((rect) =>
+      const images = (await pageImageRects(doc, page - 1)).map((rect) =>
         toVisualRect(rect, box.width, box.height, rotation),
       );
       pages.push({ page, width: visual.width, height: visual.height, lines, images });

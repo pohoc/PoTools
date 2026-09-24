@@ -1,4 +1,3 @@
-import { inflateSync } from 'node:zlib';
 import {
   PDFArray,
   PDFContentStream,
@@ -23,11 +22,11 @@ export interface Rect {
  * has to come from the content stream; exporters then crop those regions out of
  * the rendered page instead of decoding the image streams.
  */
-export function pageImageRects(doc: PDFDocument, pageIndex: number): Rect[] {
+export async function pageImageRects(doc: PDFDocument, pageIndex: number): Promise<Rect[]> {
   const page = doc.getPage(pageIndex);
   const names = imageResourceNames(doc, page.node.Resources() ?? inheritedResources(doc, pageIndex));
   if (!names.size) return [];
-  const content = contentText(doc, page.node.Contents());
+  const content = await contentText(doc, page.node.Contents());
   if (!content) return [];
 
   const placed: Rect[] = [];
@@ -41,6 +40,10 @@ export function pageImageRects(doc: PDFDocument, pageIndex: number): Rect[] {
       operandRun.push(numeric);
       continue;
     }
+    if (token.startsWith('/')) {
+      operandRun.push(token);
+      continue;
+    }
     switch (token) {
       case 'q':
         stack.push(ctm);
@@ -49,12 +52,12 @@ export function pageImageRects(doc: PDFDocument, pageIndex: number): Rect[] {
         ctm = stack.pop() ?? [1, 0, 0, 1, 0, 0];
         break;
       case 'cm': {
-        if (operandRun.length >= 6) ctm = multiply(operandRun.slice(-6) as number[], ctm);
+        if (operandRun.length >= 6) ctm = multiply(ctm, operandRun.slice(-6) as number[]);
         break;
       }
       case 'Do': {
         const name = operandRun[operandRun.length - 1];
-        if (typeof name === 'string' && names.has(name)) placed.push(rectFromCtm(ctm));
+        if (typeof name === 'string' && names.has(name.replace(/^\/+/, ''))) placed.push(rectFromCtm(ctm));
         break;
       }
       default:
@@ -99,16 +102,16 @@ function imageResourceNames(doc: PDFDocument, resources: PDFDict | undefined): S
   return found;
 }
 
-function contentText(doc: PDFDocument, contents: unknown): string {
+async function contentText(doc: PDFDocument, contents: unknown): Promise<string> {
   const parts: Uint8Array[] = [];
-  const collect = (value: unknown): void => {
+  const collect = async (value: unknown): Promise<void> => {
     const resolved = value instanceof PDFRef ? doc.context.lookup(value) : value;
     if (resolved instanceof PDFArray) {
-      for (let index = 0; index < resolved.size(); index += 1) collect(resolved.get(index));
+      for (let index = 0; index < resolved.size(); index += 1) await collect(resolved.get(index));
       return;
     }
     if (resolved instanceof PDFContentStream) {
-      parts.push(Buffer.from(resolved.getContentsString(), 'utf8'));
+      parts.push(Uint8Array.from(resolved.getContentsString(), (character) => character.charCodeAt(0) & 0xff));
       return;
     }
     if (resolved instanceof PDFRawStream) {
@@ -116,14 +119,27 @@ function contentText(doc: PDFDocument, contents: unknown): string {
       const bytes = resolved.contents;
       if (!bytes) return;
       try {
-        parts.push(filter.includes('FlateDecode') ? new Uint8Array(inflateSync(Buffer.from(bytes))) : bytes);
+        if (filter.includes('FlateDecode')) {
+          const stream = new Blob([bytes.slice().buffer as ArrayBuffer]).stream().pipeThrough(new DecompressionStream('deflate'));
+          parts.push(new Uint8Array(await new Response(stream).arrayBuffer()));
+        } else {
+          parts.push(bytes);
+        }
       } catch {
         parts.push(bytes);
       }
     }
   };
-  collect(contents);
-  return parts.map((part) => Buffer.from(part).toString('latin1')).join('\n');
+  await collect(contents);
+  return parts.map((part) => binaryString(part)).join('\n');
+}
+
+function binaryString(bytes: Uint8Array): string {
+  let value = '';
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    value += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return value;
 }
 
 /** Numbers, `/Names` and operators; literal strings and comments are skipped. */
@@ -155,6 +171,13 @@ function tokenize(content: string): string[] {
     }
     if (/\s/.test(char)) {
       index += 1;
+      continue;
+    }
+    if (char === '/') {
+      let end = index + 1;
+      while (end < content.length && !/[\s<>()[\]{}%/]/.test(content[end]!)) end += 1;
+      tokens.push(content.slice(index, end));
+      index = end;
       continue;
     }
     let end = index;

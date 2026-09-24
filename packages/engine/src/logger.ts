@@ -7,7 +7,10 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const LEVELS: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40 };
 
-let threshold = LEVELS[(process.env.POTOOLS_LOG_LEVEL as LogLevel) ?? 'info'] ?? LEVELS.info;
+const runtimeProcess = (globalThis as typeof globalThis & {
+  process?: { env?: Record<string, string | undefined>; stderr?: { write(value: string): unknown } };
+}).process;
+let threshold = LEVELS[(runtimeProcess?.env?.POTOOLS_LOG_LEVEL as LogLevel) ?? 'info'] ?? LEVELS.info;
 let sink: ((level: LogLevel, message: string, data?: unknown) => void) | null = null;
 
 export function setLogLevel(level: LogLevel): void {
@@ -22,7 +25,7 @@ export function log(level: LogLevel, message: string, data?: unknown): void {
   if (LEVELS[level] < threshold) return;
   if (sink) sink(level, message, data);
   const suffix = data === undefined ? '' : ` ${safeJson(data)}`;
-  process.stderr.write(`[${level}] ${message}${suffix}\n`);
+  writeLog(`[${level}] ${message}${suffix}\n`, level);
 }
 
 export const logger = {
@@ -42,11 +45,21 @@ function safeJson(value: unknown): string {
 
 /** Keeps third-party code from corrupting the stdio channel. */
 export function hijackConsole(): void {
-  console.log = (...args: unknown[]) => process.stderr.write(`${format(args)}\n`);
+  if (!runtimeProcess?.stderr) return;
+  console.log = (...args: unknown[]) => runtimeProcess.stderr?.write(`${format(args)}\n`);
   console.info = console.log;
   console.debug = console.log;
   console.warn = (...args: unknown[]) => process.stderr.write(`${format(args)}\n`);
   console.error = (...args: unknown[]) => process.stderr.write(`${format(args)}\n`);
+}
+
+function writeLog(message: string, level: LogLevel): void {
+  if (runtimeProcess?.stderr) {
+    runtimeProcess.stderr.write(message);
+    return;
+  }
+  const method = level === 'debug' ? 'debug' : level;
+  console[method](message.trimEnd());
 }
 
 function format(args: unknown[]): string {

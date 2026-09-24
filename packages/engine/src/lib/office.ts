@@ -1,5 +1,6 @@
 import { Document, HeadingLevel, ImageRun, Packer, PageBreak, Paragraph, TextRun } from 'docx';
 import type { FlowBlock } from './docmodel.ts';
+export { writePptx } from './pptx.ts';
 
 const PT_TO_PX = 96 / 72;
 
@@ -19,8 +20,8 @@ export interface DocxInput {
   contentWidth: number;
 }
 
-/** Builds a .docx from the shared flow model. */
-export async function writeDocx(input: DocxInput): Promise<Uint8Array> {
+/** Builds the shared DOCX document model used by Node and browser writers. */
+async function buildDocx(input: DocxInput): Promise<Document> {
   const children: Paragraph[] = [];
   let imageIndex = 0;
 
@@ -83,13 +84,23 @@ export async function writeDocx(input: DocxInput): Promise<Uint8Array> {
     }
   }
 
-  const doc = new Document({
+  return new Document({
     title: input.title,
     creator: 'PoTools',
     description: 'Converted with PoTools',
     sections: [{ properties: {}, children }],
   });
-  return new Uint8Array(await Packer.toBuffer(doc));
+}
+
+/** Builds a .docx using Node's Buffer-backed packer. */
+export async function writeDocx(input: DocxInput): Promise<Uint8Array> {
+  return new Uint8Array(await Packer.toBuffer(await buildDocx(input)));
+}
+
+/** Builds the same .docx using the browser Blob packer for Worker execution. */
+export async function writeBrowserDocx(input: DocxInput): Promise<Uint8Array> {
+  const blob = await Packer.toBlob(await buildDocx(input));
+  return new Uint8Array(await blob.arrayBuffer());
 }
 
 export interface SheetInput {
@@ -118,57 +129,4 @@ export async function writeXlsx(sheets: SheetInput[]): Promise<Uint8Array> {
   });
   const buffer = await workbook.xlsx.writeBuffer();
   return buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : new Uint8Array(buffer as Uint8Array);
-}
-
-export interface PptxInput {
-  /** One entry per slide, sized in inches. */
-  slides: Array<{
-    widthIn: number;
-    heightIn: number;
-    image: Uint8Array;
-    lines: Array<{ text: string; xIn: number; yIn: number; wIn: number; hIn: number; size: number; bold: boolean; color?: string }>;
-  }>;
-  title: string;
-}
-
-export async function writePptx(input: PptxInput): Promise<Uint8Array> {
-  const mod = await import('pptxgenjs');
-  const PptxGenJS = mod.default ?? (mod as unknown as { PptxGenJS: new () => any });
-  const pptx: any = typeof PptxGenJS === 'function' ? new PptxGenJS() : (PptxGenJS as any);
-  pptx.title = input.title;
-  pptx.author = 'PoTools';
-  const first = input.slides[0];
-  if (first) pptx.defineLayout({ name: 'PDFPAGE', width: first.widthIn, height: first.heightIn });
-  pptx.layout = 'PDFPAGE';
-
-  for (const slide of input.slides) {
-    const target = pptx.addSlide();
-    target.addImage({
-      data: `image/png;base64,${Buffer.from(slide.image).toString('base64')}`,
-      x: 0,
-      y: 0,
-      w: slide.widthIn,
-      h: slide.heightIn,
-    });
-    for (const line of slide.lines) {
-      target.addText(
-        [{ text: line.text, options: { bold: line.bold, fontSize: Math.max(5, Math.round(line.size * 0.72)) } }],
-        {
-          x: line.xIn,
-          y: line.yIn,
-          w: line.wIn,
-          h: line.hIn,
-          color: line.color ?? '000000',
-          // Keep generated text as real, visible slide content so Office
-          // conversions preserve searchable text instead of flattening it
-          // into an invisible annotation.
-          transparency: 0,
-          valign: 'top',
-          fit: 'shrink',
-        },
-      );
-    }
-  }
-  const written = await pptx.write({ outputType: 'arraybuffer' });
-  return new Uint8Array(written as ArrayBuffer);
 }

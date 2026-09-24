@@ -1,4 +1,5 @@
 import type { FileKind, JobGlobals, JobOutputRequest, JobSummary, OutputFile, ToolId } from '@potools/core';
+import type { PDFDocument } from 'pdf-lib';
 
 export interface ResolvedInput {
   id: string;
@@ -24,8 +25,14 @@ export interface ArtifactDraft {
 
 export interface ToolContext {
   inputs: ResolvedInput[];
+  /** Host-provided PDF loader; lets the same tools run from disk or in-memory bytes. */
+  loadPdf(input: ResolvedInput, globals?: JobGlobals): Promise<PDFDocument>;
+  /** Optional native raster analysis service; browser jobs route such requests to the host. */
+  contentInsets?(bytes: Uint8Array, page: number, globals: JobGlobals, rotation?: number): Promise<{ top: number; right: number; bottom: number; left: number } | null>;
   options: Record<string, string | number | boolean>;
   globals: JobGlobals;
+  /** Optional services/results supplied by a privileged desktop host. */
+  runtimeData?: Record<string, unknown>;
   output?: JobOutputRequest;
   namePattern?: string;
   warnings: string[];

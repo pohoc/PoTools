@@ -1,5 +1,4 @@
 import { PDFName, PDFNumber, PDFRawStream, type PDFDocument } from 'pdf-lib';
-import { loadPdf } from '../lib/files.ts';
 import { readMetadata, stripXmp, clearInfoDates } from '../lib/pdf.ts';
 import { rescale } from '../lib/images.ts';
 import { bool, num, str } from '../lib/options.ts';
@@ -14,7 +13,7 @@ const metadata: ToolImpl = {
     const report: Record<string, unknown> = {};
 
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const info = readMetadata(doc);
       if (mode === 'read') {
         report[baseName(input.name)] = { pages: doc.getPageCount(), ...info };
@@ -153,7 +152,7 @@ const compress: ToolImpl = {
     let imagesReplaced = 0;
 
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const stats = resample
         ? await recompressImages(doc, { maxEdge, quality })
         : { replaced: 0, skipped: 0, savedBytes: 0 };

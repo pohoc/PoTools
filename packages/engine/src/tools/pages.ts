@@ -3,7 +3,6 @@ import { degrees } from 'pdf-lib';
 import { parsePageRanges, formatPageRanges } from '@potools/core';
 import { copyPagesInto, createDocument, refitPages, rotateBy } from '../lib/pdf.ts';
 import type { RefitOptions } from '../lib/pdf.ts';
-import { loadPdf } from '../lib/files.ts';
 import { bool, num, str } from '../lib/options.ts';
 import { baseName, renderName } from '../lib/naming.ts';
 import { EngineError } from '../errors.ts';
@@ -41,7 +40,7 @@ const merge: ToolImpl = {
     const out = await createDocument();
     let pageCount = 0;
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       await copyMetadataInto(out, doc);
       await copyPagesInto(out, doc, allPages(doc));
       pageCount += doc.getPageCount();
@@ -65,7 +64,7 @@ const split: ToolImpl = {
   id: 'split',
   async run(ctx) {
     const input = ctx.inputs[0] as NonNullable<ToolContext['inputs'][number]>;
-    const doc = await loadPdf(input, ctx.globals);
+    const doc = await ctx.loadPdf(input, ctx.globals);
     const total = doc.getPageCount();
     const mode = str(ctx.options, 'mode');
     const stem = baseName(input.name);
@@ -130,7 +129,7 @@ const organize: ToolImpl = {
     const plan = (ctx.options.plan ?? []) as unknown as PlanItem[];
     if (!Array.isArray(plan) || !plan.length) throw new EngineError('empty_selection', '页面计划为空');
     const sources = new Map<string, PDFDocument>();
-    for (const input of ctx.inputs) sources.set(input.id, await loadPdf(input, ctx.globals));
+    for (const input of ctx.inputs) sources.set(input.id, await ctx.loadPdf(input, ctx.globals));
 
     const out = await createDocument();
     const first = ctx.inputs[0] ? sources.get(ctx.inputs[0].id) : undefined;
@@ -174,7 +173,7 @@ const rotate: ToolImpl = {
     const angle = num(ctx.options, 'angle');
     let processed = 0;
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const pages = parsePageRanges(str(ctx.options, 'pages'), doc.getPageCount());
       for (const page of pages) {
         const target = doc.getPages()[page - 1];
@@ -200,7 +199,7 @@ const extractPages: ToolImpl = {
     const onePerGroup = bool(ctx.options, 'oneFilePerGroup');
     let pagesOut = 0;
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const selection = parsePageRanges(str(ctx.options, 'pages'), doc.getPageCount());
       const groups: number[][] = [];
       if (onePerGroup) {
@@ -247,7 +246,7 @@ const deletePages: ToolImpl = {
     const raw = str(ctx.options, 'pages').trim();
     if (!raw || raw.toLowerCase() === 'all') throw new EngineError('bad_request', '请填写要删除的页码');
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const doomed = [...new Set(parsePageRanges(raw, doc.getPageCount()))].sort((a, b) => b - a);
       const kept = doc.getPageCount() - doomed.length;
       if (kept <= 0) throw new EngineError('empty_selection', '不能删除全部页面');

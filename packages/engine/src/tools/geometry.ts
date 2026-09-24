@@ -1,7 +1,5 @@
 import { rgb } from 'pdf-lib';
-import type { JobGlobals } from '@potools/core';
 import { parsePageRanges } from '@potools/core';
-import { loadPdf } from '../lib/files.ts';
 import {
   appendScaledPage,
   copyPagesInto,
@@ -12,65 +10,10 @@ import {
   visualBoxOf,
   type Box,
 } from '../lib/pdf.ts';
-import { getSharp } from '../lib/images.ts';
-import { openRaster } from '../lib/render.ts';
 import { baseName, renderName } from '../lib/naming.ts';
 import { bool, num, str } from '../lib/options.ts';
 import { EngineError } from '../errors.ts';
 import type { ToolImpl } from '../types.ts';
-
-/**
- * Offsets from each *unrotated* page edge to the visible content, in points.
- * Returns null when the rasterizer or an image decoder is unavailable.
- */
-export async function contentInsets(
-  bytes: Uint8Array,
-  page: number,
-  globals: JobGlobals,
-  rotation = 0,
-): Promise<Insets | null> {
-  const raster = await openRaster(bytes, globals);
-  try {
-    const box = raster.pageBox(page);
-    const bounds = await raster.inkBounds(page);
-    if (!bounds) return null;
-    const visual = {
-      left: bounds.x,
-      bottom: bounds.y,
-      right: Math.max(0, box.width - bounds.x - bounds.width),
-      top: Math.max(0, box.height - bounds.y - bounds.height),
-    };
-    return toUnrotatedInsets(visual, rotation);
-  } catch {
-    return null;
-  } finally {
-    raster.close();
-  }
-}
-
-export interface Insets {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
-
-/**
- * MuPDF reports bounds after /Rotate, so the edges have to be folded back into
- * the page's own coordinate space before they can be applied to a box.
- */
-export function toUnrotatedInsets(insets: Insets, rotation: number): Insets {
-  switch (normalizeAngle(rotation)) {
-    case 90:
-      return { left: insets.top, right: insets.bottom, top: insets.right, bottom: insets.left };
-    case 180:
-      return { left: insets.right, right: insets.left, top: insets.bottom, bottom: insets.top };
-    case 270:
-      return { left: insets.bottom, right: insets.top, top: insets.left, bottom: insets.right };
-    default:
-      return insets;
-  }
-}
 
 export interface Cell {
   x: number;
@@ -99,7 +42,7 @@ const resize: ToolImpl = {
   id: 'resize',
   async run(ctx) {
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const total = doc.getPageCount();
       if (!total) throw new EngineError('empty_selection', `${input.name} 没有页面`);
       const firstVisual = visualBoxOf(doc.getPages()[0]!);
@@ -134,7 +77,7 @@ const crop: ToolImpl = {
   async run(ctx) {
     let cropped = 0;
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const selection = new Set(parsePageRanges(str(ctx.options, 'pages'), doc.getPageCount()));
       const manual = {
         top: num(ctx.options, 'top'),
@@ -147,12 +90,8 @@ const crop: ToolImpl = {
         if (!selection.has(pageIndex + 1)) continue;
         let edges = manual;
         if (shrink) {
-          const detected = await contentInsets(
-            input.bytes,
-            pageIndex + 1,
-            ctx.globals,
-            normalizeAngle(page.getRotation().angle),
-          );
+          if (!ctx.contentInsets) throw new EngineError('unsupported', '需要本机 PDF 渲染器才能自动贴合内容');
+          const detected = await ctx.contentInsets(input.bytes, pageIndex + 1, ctx.globals, normalizeAngle(page.getRotation().angle));
           if (detected) {
             edges = {
               top: detected.top + manual.top,
@@ -188,7 +127,7 @@ const margins: ToolImpl = {
     const horizontal = sides === 'all' || sides === 'horizontal' ? edge : 0;
     let pages = 0;
     for (const [index, input] of ctx.inputs.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const keepSize = bool(ctx.options, 'keepPageSize');
       const out = await createDocument();
       for (const [pageIndex] of doc.getPages().entries()) {
@@ -219,7 +158,7 @@ const nup: ToolImpl = {
   id: 'nup',
   async run(ctx) {
     const input = ctx.inputs[0]!;
-    const doc = await loadPdf(input, ctx.globals);
+    const doc = await ctx.loadPdf(input, ctx.globals);
     const total = doc.getPageCount();
     if (!total) throw new EngineError('empty_selection', `${input.name} 没有页面`);
     const perSheet = Math.max(1, Math.trunc(num(ctx.options, 'perSheet')));

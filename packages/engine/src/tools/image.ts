@@ -1,4 +1,5 @@
 import type sharpDefault from 'sharp';
+import { getIdPhotoPrintSize, getIdPhotoSize } from '@potools/core';
 import { EngineError } from '../errors.ts';
 import { bool, num, str } from '../lib/options.ts';
 import { getSharp, imageInfo, type RasterFormat } from '../lib/images.ts';
@@ -281,18 +282,13 @@ const imageCutout: ToolImpl = {
   },
 };
 
-const ID_PHOTO_SIZES = {
-  'one-inch': { width: 295, height: 413, label: '1-inch' },
-  'two-inch': { width: 413, height: 579, label: '2-inch' },
-} as const;
-
 const imageIdPhoto: ToolImpl = {
   id: 'image-id-photo',
   async run(ctx) {
     const sharp = await requireSharp();
     const input = ctx.inputs[0];
     if (!input) throw new EngineError('bad_request', '请先添加一张人物照片');
-    const size = ID_PHOTO_SIZES[str(ctx.options, 'size') as keyof typeof ID_PHOTO_SIZES] ?? ID_PHOTO_SIZES['one-inch'];
+    const size = getIdPhotoSize(ctx.options.size);
     const background = str(ctx.options, 'background') || '#438edb';
     const scale = Math.min(130, Math.max(70, num(ctx.options, 'scale') || 100)) / 100;
     const verticalOffset = Math.min(20, Math.max(-20, num(ctx.options, 'verticalOffset'))) / 100;
@@ -344,7 +340,7 @@ const imageIdPhoto: ToolImpl = {
     let photo: Uint8Array | null = null;
     let smallest = Number.POSITIVE_INFINITY;
     for (const quality of [94, 90, 86, 82, 78, 74, 70, 66, 62, 58, 54, 50, 46, 42, 38, 34, 30, 26, 22, 18, 14, 10]) {
-      const encoded = await sharp(flattened).jpeg({ quality, mozjpeg: true }).toBuffer();
+      const encoded = await sharp(flattened).withMetadata({ density: size.dpi ?? 300 }).jpeg({ quality, mozjpeg: true }).toBuffer();
       smallest = Math.min(smallest, encoded.byteLength);
       if (encoded.byteLength <= limitBytes) {
         photo = new Uint8Array(encoded);
@@ -356,32 +352,34 @@ const imageIdPhoto: ToolImpl = {
     }
     if (photo.byteLength > limitBytes) throw new EngineError('bad_request', `证件照实际大小 ${photo.byteLength} 字节超过 ${limitBytes} 字节上限`);
     const stem = baseName(input.name);
-    await ctx.emit({ name: `${stem}-${size.label}-id-photo.jpg`, kind: 'image', bytes: photo, sourceFileId: input.id });
+    await ctx.emit({ name: `${stem}-${size.fileLabel}-id-photo.jpg`, kind: 'image', bytes: photo, sourceFileId: input.id });
 
     if (bool(ctx.options, 'printSheet')) {
       const sheetWidth = 2480;
       const sheetHeight = 3508;
       const margin = 59;
       const gap = 24;
-      const columns = Math.max(1, Math.floor((sheetWidth - 2 * margin + gap) / (size.width + gap)));
-      const rows = Math.max(1, Math.floor((sheetHeight - 2 * margin + gap) / (size.height + gap)));
+      const printSize = getIdPhotoPrintSize(ctx.options.size);
+      const columns = Math.max(1, Math.floor((sheetWidth - 2 * margin + gap) / (printSize.width + gap)));
+      const rows = Math.max(1, Math.floor((sheetHeight - 2 * margin + gap) / (printSize.height + gap)));
       const count = columns * rows;
-      const contentWidth = columns * size.width + (columns - 1) * gap;
-      const contentHeight = rows * size.height + (rows - 1) * gap;
+      const contentWidth = columns * printSize.width + (columns - 1) * gap;
+      const contentHeight = rows * printSize.height + (rows - 1) * gap;
       const originX = Math.floor((sheetWidth - contentWidth) / 2);
       const originY = Math.floor((sheetHeight - contentHeight) / 2);
+      const printPhoto = await sharp(photo).resize(printSize.width, printSize.height, { fit: 'fill' }).toBuffer();
       const copies = Array.from({ length: count }, (_, index) => ({
-        input: Buffer.from(photo),
-        left: originX + (index % columns) * (size.width + gap),
-        top: originY + Math.floor(index / columns) * (size.height + gap),
+        input: printPhoto,
+        left: originX + (index % columns) * (printSize.width + gap),
+        top: originY + Math.floor(index / columns) * (printSize.height + gap),
       }));
       const sheet = new Uint8Array(await sharp({ create: { width: sheetWidth, height: sheetHeight, channels: 3, background: '#ffffff' } })
-        .composite(copies).jpeg({ quality: 94, mozjpeg: true }).toBuffer());
+        .composite(copies).withMetadata({ density: 300 }).jpeg({ quality: 94, mozjpeg: true }).toBuffer());
       if (!sheet.byteLength) throw new EngineError('unreadable_file', 'A4 打印排版页生成结果为空');
-      await ctx.emit({ name: `${stem}-${size.label}-A4-print-sheet.jpg`, kind: 'image', bytes: sheet, sourceFileId: input.id });
+      await ctx.emit({ name: `${stem}-${size.fileLabel}-A4-print-sheet.jpg`, kind: 'image', bytes: sheet, sourceFileId: input.id });
     }
     ctx.report({ percent: 100, current: 1, total: 1 });
-    return { extra: { width: size.width, height: size.height, dpi: 300, fileSizeLimitKb: limitKb, photoBytes: photo.byteLength } };
+    return { extra: { width: size.width, height: size.height, dpi: size.dpi ?? 300, fileSizeLimitKb: limitKb, photoBytes: photo.byteLength } };
   },
 };
 

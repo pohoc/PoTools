@@ -1,8 +1,9 @@
 import { StandardFonts, rgb, type PDFFont, type PDFDocument, type PDFPage } from 'pdf-lib';
 import type { FlowBlock } from './docmodel.ts';
-import { textFont } from './fonts.ts';
 import type { Box } from './pdf.ts';
 import { parseInline } from './textfmt.ts';
+
+export type TypesetterFontResolver = (doc: PDFDocument, text: string) => Promise<PDFFont>;
 
 export interface TypesetStyle {
   size: number;
@@ -104,7 +105,7 @@ export class Typesetter {
     private readonly box: Box,
     private readonly margin: number,
     private readonly style: TypesetStyle = DEFAULT_STYLE,
-    private readonly fontPath: string | null = null,
+    private readonly fontResolver?: TypesetterFontResolver,
   ) {
     this.page = doc.addPage([box.width, box.height]);
     this.y = box.height - margin;
@@ -146,8 +147,8 @@ export class Typesetter {
       return font;
     }
     if (!this.cjk) {
-      const { font } = await textFont(this.doc, text, { fontPath: this.fontPath });
-      this.cjk = font;
+      if (!this.fontResolver) throw new Error('A Unicode font resolver is required for non-Latin text');
+      this.cjk = await this.fontResolver(this.doc, text);
     }
     return this.cjk;
   }

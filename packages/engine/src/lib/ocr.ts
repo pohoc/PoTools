@@ -9,14 +9,26 @@ export interface OcrPageResult { text: string; lines: OcrLine[]; model: string }
 type LocalOcr = { recognize(input: { width: number; height: number; data: Uint8Array }): Promise<unknown[]>; processRecognition(results: unknown[]): { text?: string; items?: Array<{ text?: string; score?: number; box?: number[][] }> } };
 let servicePromise: Promise<LocalOcr> | null = null;
 
+interface EmbeddedOcrAssets {
+  detectionModel: Uint8Array;
+  recognitionModel: Uint8Array;
+  dictionary: Uint8Array;
+  wasm: Uint8Array;
+}
+
+declare global {
+  var __POTOOLS_EMBEDDED_OCR_ASSETS__: EmbeddedOcrAssets | undefined;
+}
+
 /** Local PaddleOCR/ONNX Runtime provider. No Python, subprocess, or network calls. */
 export async function recognizePaddlePage(png: Uint8Array): Promise<OcrPageResult> {
   const sharp = await getSharp();
   if (!sharp) throw new EngineError('no_image_codec', 'sharp is unavailable', 'error.noImageCodec');
-  const modelDir = await findModelDir();
-  if (!modelDir) throw new EngineError('unsupported', 'OCR model files were not found.', 'error.ocrModelMissing');
+  const embeddedAssets = globalThis.__POTOOLS_EMBEDDED_OCR_ASSETS__;
+  const modelDir = embeddedAssets ? null : await findModelDir();
+  if (!embeddedAssets && !modelDir) throw new EngineError('unsupported', 'OCR model files were not found.', 'error.ocrModelMissing');
   const pixels = await sharp(Buffer.from(png), { failOn: 'none' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-  const service = await getService(modelDir);
+  const service = await getService(modelDir, embeddedAssets);
   const results = await service.recognize({ width: pixels.info.width, height: pixels.info.height, data: new Uint8Array(pixels.data) });
   const processed = service.processRecognition(results);
   const lines = (processed.items ?? []).map((item) => ({
@@ -32,15 +44,37 @@ export async function recognizePaddlePage(png: Uint8Array): Promise<OcrPageResul
   return { text: String(processed.text ?? lines.map((line) => line.text).join('\n')), lines, model: 'PP-OCRv6_small' };
 }
 
-async function getService(modelDir: string): Promise<LocalOcr> {
+async function getService(modelDir: string | null, embeddedAssets?: EmbeddedOcrAssets): Promise<LocalOcr> {
   if (!servicePromise) {
     servicePromise = (async () => {
-      const [{ PaddleOcrService }, ort] = await Promise.all([import('paddleocr'), import('onnxruntime-node')]);
+      const hasNativeRuntime = process.platform !== 'linux' || ['x64', 'arm64'].includes(process.arch);
+      const runtime = embeddedAssets || process.arch === 'ia32' || !hasNativeRuntime ? 'onnxruntime-web' : 'onnxruntime-node';
+      const [{ PaddleOcrService }, ort] = await Promise.all([
+        import('paddleocr'),
+        embeddedAssets
+          ? import('onnxruntime-web/wasm')
+          : runtime === 'onnxruntime-web' ? import('onnxruntime-web') : import('onnxruntime-node'),
+      ]);
+      if (runtime === 'onnxruntime-web') {
+        ort.env.wasm.numThreads = 1;
+        if (embeddedAssets) {
+          ort.env.wasm.wasmBinary = embeddedAssets.wasm;
+        }
+      }
       const readBuffer = async (name: string): Promise<ArrayBuffer> => {
+        const embedded = name === 'PP-OCRv6_small_det_infer.onnx'
+          ? embeddedAssets?.detectionModel
+          : name === 'PP-OCRv6_small_rec_infer.onnx' ? embeddedAssets?.recognitionModel : undefined;
+        if (embedded) return embedded.buffer.slice(embedded.byteOffset, embedded.byteOffset + embedded.byteLength) as ArrayBuffer;
+        if (!modelDir) throw new EngineError('unsupported', 'OCR model files were not found.', 'error.ocrModelMissing');
         const bytes = await readFile(join(modelDir, name));
         return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
       };
-      const dictionary = (await readFile(join(modelDir, 'ppocrv6_dict.txt'), 'utf8')).trimEnd().split(/\r?\n/);
+      const dictionaryBytes = embeddedAssets?.dictionary;
+      const dictionaryText = dictionaryBytes
+        ? new TextDecoder().decode(dictionaryBytes)
+        : modelDir ? await readFile(join(modelDir, 'ppocrv6_dict.txt'), 'utf8') : '';
+      const dictionary = dictionaryText.trimEnd().split(/\r?\n/);
       // PP-OCRv6 uses one extra space class in addition to the distributed
       // dictionary entries; the CTC blank is handled by the runtime.
       if (!dictionary.includes(' ')) dictionary.push(' ');

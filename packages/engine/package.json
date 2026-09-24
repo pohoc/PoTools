@@ -6,6 +6,10 @@
   "author": "pohoc <po.hoc4@gmail.com>",
   "type": "module",
   "main": "./src/index.ts",
+  "exports": {
+    "./browser": "./src/browser.ts",
+    "./browser-capabilities": "./src/browser-capabilities.ts"
+  },
   "bin": {
     "potools-engine": "./src/index.ts"
   },
@@ -13,7 +17,8 @@
     "dev": "tsx watch src/index.ts serve --http --port 8787",
     "start": "tsx src/index.ts serve --stdio",
     "serve:http": "tsx src/index.ts serve --http --port 8787",
-    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/engine.mjs --external:sharp --external:mupdf --external:onnxruntime-node",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/engine.mjs --external:sharp --external:mupdf --external:onnxruntime-node --external:onnxruntime-web --external:yaml",
+    "build:embedded": "node scripts/build-embedded.mjs",
     "typecheck": "tsc --noEmit",
     "selfcheck": "tsx src/index.ts selfcheck",
     "samples": "tsx scripts/make-samples.ts",
@@ -21,6 +26,8 @@
     "check:catalog": "tsx scripts/catalog-health.ts"
   },
   "dependencies": {
+    "@emnapi/runtime": "^1.11.3",
+    "@img/sharp-wasm32": "0.35.4",
     "@pdf-lib/fontkit": "^1.1.1",
     "@potools/core": "workspace:*",
     "bcryptjs": "^3.0.3",
@@ -28,18 +35,24 @@
     "exceljs": "^4.4.0",
     "fast-xml-parser": "^5.11.1",
     "fontkit": "^2.0.4",
+    "jpeg-js": "^0.4.4",
     "jszip": "^3.10.2",
     "mupdf": "^1.28.1",
+    "node-forge": "^1.4.0",
     "onnxruntime-node": "1.23.2",
+    "onnxruntime-web": "1.23.2",
     "paddleocr": "1.2.0",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
     "pptxgenjs": "^4.0.1",
     "sharp": "^0.35.4",
+    "utif": "3.1.0",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/fontkit": "^2.0.9",
     "@types/node": "^26.6.2",
+    "@types/node-forge": "^1.3.14",
     "esbuild": "^0.28.2",
     "tsx": "4.23.14",
     "typescript": "^7.0.2"

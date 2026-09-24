@@ -1,11 +1,10 @@
 import { rgb } from 'pdf-lib';
 import type { PDFEmbeddedPage } from 'pdf-lib';
-import { loadPdf } from '../lib/files.ts';
 import { boxRectOf, copyPagesInto, createDocument, normalizeAngle, sizePreset } from '../lib/pdf.ts';
 import type { Box } from '../lib/pdf.ts';
 import { baseName, renderName } from '../lib/naming.ts';
 import { bool, num, str } from '../lib/options.ts';
-import { contentInsets, gridCells } from './geometry.ts';
+import { gridCells } from './geometry.ts';
 import { EngineError } from '../errors.ts';
 import type { ToolImpl } from '../types.ts';
 
@@ -158,7 +157,7 @@ const invoiceMerge: ToolImpl = {
     let sourcePages = 0;
 
     for (const [index, input] of kept.entries()) {
-      const doc = await loadPdf(input, ctx.globals);
+      const doc = await ctx.loadPdf(input, ctx.globals);
       const count = doc.getPageCount();
       if (!count) {
         ctx.warnings.push(`${input.name} 没有页面，已跳过`);
@@ -177,7 +176,9 @@ const invoiceMerge: ToolImpl = {
           top: base.y + base.height,
         };
         if (autoCrop) {
-          const insets = await contentInsets(input.bytes, position + 1, ctx.globals, rotation);
+          const insets = ctx.contentInsets
+            ? await ctx.contentInsets(input.bytes, position + 1, ctx.globals, rotation)
+            : null;
           if (insets) {
             rect = {
               left: base.x + clamp(insets.left, 0, base.width - 20),

@@ -13,8 +13,9 @@ import { TOOLS } from '@potools/core';
 import { EngineError, toJobError } from './errors.ts';
 import { logger } from './logger.ts';
 import { coerceOptions } from './lib/options.ts';
-import { ensureDir, readInput, tempJobDir } from './lib/files.ts';
+import { ensureDir, loadPdf, readInput, tempJobDir } from './lib/files.ts';
 import { baseName, dedupe } from './lib/naming.ts';
+import { contentInsets } from './tools/geometry-raster.ts';
 import type { ArtifactDraft, Progress, ResolvedInput, ToolImpl } from './types.ts';
 
 const MAX_INLINE_BYTES = 8 * 1024 * 1024;
@@ -139,6 +140,8 @@ export class JobManager {
 
       const ctx = {
         inputs,
+        loadPdf,
+        contentInsets,
         globals: request.globals ?? {},
         output: request.output,
         namePattern: request.namePattern,
