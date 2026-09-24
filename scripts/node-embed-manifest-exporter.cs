@@ -7,7 +7,7 @@ using StructuredTask = Microsoft.Build.Logging.StructuredLogger.Task;
 
 internal static class Program
 {
-    private const string ExporterVersion = "1.1.1";
+    private const string ExporterVersion = "1.1.2";
     private static readonly HashSet<string> WindowsSystemLibraries = new(StringComparer.OrdinalIgnoreCase)
     {
         "advapi32", "bcrypt", "comctl32", "comdlg32", "crypt32", "dbghelp", "dnsapi",
@@ -89,6 +89,7 @@ internal static class Program
                 .EnumerateFiles(Path.Combine(source, "out"), "*.obj", SearchOption.AllDirectories)
                 .Select(Path.GetFullPath)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(path => IsNativeCoffObject(path, architecture))
                 .ToList();
             if (dependencies.Count == 0)
                 throw new InvalidOperationException("Node Link task has no readable AdditionalDependencies parameter.");
@@ -411,6 +412,21 @@ internal static class Program
             copied++;
         }
         if (copied == 0) throw new InvalidOperationException($"No C/C++ headers found under {source}");
+    }
+
+    // /GL（全程序优化）对象是 LTCG 中间格式而非原生 COFF，lib.exe 可以归档但 lld-link 无法消费；
+    // 其符号已由 whole-archive 的组件库提供，这里按 COFF 机器号过滤掉。
+    private static bool IsNativeCoffObject(string path, string architecture)
+    {
+        var expected = architecture switch
+        {
+            "x64" => 0x8664,
+            "x86" => 0x14C,
+            _ => throw new InvalidOperationException($"Unsupported architecture: {architecture}"),
+        };
+        var bytes = new byte[2];
+        using var stream = File.OpenRead(path);
+        return stream.Read(bytes, 0, 2) == 2 && BitConverter.ToUInt16(bytes, 0) == expected;
     }
 
     private static void ArchiveObjects(string libExe, List<string> objectFiles, string outputLibrary, string architecture)
