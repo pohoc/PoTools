@@ -197,13 +197,18 @@ internal static class Program
         }
     }
 
-    private static IEnumerable<TreeNode> Descendants(TreeNode node)
+    // NameValueNode（及其子类 Property/TaskParameterProperty）与 TreeNode 平行，都直接派生自 BaseNode；
+    // 遍历必须以 BaseNode 为界，否则任务参数属性节点根本不可见。
+    private static IEnumerable<BaseNode> Descendants(BaseNode node)
     {
-        foreach (var child in node.Children.OfType<TreeNode>())
+        if (node is TreeNode { HasChildren: true } parent)
         {
-            yield return child;
-            foreach (var descendant in Descendants(child))
-                yield return descendant;
+            foreach (var child in parent.Children.OfType<BaseNode>())
+            {
+                yield return child;
+                foreach (var descendant in Descendants(child))
+                    yield return descendant;
+            }
         }
     }
 
