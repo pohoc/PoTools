@@ -8,9 +8,12 @@ This grant covers only material copyrightable by the PoTools authors. Third-part
 
 ## Distribution licensing routes
 
+The macOS DMG does not attach the deprecated system disk-image license panel. On first launch, the app presents the PoTools MIT agreement in its own localized screen; the language selector and acceptance prompt sit below the scrollable agreement. The local processing engine starts only after the user accepts. Windows continues to show the license in the NSIS installer.
+
 | Component | Current use | License | Required before distribution |
 | --- | --- | --- | --- |
 | MuPDF.js 1.28.1 | Bundled in the local engine for PDF processing | AGPL-3.0-or-later | May be distributed through an AGPL-compliant open-source route, under an applicable commercial license, or replaced. |
+| Hickory DNS 0.24.4 | Native desktop DNS queries using the OS resolver configuration | MIT OR Apache-2.0 | Keep both upstream license texts and the current version in the installed notices. |
 
 The table row applies to the current packaged app. An AGPL-compliant open-source distribution is a valid route for these components; the project does not have to obtain a commercial license solely to publish open source. The MIT project license covers PoTools-authored code, while the combined installer must meet the terms of every bundled component and must not be represented as MIT-only.
 
@@ -18,8 +21,9 @@ The table row applies to the current packaged app. An AGPL-compliant open-source
 
 - `apps/desktop/public/licenses/THIRD_PARTY_NOTICES.md` is included in the app and lists the direct runtime components and known exceptions.
 - `MuPDF-AGPL-3.0.txt` contains the license text for the bundled MuPDF.js package.
-- `Node.js-22.20.0.txt` contains the upstream Node runtime license and third-party notices. Desktop runtime preparation copies it beside the bundled Node executable.
+- `Node.js-22.20.0.txt` and `Node.js-20.20.2.txt` contain the upstream Node runtime licenses and third-party notices for the supported desktop targets. Runtime preparation copies the target-specific text beside the bundled Node executable.
 - `Apache-2.0.txt` is retained for MediaPipe Tasks Vision and the bundled segmentation model.
+- `Hickory-DNS-MIT.txt` and `Hickory-DNS-Apache-2.0.txt` retain the licenses for the native DNS resolver and protocol crates.
 - sharp and platform-specific libvips package license files are retained when the runtime modules are staged. Recheck target-specific binaries and versions for every platform build.
 - JavaScript and Rust dependency trees include several additional permissive and notice-based licenses. Staged Node module trees retain their package license files; the inventory must still be refreshed for each release.
 

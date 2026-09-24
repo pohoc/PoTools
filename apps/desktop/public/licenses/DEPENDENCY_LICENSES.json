@@ -52,6 +52,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "async-trait",
+      "version": "0.1.92",
+      "license": "MIT OR Apache-2.0",
+      "author": "David Tolnay <dtolnay@gmail.com>",
+      "repository": "https://github.com/dtolnay/async-trait"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "atk",
       "version": "0.18.2",
       "license": "MIT",
@@ -452,6 +460,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "data-encoding",
+      "version": "2.11.1",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/ia0/data-encoding"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "dbus",
       "version": "0.9.12",
       "license": "Apache-2.0/MIT",
@@ -641,6 +657,14 @@
       "license": "MIT",
       "author": "наб <nabijaczleweli@nabijaczleweli.xyz>, Cat Plus Plus <piotrlegnica@piotrl.pl>, Liigo <liigo@qq.com>, azyobuzin <azyobuzin@users.sourceforge.jp>, Peter Atashian <retep998@gmail.com>, pravic <ehysta@gmail.com>, Gabriel Majeri <gabriel.majeri6@gmail.com>, SonnyX, Johan Andersson <repi@repi.se>, Jordan Poles <jpdev.noreply@gmail.com>, MSxDOS <melcodos@gmail.com>, Jim McGrath <jimmc2@gmail.com>, roblabla <unfiltered@roblab.la>, Jasper Bekkers <jasper@traverseresearch.nl>, Richard Markiewicz <rmarkiewicz@devolutions.net>, Emerson de Freitas Barcelos <emersonfxbx@gmail.com>, Li Keqing <me@kaze.ai>, Alexis Bourget <alexis.bourget@gmail.com>, Michael Farrell <micolous+git@gmail.com>, Jacob Okamoto <oko@oko.io>, Marijn Suijten <marijn@traverseresearch.nl>, Lucas Nogueira <lucas@tauri.app>, CharlesChen0823 <yongchen0823@gmail.com>, Daniel Schaefer <dhs@frame.work>, Rene Leonhardt, ssrlive, Kan-Ru Chen <kanru@kanru.info>, Tony <legendmastertony@gmail.com>, Berrysoft <Strawberry_Str@hotmail.com>, Marcus Ahlberg <marcus.ahlberg@kvaser.com>",
       "repository": "https://github.com/nabijaczleweli/rust-embed-resource"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "enum-as-inner",
+      "version": "0.6.1",
+      "license": "MIT/Apache-2.0",
+      "author": "Benjamin Fry <benjaminfry@me.com>",
+      "repository": "https://github.com/bluejekyll/enum-as-inner"
     },
     {
       "ecosystem": "cargo",
@@ -877,6 +901,14 @@
     {
       "ecosystem": "cargo",
       "name": "getrandom",
+      "version": "0.2.17",
+      "license": "MIT OR Apache-2.0",
+      "author": "The Rand Project Developers",
+      "repository": "https://github.com/rust-random/getrandom"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "getrandom",
       "version": "0.3.4",
       "license": "MIT OR Apache-2.0",
       "author": "The Rand Project Developers",
@@ -1009,6 +1041,22 @@
       "license": "MIT OR Apache-2.0",
       "author": "KokaKiwi <kokakiwi@kokakiwi.net>",
       "repository": "https://github.com/KokaKiwi/rust-hex"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "hickory-proto",
+      "version": "0.24.4",
+      "license": "MIT OR Apache-2.0",
+      "author": "The contributors to Hickory DNS",
+      "repository": "https://github.com/hickory-dns/hickory-dns"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "hickory-resolver",
+      "version": "0.24.4",
+      "license": "MIT OR Apache-2.0",
+      "author": "The contributors to Hickory DNS",
+      "repository": "https://github.com/hickory-dns/hickory-dns"
     },
     {
       "ecosystem": "cargo",
@@ -1196,6 +1244,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "ipconfig",
+      "version": "0.3.4",
+      "license": "MIT/Apache-2.0",
+      "author": "Liran Ringel <liranringel@gmail.com>",
+      "repository": "https://github.com/liranringel/ipconfig"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "ipnet",
       "version": "2.12.2",
       "license": "MIT OR Apache-2.0",
@@ -1380,6 +1436,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "linked-hash-map",
+      "version": "0.5.6",
+      "license": "MIT/Apache-2.0",
+      "author": "Stepan Koltsov <stepan.koltsov@gmail.com>, Andrew Paseltiner <apaseltiner@gmail.com>",
+      "repository": "https://github.com/contain-rs/linked-hash-map"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "litemap",
       "version": "0.8.3",
       "license": "Unicode-3.0",
@@ -1401,6 +1465,14 @@
       "license": "MIT OR Apache-2.0",
       "author": "The Rust Project Developers",
       "repository": "https://github.com/rust-lang/log"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "lru-cache",
+      "version": "0.1.2",
+      "license": "MIT/Apache-2.0",
+      "author": "Stepan Koltsov <stepan.koltsov@gmail.com>",
+      "repository": "https://github.com/contain-rs/lru-cache"
     },
     {
       "ecosystem": "cargo",
@@ -1828,6 +1900,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "ppv-lite86",
+      "version": "0.2.21",
+      "license": "MIT OR Apache-2.0",
+      "author": "The CryptoCorrosion Contributors",
+      "repository": "https://github.com/cryptocorrosion/cryptocorrosion"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "precomputed-hash",
       "version": "0.1.1",
       "license": "MIT",
@@ -1916,6 +1996,30 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "rand",
+      "version": "0.8.8",
+      "license": "MIT OR Apache-2.0",
+      "author": "The Rand Project Developers, The Rust Project Developers",
+      "repository": "https://github.com/rust-random/rand"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "rand_chacha",
+      "version": "0.3.1",
+      "license": "MIT OR Apache-2.0",
+      "author": "The Rand Project Developers, The Rust Project Developers, The CryptoCorrosion Contributors",
+      "repository": "https://github.com/rust-random/rand"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "rand_core",
+      "version": "0.6.4",
+      "license": "MIT OR Apache-2.0",
+      "author": "The Rand Project Developers, The Rust Project Developers",
+      "repository": "https://github.com/rust-random/rand"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "raw-window-handle",
       "version": "0.6.2",
       "license": "MIT OR Apache-2.0 OR Zlib",
@@ -1985,6 +2089,14 @@
       "license": "MIT OR Apache-2.0",
       "author": "Sean McArthur <sean@seanmonstar.com>",
       "repository": "https://github.com/seanmonstar/reqwest"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "resolv-conf",
+      "version": "0.7.6",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/hickory-dns/resolv-conf"
     },
     {
       "ecosystem": "cargo",
@@ -2700,6 +2812,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "tracing-attributes",
+      "version": "0.1.31",
+      "license": "MIT",
+      "author": "Tokio Contributors <team@tokio.rs>, Eliza Weisman <eliza@buoyant.io>, David Barsky <dbarsky@amazon.com>",
+      "repository": "https://github.com/tokio-rs/tracing"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "tracing-core",
       "version": "0.1.36",
       "license": "MIT",
@@ -2993,6 +3113,14 @@
       "license": "MIT",
       "author": null,
       "repository": "https://github.com/wravery/webview2-rs"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "widestring",
+      "version": "1.2.1",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/VoidStarKat/widestring-rs"
     },
     {
       "ecosystem": "cargo",
@@ -3300,6 +3428,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "windows-registry",
+      "version": "0.6.1",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/microsoft/windows-rs"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "windows-result",
       "version": "0.3.4",
       "license": "MIT OR Apache-2.0",
@@ -3492,6 +3628,22 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "zerocopy",
+      "version": "0.8.57",
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "author": null,
+      "repository": "https://github.com/google/zerocopy"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "zerocopy-derive",
+      "version": "0.8.57",
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "author": null,
+      "repository": "https://github.com/google/zerocopy"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "zerofrom",
       "version": "0.1.8",
       "license": "Unicode-3.0",
@@ -3564,6 +3716,70 @@
     },
     {
       "ecosystem": "npm",
+      "name": "@adobe/react-spectrum",
+      "version": "3.47.5",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@adobe/react-spectrum-ui",
+      "version": "1.2.1",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": null
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@adobe/react-spectrum-workflow",
+      "version": "2.3.5",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": null
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@aiden0z/pptx-renderer",
+      "version": "1.3.0",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/aiden0z/pptx-renderer#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@antfu/install-pkg",
+      "version": "2.1.0",
+      "license": "MIT",
+      "author": "Anthony Fu",
+      "repository": "https://github.com/antfu-collective/install-pkg#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@babel/runtime",
+      "version": "7.29.7",
+      "license": "MIT",
+      "author": "The Babel Team",
+      "repository": "https://babel.dev/docs/en/next/babel-runtime"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@braintree/sanitize-url",
+      "version": "7.1.2",
+      "license": "MIT",
+      "author": "",
+      "repository": "https://github.com/braintree/sanitize-url#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@chevrotain/types",
+      "version": "11.1.2",
+      "license": "Apache-2.0",
+      "author": "Shahar Soel",
+      "repository": "https://chevrotain.io/documentation/"
+    },
+    {
+      "ecosystem": "npm",
       "name": "@esbuild/darwin-x64",
       "version": "0.28.2",
       "license": "MIT",
@@ -3588,35 +3804,35 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@floating-ui/core",
-      "version": "1.8.0",
+      "name": "@heroui/react",
+      "version": "3.2.6",
       "license": "MIT",
-      "author": "atomiks",
-      "repository": "https://floating-ui.com"
+      "author": "HeroUI",
+      "repository": "https://heroui.com"
     },
     {
       "ecosystem": "npm",
-      "name": "@floating-ui/dom",
-      "version": "1.8.0",
+      "name": "@heroui/styles",
+      "version": "3.2.6",
       "license": "MIT",
-      "author": "atomiks",
-      "repository": "https://floating-ui.com"
+      "author": "HeroUI",
+      "repository": "https://heroui.com"
     },
     {
       "ecosystem": "npm",
-      "name": "@floating-ui/react-dom",
-      "version": "2.1.9",
+      "name": "@iconify/types",
+      "version": "2.0.0",
       "license": "MIT",
-      "author": "atomiks",
-      "repository": "https://floating-ui.com/docs/react-dom"
+      "author": "Vjacheslav Trushkin",
+      "repository": "https://github.com/iconify/iconify"
     },
     {
       "ecosystem": "npm",
-      "name": "@floating-ui/utils",
-      "version": "0.2.12",
+      "name": "@iconify/utils",
+      "version": "3.1.7",
       "license": "MIT",
-      "author": "atomiks",
-      "repository": "https://floating-ui.com"
+      "author": "Vjacheslav Trushkin",
+      "repository": "https://iconify.design/docs/libraries/utils/"
     },
     {
       "ecosystem": "npm",
@@ -3641,6 +3857,30 @@
       "license": "LGPL-3.0-or-later",
       "author": "Lovell Fuller",
       "repository": "https://sharp.pixelplumbing.com"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@internationalized/date",
+      "version": "3.12.4",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum/tree/main#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@internationalized/number",
+      "version": "3.6.8",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@internationalized/string",
+      "version": "3.2.10",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
     },
     {
       "ecosystem": "npm",
@@ -3684,6 +3924,30 @@
     },
     {
       "ecosystem": "npm",
+      "name": "@kenjiuno/decompressrtf",
+      "version": "0.1.4",
+      "license": "BSD-2-Clause",
+      "author": "kenjiuno",
+      "repository": "https://github.com/HiraokaHyperTools/DeCompressRTF#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@kenjiuno/msgreader",
+      "version": "1.28.0",
+      "license": "Apache-2.0",
+      "author": "kenjiuno",
+      "repository": "https://github.com/HiraokaHyperTools/msgreader#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@mapbox/togeojson",
+      "version": "0.16.2",
+      "license": "BSD-2-Clause",
+      "author": null,
+      "repository": "https://github.com/mapbox/togeojson#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "@mediapipe/tasks-vision",
       "version": "1.0.1",
       "license": "Apache-2.0",
@@ -3692,11 +3956,67 @@
     },
     {
       "ecosystem": "npm",
+      "name": "@mermaid-js/parser",
+      "version": "1.2.1",
+      "license": "MIT",
+      "author": "Yokozuna59",
+      "repository": "https://github.com/mermaid-js/mermaid/tree/develop/packages/mermaid/parser/#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@napi-rs/canvas",
+      "version": "0.1.100",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/Brooooooklyn/canvas#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@napi-rs/canvas",
+      "version": "1.0.9",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/Brooooooklyn/canvas#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@napi-rs/canvas-darwin-x64",
+      "version": "0.1.100",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/Brooooooklyn/canvas#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@napi-rs/canvas-darwin-x64",
+      "version": "1.0.9",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/Brooooooklyn/canvas#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "@nodable/entities",
       "version": "3.0.0",
       "license": "MIT",
       "author": "Amit Gupta",
       "repository": "https://github.com/nodable/val-parsers#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@open-file-viewer/core",
+      "version": "0.1.47",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://open-file-viewer-workspace.void.app"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@open-file-viewer/react",
+      "version": "0.1.47",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://open-file-viewer-workspace.void.app"
     },
     {
       "ecosystem": "npm",
@@ -3732,11 +4052,75 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/number",
-      "version": "1.1.3",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
+      "name": "@protobufjs/aspromise",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/base64",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/codegen",
+      "version": "2.0.5",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/eventemitter",
+      "version": "1.1.1",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/fetch",
+      "version": "1.1.1",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/float",
+      "version": "1.0.2",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/path",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/pool",
+      "version": "1.1.0",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/protobuf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@protobufjs/utf8",
+      "version": "1.1.2",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/protobufjs/protobuf.js#readme"
     },
     {
       "ecosystem": "npm",
@@ -3748,24 +4132,8 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/react-arrow",
-      "version": "1.1.15",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-collapsible",
-      "version": "1.1.20",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-collection",
-      "version": "1.1.15",
+      "name": "@radix-ui/react-avatar",
+      "version": "1.2.6",
       "license": "MIT",
       "author": null,
       "repository": "https://radix-ui.com/primitives"
@@ -3788,152 +4156,8 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/react-dialog",
-      "version": "1.1.23",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-direction",
-      "version": "1.1.4",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-dismissable-layer",
-      "version": "1.1.19",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-dropdown-menu",
-      "version": "2.1.24",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-focus-guards",
-      "version": "1.1.6",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-focus-scope",
-      "version": "1.1.16",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-id",
-      "version": "1.1.4",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-label",
-      "version": "2.1.15",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-menu",
-      "version": "2.1.24",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-popper",
-      "version": "1.3.7",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-portal",
-      "version": "1.1.17",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-presence",
-      "version": "1.1.10",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
       "name": "@radix-ui/react-primitive",
       "version": "2.1.10",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-progress",
-      "version": "1.1.16",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-roving-focus",
-      "version": "1.1.19",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-scroll-area",
-      "version": "1.2.18",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-select",
-      "version": "2.3.7",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-separator",
-      "version": "1.1.15",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-slider",
-      "version": "1.4.7",
       "license": "MIT",
       "author": null,
       "repository": "https://radix-ui.com/primitives"
@@ -3948,48 +4172,8 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/react-switch",
-      "version": "1.3.7",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-tabs",
-      "version": "1.1.21",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-tooltip",
-      "version": "1.2.16",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
       "name": "@radix-ui/react-use-callback-ref",
       "version": "1.1.4",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-use-controllable-state",
-      "version": "1.2.6",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://radix-ui.com/primitives"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@radix-ui/react-use-effect-event",
-      "version": "0.0.5",
       "license": "MIT",
       "author": null,
       "repository": "https://radix-ui.com/primitives"
@@ -4012,43 +4196,75 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/react-use-previous",
-      "version": "1.1.4",
-      "license": "MIT",
+      "name": "@react-aria/color",
+      "version": "3.2.1",
+      "license": "Apache-2.0",
       "author": null,
-      "repository": "https://radix-ui.com/primitives"
+      "repository": "https://github.com/adobe/react-spectrum#readme"
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/react-use-rect",
-      "version": "1.1.4",
-      "license": "MIT",
+      "name": "@react-aria/ssr",
+      "version": "3.10.1",
+      "license": "Apache-2.0",
       "author": null,
-      "repository": "https://radix-ui.com/primitives"
+      "repository": "https://github.com/adobe/react-spectrum#readme"
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/react-use-size",
-      "version": "1.1.4",
-      "license": "MIT",
+      "name": "@react-aria/utils",
+      "version": "3.34.1",
+      "license": "Apache-2.0",
       "author": null,
-      "repository": "https://radix-ui.com/primitives"
+      "repository": "https://github.com/adobe/react-spectrum#readme"
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/react-visually-hidden",
-      "version": "1.2.11",
-      "license": "MIT",
+      "name": "@react-spectrum/color",
+      "version": "3.2.1",
+      "license": "Apache-2.0",
       "author": null,
-      "repository": "https://radix-ui.com/primitives"
+      "repository": "https://github.com/adobe/react-spectrum#readme"
     },
     {
       "ecosystem": "npm",
-      "name": "@radix-ui/rect",
-      "version": "1.1.3",
-      "license": "MIT",
+      "name": "@react-spectrum/provider",
+      "version": "3.11.1",
+      "license": "Apache-2.0",
       "author": null,
-      "repository": "https://radix-ui.com/primitives"
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@react-stately/color",
+      "version": "3.10.1",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@react-stately/utils",
+      "version": "3.12.1",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@react-types/color",
+      "version": "3.2.0",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@react-types/shared",
+      "version": "3.36.1",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
     },
     {
       "ecosystem": "npm",
@@ -4065,6 +4281,30 @@
       "license": "MIT",
       "author": null,
       "repository": "https://github.com/rolldown/plugins/tree/main/packages/pluginutils#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@spectrum-icons/ui",
+      "version": "3.7.2",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@spectrum-icons/workflow",
+      "version": "4.3.2",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@stackline/xlsx",
+      "version": "1.0.7",
+      "license": "Apache-2.0",
+      "author": "sheetjs",
+      "repository": "https://alexandro.net/docs/vanilla/xlsx/"
     },
     {
       "ecosystem": "npm",
@@ -4140,11 +4380,267 @@
     },
     {
       "ecosystem": "npm",
+      "name": "@types/d3",
+      "version": "7.4.3",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-array",
+      "version": "3.2.2",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-array"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-axis",
+      "version": "3.0.6",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-axis"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-brush",
+      "version": "3.0.6",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-brush"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-chord",
+      "version": "3.0.6",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-chord"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-color",
+      "version": "3.1.3",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-color"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-contour",
+      "version": "3.0.6",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-contour"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-delaunay",
+      "version": "6.0.4",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-delaunay"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-dispatch",
+      "version": "3.0.7",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-dispatch"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-drag",
+      "version": "3.0.7",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-drag"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-dsv",
+      "version": "3.0.7",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-dsv"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-ease",
+      "version": "3.0.2",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-ease"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-fetch",
+      "version": "3.0.7",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-fetch"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-force",
+      "version": "3.0.10",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-force"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-format",
+      "version": "3.0.4",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-format"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-geo",
+      "version": "3.1.1",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-geo"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-hierarchy",
+      "version": "3.1.7",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-hierarchy"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-interpolate",
+      "version": "3.0.4",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-interpolate"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-path",
+      "version": "3.1.1",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-path"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-polygon",
+      "version": "3.0.2",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-polygon"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-quadtree",
+      "version": "3.0.6",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-quadtree"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-random",
+      "version": "3.0.4",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-random"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-scale",
+      "version": "4.0.9",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-scale"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-scale-chromatic",
+      "version": "3.1.0",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-scale-chromatic"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-selection",
+      "version": "3.0.12",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-selection"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-shape",
+      "version": "3.2.0",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-shape"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-time",
+      "version": "3.0.4",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-time"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-time-format",
+      "version": "4.0.3",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-time-format"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-timer",
+      "version": "3.0.2",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-timer"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-transition",
+      "version": "3.0.9",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-transition"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/d3-zoom",
+      "version": "3.0.8",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/d3-zoom"
+    },
+    {
+      "ecosystem": "npm",
       "name": "@types/fontkit",
       "version": "2.0.9",
       "license": "MIT",
       "author": null,
       "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/fontkit"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@types/geojson",
+      "version": "7946.0.16",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/geojson"
     },
     {
       "ecosystem": "npm",
@@ -4180,6 +4676,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "@types/node-forge",
+      "version": "1.3.14",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node-forge"
+    },
+    {
+      "ecosystem": "npm",
       "name": "@types/react",
       "version": "19.3.0",
       "license": "MIT",
@@ -4196,6 +4700,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "@types/trusted-types",
+      "version": "2.0.7",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/trusted-types"
+    },
+    {
+      "ecosystem": "npm",
       "name": "@typescript/typescript-darwin-x64",
       "version": "7.0.2",
       "license": "Apache-2.0",
@@ -4204,11 +4716,43 @@
     },
     {
       "ecosystem": "npm",
+      "name": "@upsetjs/venn.js",
+      "version": "2.0.0",
+      "license": "MIT",
+      "author": "Ben Frederickson",
+      "repository": "https://github.com/upsetjs/venn.js"
+    },
+    {
+      "ecosystem": "npm",
       "name": "@vitejs/plugin-react",
       "version": "6.1.1",
       "license": "MIT",
       "author": "Evan You",
       "repository": "https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@xmldom/xmldom",
+      "version": "0.8.15",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/xmldom/xmldom"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "adm-zip",
+      "version": "0.5.18",
+      "license": "MIT",
+      "author": "Nasca Iacob",
+      "repository": "https://github.com/cthackers/adm-zip"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "ag-psd",
+      "version": "30.2.0",
+      "license": "MIT",
+      "author": "Agamnentzar",
+      "repository": "https://github.com/Agamnentzar/ag-psd#readme"
     },
     {
       "ecosystem": "npm",
@@ -4244,6 +4788,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "argparse",
+      "version": "1.0.10",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/nodeca/argparse#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "aria-hidden",
       "version": "1.2.6",
       "license": "MIT",
@@ -4276,6 +4828,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "bcryptjs",
+      "version": "3.0.3",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/bcrypt.js#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "big-integer",
       "version": "1.6.52",
       "license": "Unlicense",
@@ -4305,6 +4865,14 @@
       "license": "MIT",
       "author": "Petka Antonov",
       "repository": "https://github.com/petkaantonov/bluebird"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "boolean",
+      "version": "3.2.0",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/thenativeweb/boolean#readme"
     },
     {
       "ecosystem": "npm",
@@ -4348,6 +4916,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "buffer-from",
+      "version": "1.1.2",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/LinusU/buffer-from#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "buffer-indexof-polyfill",
       "version": "1.0.2",
       "license": "MIT",
@@ -4361,6 +4937,14 @@
       "license": "MIT (verified from upstream history; see MIT-buffers-0.1.1.txt)",
       "author": "James Halliday",
       "repository": "https://github.com/substack/node-buffers#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "but-unzip",
+      "version": "0.1.10",
+      "license": "Apache-2.0",
+      "author": "Sam Thorogood",
+      "repository": "https://github.com/samthor/but-unzip#readme"
     },
     {
       "ecosystem": "npm",
@@ -4380,6 +4964,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "client-only",
+      "version": "0.0.1",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://reactjs.org/"
+    },
+    {
+      "ecosystem": "npm",
       "name": "clone",
       "version": "2.1.2",
       "license": "MIT",
@@ -4393,6 +4985,38 @@
       "license": "MIT",
       "author": "Luke Edwards",
       "repository": "https://github.com/lukeed/clsx#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "commander",
+      "version": "2.20.3",
+      "license": "MIT",
+      "author": "TJ Holowaychuk",
+      "repository": "https://github.com/tj/commander.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "commander",
+      "version": "6.2.1",
+      "license": "MIT",
+      "author": "TJ Holowaychuk",
+      "repository": "https://github.com/tj/commander.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "commander",
+      "version": "7.2.0",
+      "license": "MIT",
+      "author": "TJ Holowaychuk",
+      "repository": "https://github.com/tj/commander.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "commander",
+      "version": "8.3.0",
+      "license": "MIT",
+      "author": "TJ Holowaychuk",
+      "repository": "https://github.com/tj/commander.js#readme"
     },
     {
       "ecosystem": "npm",
@@ -4412,6 +5036,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "concat-stream",
+      "version": "2.0.0",
+      "license": "MIT",
+      "author": "Max Ogden",
+      "repository": "https://github.com/maxogden/concat-stream#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "cookie",
       "version": "1.1.1",
       "license": "MIT",
@@ -4425,6 +5057,22 @@
       "license": "MIT",
       "author": "Isaac Z. Schlueter",
       "repository": "https://github.com/isaacs/core-util-is#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "cose-base",
+      "version": "1.0.3",
+      "license": "MIT",
+      "author": "",
+      "repository": "https://github.com/iVis-at-Bilkent/cose-base#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "cose-base",
+      "version": "2.2.0",
+      "license": "MIT",
+      "author": "",
+      "repository": "https://github.com/iVis-at-Bilkent/cose-base#readme"
     },
     {
       "ecosystem": "npm",
@@ -4452,11 +5100,347 @@
     },
     {
       "ecosystem": "npm",
+      "name": "cytoscape",
+      "version": "3.34.3",
+      "license": "MIT",
+      "author": null,
+      "repository": "http://js.cytoscape.org"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "cytoscape-cose-bilkent",
+      "version": "4.1.0",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/cytoscape/cytoscape.js-cose-bilkent"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "cytoscape-fcose",
+      "version": "2.2.0",
+      "license": "MIT",
+      "author": "iVis-at-Bilkent",
+      "repository": "https://github.com/iVis-at-Bilkent/cytoscape.js-fcose"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3",
+      "version": "7.9.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-array",
+      "version": "2.12.1",
+      "license": "BSD-3-Clause",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-array/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-array",
+      "version": "3.2.4",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-array/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-axis",
+      "version": "3.0.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-axis/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-brush",
+      "version": "3.0.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-brush/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-chord",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-chord/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-color",
+      "version": "3.1.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-color/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-contour",
+      "version": "4.0.2",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-contour/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-delaunay",
+      "version": "6.0.4",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://github.com/d3/d3-delaunay"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-dispatch",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-dispatch/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-drag",
+      "version": "3.0.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-drag/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-dsv",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-dsv/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-ease",
+      "version": "3.0.1",
+      "license": "BSD-3-Clause",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-ease/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-fetch",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-fetch/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-force",
+      "version": "3.0.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-force/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-format",
+      "version": "3.1.2",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-format/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-geo",
+      "version": "3.1.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-geo/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-hierarchy",
+      "version": "3.1.2",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-hierarchy/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-interpolate",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-interpolate/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-path",
+      "version": "1.0.9",
+      "license": "BSD-3-Clause",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-path/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-path",
+      "version": "3.1.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-path/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-polygon",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-polygon/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-quadtree",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-quadtree/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-random",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-random/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-sankey",
+      "version": "0.12.3",
+      "license": "BSD-3-Clause",
+      "author": "Mike Bostock",
+      "repository": "https://github.com/d3/d3-sankey"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-scale",
+      "version": "4.0.2",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-scale/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-scale-chromatic",
+      "version": "3.1.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-scale-chromatic/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-selection",
+      "version": "3.0.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-selection/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-shape",
+      "version": "1.3.7",
+      "license": "BSD-3-Clause",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-shape/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-shape",
+      "version": "3.2.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-shape/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-time",
+      "version": "3.1.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-time/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-time-format",
+      "version": "4.1.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-time-format/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-timer",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-timer/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-transition",
+      "version": "3.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-transition/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "d3-zoom",
+      "version": "3.0.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://d3js.org/d3-zoom/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "dagre-d3-es",
+      "version": "7.0.14",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/tbo47/dagre-es#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "dayjs",
       "version": "1.11.23",
       "license": "MIT",
       "author": "iamkun",
       "repository": "https://day.js.org"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "define-data-property",
+      "version": "1.1.4",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/ljharb/define-data-property#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "define-properties",
+      "version": "1.2.1",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/ljharb/define-properties#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "delaunator",
+      "version": "5.1.0",
+      "license": "ISC",
+      "author": "Vladimir Agafonkin",
+      "repository": "https://github.com/mapbox/delaunator#readme"
     },
     {
       "ecosystem": "npm",
@@ -4468,11 +5452,11 @@
     },
     {
       "ecosystem": "npm",
-      "name": "detect-node-es",
-      "version": "1.1.0",
+      "name": "detect-node",
+      "version": "2.1.0",
       "license": "MIT",
       "author": "Ilya Kantor",
-      "repository": "https://github.com/thekashey/detect-node"
+      "repository": "https://github.com/iliakan/detect-node"
     },
     {
       "ecosystem": "npm",
@@ -4484,6 +5468,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "dingbat-to-unicode",
+      "version": "1.0.2",
+      "license": "BSD-2-Clause",
+      "author": "Michael Williamson",
+      "repository": "https://github.com/mwilliamson/dingbat-to-unicode#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "docx",
       "version": "9.7.1",
       "license": "MIT",
@@ -4492,11 +5484,59 @@
     },
     {
       "ecosystem": "npm",
+      "name": "docx-preview",
+      "version": "0.3.7",
+      "license": "Apache-2.0",
+      "author": "Volodymyr Baydalka",
+      "repository": "https://github.com/VolodymyrBaydalka/docxjs#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "dom-helpers",
+      "version": "5.2.1",
+      "license": "MIT",
+      "author": "Jason Quense",
+      "repository": "https://github.com/react-bootstrap/dom-helpers#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "dompurify",
+      "version": "3.4.15",
+      "license": "(MPL-2.0 OR Apache-2.0)",
+      "author": "Dr.-Ing. Mario Heiderich, Cure53",
+      "repository": "https://github.com/cure53/DOMPurify"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "duck",
+      "version": "0.1.12",
+      "license": "BSD",
+      "author": "Michael Williamson",
+      "repository": "https://github.com/mwilliamson/duck.js#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "duplexer2",
       "version": "0.1.4",
       "license": "BSD-3-Clause",
       "author": "Conrad Pankoff",
       "repository": "https://github.com/deoxxa/duplexer2#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "echarts",
+      "version": "6.1.0",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://echarts.apache.org"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "emf-converter",
+      "version": "2.0.4",
+      "license": "Apache-2.0",
+      "author": "ChristopherVR",
+      "repository": "https://github.com/ChristopherVR/emf-converter"
     },
     {
       "ecosystem": "npm",
@@ -4516,11 +5556,51 @@
     },
     {
       "ecosystem": "npm",
+      "name": "es-define-property",
+      "version": "1.0.1",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/ljharb/es-define-property#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "es-errors",
+      "version": "1.3.0",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/ljharb/es-errors#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "es-toolkit",
+      "version": "1.52.0",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://es-toolkit.dev"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "es6-error",
+      "version": "4.1.1",
+      "license": "MIT",
+      "author": "Ben Youngblood",
+      "repository": "https://github.com/bjyoungblood/es6-error"
+    },
+    {
+      "ecosystem": "npm",
       "name": "esbuild",
       "version": "0.28.2",
       "license": "MIT",
       "author": null,
       "repository": "https://github.com/evanw/esbuild#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "escape-string-regexp",
+      "version": "4.0.0",
+      "license": "MIT",
+      "author": "Sindre Sorhus",
+      "repository": "https://github.com/sindresorhus/escape-string-regexp#readme"
     },
     {
       "ecosystem": "npm",
@@ -4564,11 +5644,27 @@
     },
     {
       "ecosystem": "npm",
+      "name": "fastdom",
+      "version": "1.0.12",
+      "license": "MIT",
+      "author": "Wilson Page",
+      "repository": "https://github.com/wilsonpage/fastdom"
+    },
+    {
+      "ecosystem": "npm",
       "name": "fdir",
       "version": "6.5.0",
       "license": "MIT",
       "author": "thecodrr",
       "repository": "https://github.com/thecodrr/fdir#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "flatbuffers",
+      "version": "25.9.23",
+      "license": "Apache-2.0",
+      "author": "The FlatBuffers project",
+      "repository": "https://google.github.io/flatbuffers/"
     },
     {
       "ecosystem": "npm",
@@ -4612,19 +5708,35 @@
     },
     {
       "ecosystem": "npm",
-      "name": "get-nonce",
-      "version": "1.0.1",
-      "license": "MIT",
-      "author": "Anton Korzunov",
-      "repository": "https://github.com/theKashey/get-nonce"
-    },
-    {
-      "ecosystem": "npm",
       "name": "glob",
       "version": "7.2.3",
       "license": "ISC",
       "author": "Isaac Z. Schlueter",
       "repository": "https://github.com/isaacs/node-glob#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "global-agent",
+      "version": "3.0.0",
+      "license": "BSD-3-Clause",
+      "author": "Gajus Kuizinas",
+      "repository": "https://github.com/gajus/global-agent#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "globalthis",
+      "version": "1.0.4",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/ljharb/System.global#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "gopd",
+      "version": "1.2.0",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/ljharb/gopd#readme"
     },
     {
       "ecosystem": "npm",
@@ -4636,6 +5748,30 @@
     },
     {
       "ecosystem": "npm",
+      "name": "guid-typescript",
+      "version": "1.0.9",
+      "license": "ISC",
+      "author": "nicolas",
+      "repository": "https://github.com/NicolasDeveloper/guid-typescript#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "hachure-fill",
+      "version": "0.5.2",
+      "license": "MIT",
+      "author": "Preet Shihn",
+      "repository": "https://github.com/pshihn/hachure-fill#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "has-property-descriptors",
+      "version": "1.0.2",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/inspect-js/has-property-descriptors#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "hash.js",
       "version": "1.1.7",
       "license": "MIT",
@@ -4644,11 +5780,43 @@
     },
     {
       "ecosystem": "npm",
+      "name": "heic2any",
+      "version": "0.0.4",
+      "license": "MIT",
+      "author": "Alex Corvi",
+      "repository": "https://github.com/alexcorvi/heic2any#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "hls.js",
+      "version": "1.7.3",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/video-dev/hls.js"
+    },
+    {
+      "ecosystem": "npm",
       "name": "https",
       "version": "1.0.0",
       "license": "ISC",
       "author": "hardus van der berg",
       "repository": null
+    },
+    {
+      "ecosystem": "npm",
+      "name": "hyparquet",
+      "version": "1.31.1",
+      "license": "MIT",
+      "author": "Hyperparam",
+      "repository": "https://hyperparam.app"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "iconv-lite",
+      "version": "0.6.3",
+      "license": "MIT",
+      "author": "Alexander Shtuchkin",
+      "repository": "https://github.com/ashtuchkin/iconv-lite"
     },
     {
       "ecosystem": "npm",
@@ -4676,6 +5844,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "import-meta-resolve",
+      "version": "4.2.0",
+      "license": "MIT",
+      "author": "Titus Wormer",
+      "repository": "https://github.com/wooorm/import-meta-resolve#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "inflight",
       "version": "1.0.6",
       "license": "ISC",
@@ -4689,6 +5865,30 @@
       "license": "ISC",
       "author": null,
       "repository": "https://github.com/isaacs/inherits#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "input-otp",
+      "version": "1.5.0",
+      "license": "MIT",
+      "author": "Guilherme Rodz",
+      "repository": "https://input-otp.rodz.dev/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "internmap",
+      "version": "1.0.1",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://github.com/mbostock/internmap/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "internmap",
+      "version": "2.0.3",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://github.com/mbostock/internmap/"
     },
     {
       "ecosystem": "npm",
@@ -4716,6 +5916,30 @@
     },
     {
       "ecosystem": "npm",
+      "name": "jpeg-js",
+      "version": "0.4.4",
+      "license": "BSD-3-Clause",
+      "author": "Eugene Ware",
+      "repository": "https://github.com/eugeneware/jpeg-js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "js-tokens",
+      "version": "4.0.0",
+      "license": "MIT",
+      "author": "Simon Lydell",
+      "repository": "https://github.com/lydell/js-tokens#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "json-stringify-safe",
+      "version": "5.0.1",
+      "license": "ISC",
+      "author": "Isaac Z. Schlueter",
+      "repository": "https://github.com/isaacs/json-stringify-safe"
+    },
+    {
+      "ecosystem": "npm",
       "name": "jszip",
       "version": "3.10.2",
       "license": "(MIT OR GPL-3.0-or-later)",
@@ -4724,11 +5948,51 @@
     },
     {
       "ecosystem": "npm",
+      "name": "katex",
+      "version": "0.16.47",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://katex.org"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "khroma",
+      "version": "2.1.0",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/fabiospampinato/khroma#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "layout-base",
+      "version": "1.0.2",
+      "license": "MIT",
+      "author": "",
+      "repository": "https://github.com/iVis-at-Bilkent/layout-base#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "layout-base",
+      "version": "2.0.1",
+      "license": "MIT",
+      "author": "",
+      "repository": "https://github.com/iVis-at-Bilkent/layout-base#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "lazystream",
       "version": "1.0.1",
       "license": "MIT",
       "author": "Jonas Pommerening",
       "repository": "https://github.com/jpommerening/node-lazystream"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "leaflet",
+      "version": "1.9.4",
+      "license": "BSD-2-Clause",
+      "author": null,
+      "repository": "https://leafletjs.com/"
     },
     {
       "ecosystem": "npm",
@@ -4777,6 +6041,14 @@
       "license": "ISC",
       "author": "jden",
       "repository": "https://github.com/jden/node-listenercount#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "lodash-es",
+      "version": "4.18.1",
+      "license": "MIT",
+      "author": "John-David Dalton",
+      "repository": "https://lodash.com/custom-builds"
     },
     {
       "ecosystem": "npm",
@@ -4884,6 +6156,30 @@
     },
     {
       "ecosystem": "npm",
+      "name": "long",
+      "version": "5.3.2",
+      "license": "Apache-2.0",
+      "author": "Daniel Wirtz",
+      "repository": "https://github.com/dcodeIO/long.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "loose-envify",
+      "version": "1.4.0",
+      "license": "MIT",
+      "author": "Andres Suarez",
+      "repository": "https://github.com/zertosh/loose-envify"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "lop",
+      "version": "0.4.2",
+      "license": "BSD-2-Clause",
+      "author": "Michael Williamson",
+      "repository": "https://github.com/mwilliamson/lop#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "lucide-react",
       "version": "1.47.0",
       "license": "ISC",
@@ -4897,6 +6193,54 @@
       "license": "MIT",
       "author": "Rich Harris",
       "repository": "https://github.com/Rich-Harris/magic-string#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "mammoth",
+      "version": "1.12.3",
+      "license": "BSD-2-Clause",
+      "author": "Michael Williamson",
+      "repository": "https://github.com/mwilliamson/mammoth.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "marked",
+      "version": "16.4.2",
+      "license": "MIT",
+      "author": "Christopher Jeffrey",
+      "repository": "https://marked.js.org"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "marked",
+      "version": "18.0.13",
+      "license": "MIT",
+      "author": "Christopher Jeffrey",
+      "repository": "https://marked.js.org"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "matcher",
+      "version": "3.0.0",
+      "license": "MIT",
+      "author": "Sindre Sorhus",
+      "repository": "https://github.com/sindresorhus/matcher#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "mermaid",
+      "version": "11.17.2",
+      "license": "MIT",
+      "author": "Knut Sveidqvist",
+      "repository": "https://github.com/mermaid-js/mermaid#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "mgrs",
+      "version": "1.0.0",
+      "license": "MIT",
+      "author": "proj4 team",
+      "repository": "https://github.com/proj4js/mgrs#readme"
     },
     {
       "ecosystem": "npm",
@@ -4940,6 +6284,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "mtx-decompressor",
+      "version": "1.6.0",
+      "license": "MPL-2.0",
+      "author": "ChristopherVR",
+      "repository": "https://github.com/ChristopherVR/mtx-decompressor"
+    },
+    {
+      "ecosystem": "npm",
       "name": "mupdf",
       "version": "1.28.1",
       "license": "AGPL-3.0-or-later",
@@ -4964,6 +6316,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "node-forge",
+      "version": "1.4.0",
+      "license": "(BSD-3-Clause OR GPL-2.0)",
+      "author": "Digital Bazaar, Inc.",
+      "repository": "https://github.com/digitalbazaar/forge"
+    },
+    {
+      "ecosystem": "npm",
       "name": "normalize-path",
       "version": "3.0.0",
       "license": "MIT",
@@ -4972,11 +6332,75 @@
     },
     {
       "ecosystem": "npm",
+      "name": "object-assign",
+      "version": "4.1.1",
+      "license": "MIT",
+      "author": "Sindre Sorhus",
+      "repository": "https://github.com/sindresorhus/object-assign#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "object-keys",
+      "version": "1.1.1",
+      "license": "MIT",
+      "author": "Jordan Harband",
+      "repository": "https://github.com/ljharb/object-keys#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "once",
       "version": "1.4.0",
       "license": "ISC",
       "author": "Isaac Z. Schlueter",
       "repository": "https://github.com/isaacs/once#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "onnxruntime-common",
+      "version": "1.23.2",
+      "license": "MIT",
+      "author": "fs-eire",
+      "repository": "https://github.com/Microsoft/onnxruntime#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "onnxruntime-node",
+      "version": "1.23.2",
+      "license": "MIT",
+      "author": "fs-eire",
+      "repository": "https://github.com/Microsoft/onnxruntime#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "onnxruntime-web",
+      "version": "1.23.2",
+      "license": "MIT",
+      "author": "fs-eire",
+      "repository": "https://github.com/Microsoft/onnxruntime#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "option",
+      "version": "0.2.4",
+      "license": "BSD-2-Clause",
+      "author": "Michael Williamson",
+      "repository": "https://github.com/mwilliamson/node-options#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "package-manager-detector",
+      "version": "1.8.0",
+      "license": "MIT",
+      "author": "Anthony Fu",
+      "repository": "https://github.com/antfu-collective/package-manager-detector#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "paddleocr",
+      "version": "1.2.0",
+      "license": "MIT",
+      "author": "x3zvawq",
+      "repository": "https://github.com/x3zvawq/paddleocr.js#readme"
     },
     {
       "ecosystem": "npm",
@@ -4992,7 +6416,39 @@
       "version": "1.0.11",
       "license": "(MIT AND Zlib)",
       "author": null,
-      "repository": "https://github.com/nodeca/pako"
+      "repository": "https://github.com/nodeca/pako#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "pako",
+      "version": "2.1.0",
+      "license": "(MIT AND Zlib)",
+      "author": null,
+      "repository": "https://github.com/nodeca/pako#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "pako",
+      "version": "2.2.0",
+      "license": "(MIT AND Zlib)",
+      "author": null,
+      "repository": "https://github.com/nodeca/pako#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "parsedbf",
+      "version": "2.0.0",
+      "license": "MIT",
+      "author": "Calvin Metcalf",
+      "repository": "https://github.com/calvinmetcalf/parseDBF#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "path-data-parser",
+      "version": "0.1.0",
+      "license": "MIT",
+      "author": "Preet Shihn",
+      "repository": "https://github.com/pshihn/path-data-parser#readme"
     },
     {
       "ecosystem": "npm",
@@ -5020,6 +6476,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "pdfjs-dist",
+      "version": "4.10.38",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://mozilla.github.io/pdf.js/"
+    },
+    {
+      "ecosystem": "npm",
       "name": "picocolors",
       "version": "1.1.1",
       "license": "ISC",
@@ -5033,6 +6497,38 @@
       "license": "MIT",
       "author": "Jon Schlinkert",
       "repository": "https://github.com/micromatch/picomatch"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "platform",
+      "version": "1.3.6",
+      "license": "MIT",
+      "author": "Benjamin Tan",
+      "repository": "https://github.com/bestiejs/platform.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "points-on-curve",
+      "version": "0.2.0",
+      "license": "MIT",
+      "author": "Preet Shihn",
+      "repository": "https://github.com/pshihn/bezier-points#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "points-on-path",
+      "version": "0.2.1",
+      "license": "MIT",
+      "author": "Preet Shihn",
+      "repository": "https://github.com/pshihn/points-on-path#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "postal-mime",
+      "version": "2.7.6",
+      "license": "MIT-0",
+      "author": "Andris Reinman",
+      "repository": "https://postal-mime.postalsys.com"
     },
     {
       "ecosystem": "npm",
@@ -5052,11 +6548,43 @@
     },
     {
       "ecosystem": "npm",
+      "name": "prismjs",
+      "version": "1.30.0",
+      "license": "MIT",
+      "author": "Lea Verou",
+      "repository": "https://github.com/PrismJS/prism#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "process-nextick-args",
       "version": "2.0.1",
       "license": "MIT",
       "author": "",
       "repository": "https://github.com/calvinmetcalf/process-nextick-args"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "proj4",
+      "version": "2.22.0",
+      "license": "MIT",
+      "author": "",
+      "repository": "https://proj4js.github.io/proj4js/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "prop-types",
+      "version": "15.8.1",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://facebook.github.io/react/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "protobufjs",
+      "version": "7.6.6",
+      "license": "BSD-3-Clause",
+      "author": "Daniel Wirtz",
+      "repository": "https://protobufjs.github.io/protobuf.js/"
     },
     {
       "ecosystem": "npm",
@@ -5076,6 +6604,22 @@
     },
     {
       "ecosystem": "npm",
+      "name": "react-aria",
+      "version": "3.52.1",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "react-aria-components",
+      "version": "1.21.1",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "react-dom",
       "version": "19.3.0",
       "license": "MIT",
@@ -5084,19 +6628,11 @@
     },
     {
       "ecosystem": "npm",
-      "name": "react-remove-scroll",
-      "version": "2.7.2",
+      "name": "react-is",
+      "version": "16.13.1",
       "license": "MIT",
-      "author": "Anton Korzunov",
-      "repository": "https://github.com/theKashey/react-remove-scroll#readme"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "react-remove-scroll-bar",
-      "version": "2.3.8",
-      "license": "MIT",
-      "author": "Anton Korzunov",
-      "repository": "https://github.com/theKashey/react-remove-scroll-bar#readme"
+      "author": null,
+      "repository": "https://reactjs.org/"
     },
     {
       "ecosystem": "npm",
@@ -5116,11 +6652,19 @@
     },
     {
       "ecosystem": "npm",
-      "name": "react-style-singleton",
-      "version": "2.2.3",
-      "license": "MIT",
-      "author": "Anton Korzunov",
-      "repository": "https://github.com/theKashey/react-style-singleton#readme"
+      "name": "react-stately",
+      "version": "3.50.0",
+      "license": "Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/adobe/react-spectrum#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "react-transition-group",
+      "version": "4.4.5",
+      "license": "BSD-3-Clause",
+      "author": "",
+      "repository": "https://github.com/reactjs/react-transition-group#readme"
     },
     {
       "ecosystem": "npm",
@@ -5164,11 +6708,43 @@
     },
     {
       "ecosystem": "npm",
+      "name": "roarr",
+      "version": "2.15.4",
+      "license": "BSD-3-Clause",
+      "author": "Gajus Kuizinas",
+      "repository": "https://github.com/gajus/roarr#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "robust-predicates",
+      "version": "3.0.3",
+      "license": "Unlicense",
+      "author": "Vladimir Agafonkin",
+      "repository": "https://github.com/mourner/robust-predicates#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "rolldown",
       "version": "1.2.9",
       "license": "MIT",
       "author": null,
       "repository": "https://rolldown.rs/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "roughjs",
+      "version": "4.6.6",
+      "license": "MIT",
+      "author": "Preet Shihn",
+      "repository": "https://roughjs.com"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "rw",
+      "version": "1.3.3",
+      "license": "BSD-3-Clause",
+      "author": "Mike Bostock",
+      "repository": "https://github.com/mbostock/rw"
     },
     {
       "ecosystem": "npm",
@@ -5185,6 +6761,14 @@
       "license": "MIT",
       "author": "Feross Aboukhadijeh",
       "repository": "https://github.com/feross/safe-buffer"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "safer-buffer",
+      "version": "2.1.2",
+      "license": "MIT",
+      "author": "Nikita Skovoroda",
+      "repository": "https://github.com/ChALkeR/safer-buffer#readme"
     },
     {
       "ecosystem": "npm",
@@ -5212,11 +6796,35 @@
     },
     {
       "ecosystem": "npm",
+      "name": "seek-bzip",
+      "version": "2.0.0",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/cscott/seek-bzip#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "semver",
       "version": "7.8.5",
       "license": "ISC",
       "author": "GitHub Inc.",
       "repository": "https://github.com/npm/node-semver#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "semver-compare",
+      "version": "1.0.0",
+      "license": "MIT",
+      "author": "James Halliday",
+      "repository": "https://github.com/substack/semver-compare"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "serialize-error",
+      "version": "7.0.1",
+      "license": "MIT",
+      "author": "Sindre Sorhus",
+      "repository": "https://github.com/sindresorhus/serialize-error#readme"
     },
     {
       "ecosystem": "npm",
@@ -5244,6 +6852,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "shpjs",
+      "version": "6.2.0",
+      "license": "MIT",
+      "author": "Calvin Metcalf",
+      "repository": "https://github.com/calvinmetcalf/shapefile-js#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "sonner",
       "version": "2.0.8",
       "license": "MIT",
@@ -5257,6 +6873,30 @@
       "license": "BSD-3-Clause",
       "author": "Valentin 7rulnik Semirulnik",
       "repository": "https://github.com/7rulnik/source-map-js"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "sprintf-js",
+      "version": "1.0.3",
+      "license": "BSD-3-Clause",
+      "author": "Alexandru Mărășteanu",
+      "repository": "https://github.com/alexei/sprintf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "sprintf-js",
+      "version": "1.1.3",
+      "license": "BSD-3-Clause",
+      "author": "Alexandru Mărășteanu",
+      "repository": "https://github.com/alexei/sprintf.js#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "strictdom",
+      "version": "1.0.1",
+      "license": "MIT",
+      "author": "Wilson Page",
+      "repository": "https://github.com/wilsonpage/strictdom"
     },
     {
       "ecosystem": "npm",
@@ -5284,11 +6924,27 @@
     },
     {
       "ecosystem": "npm",
+      "name": "stylis",
+      "version": "4.4.0",
+      "license": "MIT",
+      "author": "Sultan Tarimo",
+      "repository": "https://github.com/thysultan/stylis.js"
+    },
+    {
+      "ecosystem": "npm",
       "name": "tailwind-merge",
       "version": "3.7.0",
       "license": "MIT",
       "author": "Dany Castillo",
       "repository": "https://github.com/dcastil/tailwind-merge"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "tailwind-variants",
+      "version": "3.3.1",
+      "license": "MIT",
+      "author": "Junior Garcia",
+      "repository": "https://github.com/heroui-inc/tailwind-variants#readme"
     },
     {
       "ecosystem": "npm",
@@ -5316,11 +6972,27 @@
     },
     {
       "ecosystem": "npm",
+      "name": "three",
+      "version": "0.184.0",
+      "license": "MIT",
+      "author": "mrdoob",
+      "repository": "https://threejs.org/"
+    },
+    {
+      "ecosystem": "npm",
       "name": "tiny-inflate",
       "version": "1.0.3",
       "license": "MIT",
       "author": "Devon Govett",
       "repository": "https://github.com/devongovett/tiny-inflate"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "tinyexec",
+      "version": "1.3.1",
+      "license": "MIT",
+      "author": "James Garbutt",
+      "repository": "https://github.com/tinylibs/tinyexec#readme"
     },
     {
       "ecosystem": "npm",
@@ -5340,6 +7012,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "topojson-client",
+      "version": "3.1.0",
+      "license": "ISC",
+      "author": "Mike Bostock",
+      "repository": "https://github.com/topojson/topojson-client"
+    },
+    {
+      "ecosystem": "npm",
       "name": "traverse",
       "version": "0.3.9",
       "license": "MIT/X11",
@@ -5348,8 +7028,24 @@
     },
     {
       "ecosystem": "npm",
+      "name": "ts-dedent",
+      "version": "2.3.0",
+      "license": "MIT",
+      "author": "Tamino Martinius",
+      "repository": "https://github.com/tamino-martinius/node-ts-dedent#readme"
+    },
+    {
+      "ecosystem": "npm",
       "name": "tslib",
       "version": "1.14.1",
+      "license": "0BSD",
+      "author": "Microsoft Corp.",
+      "repository": "https://www.typescriptlang.org/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "tslib",
+      "version": "2.3.0",
       "license": "0BSD",
       "author": "Microsoft Corp.",
       "repository": "https://www.typescriptlang.org/"
@@ -5372,11 +7068,43 @@
     },
     {
       "ecosystem": "npm",
+      "name": "tw-animate-css",
+      "version": "1.4.0",
+      "license": "MIT",
+      "author": "Luca Bosin",
+      "repository": "https://github.com/Wombosvideo/tw-animate-css#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "type-fest",
+      "version": "0.13.1",
+      "license": "(MIT OR CC0-1.0)",
+      "author": "Sindre Sorhus",
+      "repository": "https://github.com/sindresorhus/type-fest#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "typedarray",
+      "version": "0.0.6",
+      "license": "MIT",
+      "author": "James Halliday",
+      "repository": "https://github.com/substack/typedarray"
+    },
+    {
+      "ecosystem": "npm",
       "name": "typescript",
       "version": "7.0.2",
       "license": "Apache-2.0",
       "author": "Microsoft Corp.",
       "repository": "https://www.typescriptlang.org/"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "underscore",
+      "version": "1.13.8",
+      "license": "MIT",
+      "author": "Jeremy Ashkenas",
+      "repository": "https://underscorejs.org"
     },
     {
       "ecosystem": "npm",
@@ -5428,19 +7156,19 @@
     },
     {
       "ecosystem": "npm",
-      "name": "use-callback-ref",
-      "version": "1.3.3",
+      "name": "use-sync-external-store",
+      "version": "1.7.0",
       "license": "MIT",
-      "author": "theKashey",
-      "repository": null
+      "author": null,
+      "repository": "https://github.com/react/react#readme"
     },
     {
       "ecosystem": "npm",
-      "name": "use-sidecar",
-      "version": "1.1.3",
+      "name": "utif",
+      "version": "3.1.0",
       "license": "MIT",
-      "author": "theKashey",
-      "repository": "https://github.com/theKashey/use-sidecar"
+      "author": "photopea",
+      "repository": "https://github.com/photopea/UTIF.js"
     },
     {
       "ecosystem": "npm",
@@ -5449,6 +7177,14 @@
       "license": "MIT",
       "author": "Nathan Rajlich",
       "repository": "https://github.com/TooTallNate/util-deprecate"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "uuid",
+      "version": "14.0.2",
+      "license": "MIT",
+      "author": null,
+      "repository": "https://github.com/uuidjs/uuid#readme"
     },
     {
       "ecosystem": "npm",
@@ -5465,6 +7201,14 @@
       "license": "MIT",
       "author": "Evan You",
       "repository": "https://vite.dev"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "wkt-parser",
+      "version": "1.5.6",
+      "license": "MIT",
+      "author": "",
+      "repository": "https://github.com/proj4js/wkt-parser#readme"
     },
     {
       "ecosystem": "npm",
@@ -5500,6 +7244,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "xmlbuilder",
+      "version": "10.1.1",
+      "license": "MIT",
+      "author": "Ozgur Ozcitak",
+      "repository": "http://github.com/oozcitak/xmlbuilder-js"
+    },
+    {
+      "ecosystem": "npm",
       "name": "xmlchars",
       "version": "2.2.0",
       "license": "MIT",
@@ -5508,11 +7260,35 @@
     },
     {
       "ecosystem": "npm",
+      "name": "xz-decompress",
+      "version": "0.2.3",
+      "license": "MIT",
+      "author": "Tim Perry",
+      "repository": "https://github.com/httptoolkit/xz-decompress#readme"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "yaml",
+      "version": "2.9.1",
+      "license": "ISC",
+      "author": "Eemeli Aro",
+      "repository": "https://eemeli.org/yaml/"
+    },
+    {
+      "ecosystem": "npm",
       "name": "zip-stream",
       "version": "4.1.1",
       "license": "MIT",
       "author": "Chris Talkington",
       "repository": "https://github.com/archiverjs/node-zip-stream"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "zrender",
+      "version": "6.1.0",
+      "license": "BSD-3-Clause",
+      "author": null,
+      "repository": "https://github.com/ecomfe/zrender#readme"
     },
     {
       "ecosystem": "npm",
