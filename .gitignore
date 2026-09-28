@@ -16,3 +16,6 @@ samples/out/
 samples/__tmp-photo-*.jpg
 coverage/
 release/
+
+# golden capture intermediate fixture dirs (consolidated into testdata/fixtures by merge-golden)
+packages/engine/testdata/golden-pass*-fixtures/

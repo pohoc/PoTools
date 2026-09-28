@@ -7,11 +7,14 @@
  *   DIFF      — handled but output diverges (real regression to fix)
  *   CRASH     — worker/page error
  */
-import { readFile } from 'node:fs/promises';
-import { createServer, type ViteDevServer } from 'vite';
+import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { createServer, type ViteDevServer, type Plugin } from 'vite';
 import { chromium } from 'playwright';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { homedir, tmpdir } from 'node:os';
 
 const DESKTOP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = resolve(DESKTOP_ROOT, '../..');
@@ -39,10 +42,46 @@ interface CasePayload {
   locale?: string;
   files?: Array<{ name: string; url: string }>;
   dump?: boolean;
+  fontUrls?: string[];
 }
 
 function equalJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+}
+
+/** Mirrors the Rust `system_font_candidates` scan so the harness injects the same fonts the app would. */
+function collectFontCandidates(): string[] {
+  const candidates: string[] = [
+    '/Library/Fonts/Arial Unicode.ttf',
+    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+    '/System/Library/Fonts/STHeiti Light.ttc',
+    '/System/Library/Fonts/Hiragino Sans GB.ttc',
+    '/System/Library/Fonts/Supplemental/Songti.ttc',
+  ].filter((candidate) => existsSync(candidate));
+  const extensions = new Set(['.ttf', '.ttc', '.otf', '.otc']);
+  for (const directory of ['/Library/Fonts', '/System/Library/Fonts', '/System/Library/Fonts/Supplemental', join(homedir(), 'Library/Fonts')]) {
+    const walk = (current: string, depth: number): void => {
+      let entries: Array<{ name: string; isDirectory: () => boolean }> = [];
+      try {
+        entries = readdirSync(current, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const full = join(current, entry.name);
+        if (entry.isDirectory()) {
+          if (depth < 2) walk(full, depth + 1);
+        } else if (extensions.has(extname(entry.name).toLowerCase())) candidates.push(full);
+      }
+    };
+    if (existsSync(directory)) walk(directory, 0);
+  }
+  return [...new Set(candidates)];
+}
+
+/** Markup/markdown/OFD tools may need system fonts; the page mirrors the exact transport decision. */
+function needsFontCandidates(entry: GoldenEntry): boolean {
+  return ['ofd-to-pdf', 'pdf-to-ofd', 'markdown-to-pdf', 'watermark', 'page-numbers', 'header-footer'].includes(entry.tool);
 }
 
 /** "(2)"-style suffixes depend on the capture environment's output dir, not the contract. */
@@ -91,15 +130,49 @@ async function main(): Promise<void> {
     ? Object.fromEntries(Object.entries(golden.entries).filter(([key]) => keysFilter.some((fragment) => key.includes(fragment))))
     : golden.entries;
   const samplesDir = resolve(REPO_ROOT, 'samples');
+  const fixturesDir = resolve(REPO_ROOT, 'packages/engine/testdata/fixtures');
   const dumpFragment = process.argv.find((arg) => arg.startsWith('--dump='))?.slice(7);
+
+  // Budget mirror of transport.systemFontRuntimeData: 8 fonts, 64MB each, 128MB total.
+  const fontWhitelist = new Set(collectFontCandidates());
+  const fontUrls: string[] = [];
+  let fontBudget = 128 * 1024 * 1024;
+  for (const candidate of fontWhitelist) {
+    if (fontUrls.length >= 8) break;
+    const size = existsSync(candidate) ? (await stat(candidate)).size : 0;
+    if (!size || size > 64 * 1024 * 1024 || fontBudget - size < 0) continue;
+    fontBudget -= size;
+    fontUrls.push(`/__font?path=${encodeURIComponent(candidate)}`);
+  }
+  console.error(`[fonts] ${fontUrls.length} candidates injected`);
+
+  const fileServer: Plugin = {
+    name: 'golden-font-server',
+    configureServer(server) {
+      server.middlewares.use('/__font', (req, res) => {
+        const target = new URL(req.url ?? '/', 'http://localhost').searchParams.get('path') ?? '';
+        if (!fontWhitelist.has(target) || !existsSync(target)) {
+          res.statusCode = 403;
+          res.end();
+          return;
+        }
+        createReadStream(target).pipe(res);
+      });
+    },
+  };
+
   const cases: CasePayload[] = Object.entries(selected).map(([key, entry]) => ({
     key,
     kind: entry.kind,
     tool: entry.tool,
     options: entry.inputs.options ?? {},
     locale: entry.inputs.locale,
-    files: (entry.inputs.files ?? []).map((name) => ({ name, url: `/@fs${join(samplesDir, name)}` })),
+    files: (entry.inputs.files ?? []).map((name) => {
+      const source = existsSync(join(samplesDir, name)) ? join(samplesDir, name) : join(fixturesDir, name);
+      return { name, url: `/@fs${source}` };
+    }),
     dump: Boolean(dumpFragment && key.includes(dumpFragment)),
+    fontUrls: needsFontCandidates(entry) ? fontUrls : [],
   }));
 
   const server: ViteDevServer = await createServer({
@@ -107,6 +180,7 @@ async function main(): Promise<void> {
     root: resolve(REPO_ROOT, 'apps/desktop'),
     logLevel: 'error',
     server: { port: 0, strictPort: false },
+    plugins: [fileServer],
   });
   await server.listen();
   const resolvedPort = (server.httpServer?.address() as { port: number }).port;

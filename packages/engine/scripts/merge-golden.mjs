@@ -50,5 +50,19 @@ await writeFile(outPath, `${JSON.stringify({
   entries,
   manifest: first.manifest,
 }, null, 2)}\n`);
+// Consolidate the first pass's runtime fixtures into the canonical fixtures dir.
+const { dirname, join, basename } = await import('node:path');
+const { cpSync, rmSync, existsSync } = await import('node:fs');
+const fixturesSource = join(dirname(passA), `${basename(passA, '.json')}-fixtures`);
+const fixturesTarget = join(dirname(outPath), 'fixtures');
+rmSync(fixturesTarget, { recursive: true, force: true });
+if (existsSync(fixturesSource)) {
+  cpSync(fixturesSource, fixturesTarget, { recursive: true });
+  console.log(`[golden] fixtures consolidated -> ${fixturesTarget}`);
+}
+// The per-pass fixture dirs are intermediate artifacts; only the consolidated dir is kept.
+for (const pass of [passA, passB]) {
+  rmSync(join(dirname(pass), `${basename(pass, '.json')}-fixtures`), { recursive: true, force: true });
+}
 console.log(`[golden] ${Object.keys(entries).length} entries (${Object.keys(entries).length - unstable - inputRandom} stable, ${inputRandom} input-random, ${unstable} unstable digest-stripped) -> ${outPath}`);
 await Promise.all([rm(passA, { force: true }), rm(passB, { force: true })]);

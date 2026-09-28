@@ -2,10 +2,10 @@
  * End-to-end harness: drives every registered tool through the real engine and
  * asserts the artifacts on disk. Run after `make-samples`.
  */
-import { mkdtemp, mkdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import JSZip from 'jszip';
 import { PDFArray, PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
@@ -24,6 +24,8 @@ import { canonicalArtifactDigest, CANONICAL_VERSION } from '../src/testing/canon
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SAMPLES = resolve(HERE, '../../../samples');
 const OUT_DIR = resolve(SAMPLES, 'out');
+/** Damage fixtures created (and deleted) by each harness run. */
+const RUNTIME_FIXTURE_NAMES = new Set(['corrupt.pdf', 'truncated.pdf']);
 
 const TERMINAL = new Set(['succeeded', 'failed', 'cancelled']);
 let counter = 0;
@@ -49,6 +51,8 @@ interface GoldenEntry {
   artifacts?: Array<{ name: string; kind: string; sha256?: string }>;
 }
 const GOLDEN = new Map<string, GoldenEntry>();
+/** Inputs that live outside samples/ (runtime fixtures like corrupt.pdf) → first-pass source path. */
+const GOLDEN_FIXTURES = new Map<string, string>();
 
 function goldenKey(prefix: string, tool: string, parts: unknown[]): string {
   const digest = createHash('sha256').update(JSON.stringify(parts)).digest('hex').slice(0, 12);
@@ -97,6 +101,12 @@ async function captureJobGolden(
     ...(job.summary ? { summary: stableSummary } : {}),
     artifacts,
   });
+  for (const file of files) {
+    // Persist runtime-generated fixtures (corrupt.pdf, watermark probe outputs…)
+    // so the browser replay can fetch them after this run cleans up.
+    const transient = RUNTIME_FIXTURE_NAMES.has(file.name) || Boolean(file.path?.startsWith(OUT_DIR));
+    if (!GOLDEN_FIXTURES.has(file.name) && file.path && transient) GOLDEN_FIXTURES.set(file.name, file.path);
+  }
 }
 
 function file(name: string): FileRef {
@@ -1691,6 +1701,14 @@ async function main(): Promise<void> {
       manifest: results,
     }, null, 2)}\n`);
     process.stdout.write(`golden capture: ${GOLDEN.size} entries -> ${target}\n`);
+    if (GOLDEN_FIXTURES.size) {
+      const fixtureDir = join(dirname(target), `${basename(target, '.json')}-fixtures`);
+      await mkdir(fixtureDir, { recursive: true });
+      for (const [name, source] of GOLDEN_FIXTURES) {
+        await cp(source, join(fixtureDir, name));
+      }
+      process.stdout.write(`golden fixtures: ${GOLDEN_FIXTURES.size} -> ${fixtureDir}\n`);
+    }
   }
 
   await rm(OUT_DIR, { recursive: true, force: true });

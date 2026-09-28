@@ -33,6 +33,11 @@
 
 ## 进度记录
 
+- **2026-09-28 阶段 3（字体链路 + 运行时夹具）**：浏览器基线从 203 PASS / 18 FALLBACK 收敛到 **216 PASS / 3 FALLBACK / 7 DIFF / 1 CRASH**。
+  - ✅ harness 复刻 transport 字体注入：runner 按 Rust `system_font_candidates` 同款逻辑（macOS 优先字体 + 目录递归扫描）收集候选，经 vite middleware `/__font` 服务给页面，预算镜像（8 个/64MB/128MB）；页面按 transport 语义（markup 合并 defaultOptions 后测非 ASCII、markdown/OFD 族恒注入）组装 `systemFonts` runtimeData，字体按 URL 缓存。
+  - ✅ 运行时夹具沉淀：golden 采集把 corrupt.pdf/truncated.pdf（损坏夹具）与 OUT_DIR 产物（probe.pdf 等 6 个）复制到 `testdata/golden-passN-fixtures/`，merge 合并到 `testdata/fixtures/`；harness 取文件时 samples 缺失即回退夹具目录——browser 侧首次成功回放损坏文件修复/文本探测用例。
+  - 剩余 FALLBACK ×3 全部为 ofd-to-pdf（系统字体注入后字形适配仍不足，阶段 4 深挖）；剩余 DIFF ×7：organize `empty_selection` ×2、markdown-to-pdf 排版差异、repair truncated 错误码分类（internal vs unreadable_file）、ocr-table 空表格语义、pdf-to-ofd warnings 差异、image-watermark-clean SVG 蒙版 `bad_request` + 60s 超时。
+
 - **2026-09-28 阶段 2（比对基建 + pdf-lib 系清零）**：浏览器基线从 187 PASS / 21 DIFF 收敛到 **203 PASS / 18 FALLBACK / 5 DIFF / 1 CRASH**。
   - ✅ 双端字节 dump 机制：runner `--dump=` 导出浏览器产物字节到 `/tmp/golden-dump-browser/`，`packages/engine/scripts/dump-node-artifact.mts` 跑 Node 侧对照，canonical 文本 diff 逐字节定位。
   - ✅ 根因定案：pdf-lib 系 12 条 digest 差异全部源自 ObjStm 内 `/ModDate` 秒级时间戳 → deflate 熵差 1 字节 → `/Length`/xref 偏移链式移位。canonical v2 起 PDF 比对归一化 FlateDecode 流的 `/Length`、以 `«xref»` 标记替代 xref 偏移表内容、归一 `startxref`——簿记数据不入内容契约。

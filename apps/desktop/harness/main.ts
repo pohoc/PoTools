@@ -53,6 +53,45 @@ interface GoldenCase {
   files?: Array<{ name: string; url: string }>;
   /** Return artifact bytes base64 instead of digests (byte-level debugging). */
   dump?: boolean;
+  /** Font file URLs to inject as `systemFonts` runtimeData, mirroring the app transport. */
+  fontUrls?: string[];
+}
+
+const fontCache = new Map<string, Uint8Array>();
+
+/** Mirrors transport.markupNeedsUnicodeFont against the merged options the worker will see. */
+function markupNeedsUnicodeFont(tool: string, options: Record<string, unknown>, fileNames: string[]): boolean {
+  const merged = { ...defaultOptions(tool as never), ...options };
+  const text = [merged.text, merged.format, merged.header, merged.footer, ...fileNames]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ');
+  return /[^\x00-\x7f]/u.test(text);
+}
+
+async function systemFontRuntimeData(item: GoldenCase): Promise<Record<string, unknown>> {
+  if (item.tool === 'markdown-to-pdf' || item.tool === 'ofd-to-pdf' || item.tool === 'pdf-to-ofd') {
+    // markdownRuntimeData/ofdRuntimeData: assets plus system fonts when no explicit font.
+    return { markdownAssets: {}, ...(item.fontUrls?.length ? { systemFonts: await loadFonts(item.fontUrls) } : {}) };
+  }
+  if (item.fontUrls?.length && markupNeedsUnicodeFont(item.tool, item.options, (item.files ?? []).map((file) => file.name))) {
+    return { systemFonts: await loadFonts(item.fontUrls) };
+  }
+  return {};
+}
+
+async function loadFonts(urls: string[]): Promise<Array<{ name: string; bytes: Uint8Array }>> {
+  const fonts = await Promise.all(urls.map(async (url) => {
+    let bytes = fontCache.get(url);
+    if (!bytes) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`font fetch failed: HTTP ${response.status}`);
+      bytes = new Uint8Array(await response.arrayBuffer());
+      fontCache.set(url, bytes);
+    }
+    const path = new URL(url, location.origin).searchParams.get('path') ?? '';
+    return { name: path.split('/').pop() ?? path, bytes };
+  }));
+  return fonts;
 }
 
 interface GoldenOutcome {
@@ -98,6 +137,7 @@ interface GoldenOutcome {
                 if (!response.ok) throw new Error(`sample fetch failed: ${file.url} HTTP ${response.status}`);
                 inputs.push({ id: file.name, name: file.name, path: null, bytes: new Uint8Array(await response.arrayBuffer()) });
               }
+              const runtimeData = await systemFontRuntimeData(item);
               const job = {
                 id: item.key.replace(/[^A-Za-z0-9_-]/g, '-'),
                 tool: item.tool,
@@ -108,6 +148,7 @@ interface GoldenOutcome {
               const reply = await callWorker({
                 rpc: { method: 'job.submit', params: { job } },
                 inputs,
+                runtimeData,
               }, inputs.map((input) => input.bytes.buffer));
               const jobResult = (reply.jobResult as GoldenOutcome['jobResult']) ?? null;
               // Digest inside the page so multi-MB artifacts never pile up
