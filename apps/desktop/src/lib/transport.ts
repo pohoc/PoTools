@@ -111,6 +111,11 @@ abstract class BaseTransport implements Transport {
   }
 }
 
+/**
+ * @deprecated Web/dev-only path against a locally started Node HTTP engine.
+ * The worker-only migration removes Node from the shipped app, so this
+ * transport is scheduled for deletion (phase 9) and must not gain features.
+ */
 class HttpTransport extends BaseTransport {
   readonly mode = 'web' as const;
   private source: EventSource | null = null;
@@ -282,6 +287,16 @@ class TauriTransport extends BaseTransport {
   private systemFontCandidates: Promise<string[]> | null = null;
   private systemFontBytes = new Map<string, Promise<Uint8Array | null>>();
 
+  /**
+   * Worker-only gray switch (worker-only migration phase 6): set
+   * POTOOLS_NO_SIDECAR=1 to turn every sidecar fallback into an explicit
+   * error, exposing any missed worker boundary.
+   */
+  private get noSidecar(): boolean {
+    const value = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.POTOOLS_NO_SIDECAR;
+    return value === '1' || value === 'true';
+  }
+
   async start(options?: { concurrency?: number }): Promise<EngineInfo> {
     if (this.ready) return this.ready;
     this.embeddedConcurrency = Math.max(1, Math.trunc(options?.concurrency ?? 1));
@@ -293,6 +308,11 @@ class TauriTransport extends BaseTransport {
     const bridge = await engineBridge();
     const host = await bridge.invoke<{ platform: string; defaultOutputDir: string; defaultTempDir: string }>('desktop_runtime_info');
     this.embeddedConcurrency = Math.max(1, Math.trunc(concurrency ?? 1));
+    // Real self-check values: the embedded Worker bundles MuPDF WASM (rasterizer),
+    // canvas codecs serve image transcoding, and host-discovered fonts cover CJK.
+    const fontCandidates = await bridge
+      .invoke<string[]>('system_font_candidates')
+      .catch(() => [] as string[]);
     const info: EngineInfo = {
       name: '@potools/engine',
       version: '0.1.0',
@@ -303,7 +323,12 @@ class TauriTransport extends BaseTransport {
       defaultOutputDir: host.defaultOutputDir,
       tempDir: this.tempDir ?? host.defaultTempDir,
       defaultTempDir: host.defaultTempDir,
-      features: { rasterizer: 'none', imageCodec: false, cjkFont: null, busy: false },
+      features: {
+        rasterizer: 'mupdf',
+        imageCodec: typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap === 'function',
+        cjkFont: fontCandidates[0]?.split(/[\\/]/).pop() ?? null,
+        busy: false,
+      },
     };
     this.info = info;
     this.setStatus('ready');
@@ -937,6 +962,12 @@ class TauriTransport extends BaseTransport {
   }
 
   private async callSidecar<T = unknown>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs = 120_000): Promise<T> {
+    if (this.noSidecar) {
+      // Gray mode: every path that would have reached the Node engine is now
+      // an explicit error, exposing missed worker boundaries instead of
+      // silently booting a sidecar.
+      throw new RpcError('offline', `无 Node 引擎模式：${method} 未由内嵌 Worker 处理`);
+    }
     if (this.status !== 'ready') await this.start();
     await this.startSidecar();
     const bridge = await engineBridge();
@@ -978,6 +1009,9 @@ class TauriTransport extends BaseTransport {
   }
 
   private startHealthCheck(): void {
+    // Worker-only gray mode has no sidecar to health-check; engine.ping falls
+    // back to the local pong answer, so polling it would add nothing.
+    if (this.noSidecar) return;
     if (this.healthTimer) return;
     this.healthTimer = setInterval(() => {
       if (this.healthInFlight) return;

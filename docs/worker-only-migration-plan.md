@@ -33,6 +33,13 @@
 
 ## 进度记录
 
+- **2026-09-28 阶段 6（灰度开关）**：
+  - ✅ transport 增加 `noSidecar` 灰度开关（`POTOOLS_NO_SIDECAR=1`，经 vite `envPrefix` 进入应用）：`callSidecar` 直接抛 `offline` 显式错误（不再静默拉起 sidecar），健康检查轮询跳过（`engine.ping`/`engine.setTempDir` 本地应答路径天然生效）。
+  - ✅ `engine.info` 真实自检：`rasterizer: 'mupdf'`（Worker 内嵌 MuPDF WASM）、`imageCodec` 运行时探测（OffscreenCanvas + createImageBitmap）、`cjkFont` 取宿主字体候选首项——设置页三个长期误报的警告随之修正。
+  - ✅ HttpTransport 标记 `@deprecated`（阶段 9 删除，禁止新增功能）。
+  - ✅ 灰度验证即浏览器 golden 回放本身（纯 Worker、无 sidecar）：**225 PASS / 1 DIFF / 226 条**；生产构建在 `POTOOLS_NO_SIDECAR=1` 下通过。
+  - 遗留：ocr-table 识别质量差异（唯一 DIFF）；`pnpm dev` 默认不含 Node engine 的切换与浏览器端 Worker transport 归属阶段 7。
+
 - **2026-09-28 阶段 4（第二批：字体字节级对齐 + 蒙版真实性）**：浏览器基线从 221 PASS / 5 DIFF / 1 CRASH 收敛到 **225 PASS / 0 FALLBACK / 1 DIFF / 0 CRASH**（226 条，两条 watermark-clean 用例因同输入合并）。
   - ✅ ofd-to-pdf 字号双重换算（**真实产品 bug**）：`lib/ofd.ts` 解析时已做 mmToPt，浏览器端 drawText 又换算一次，渲染字号放大 2.83 倍；Node 端正确。修正为 `size: line.size` 后两端字节一致。
   - ✅ ofd-to-pdf / markdown-to-pdf 对象创建顺序：Node `textFont` 每个文本行**新鲜嵌入** Helvetica + CJK 字体（新子集实例、字形 ID 从 0001 重排、无缓存）；浏览器端改为逐行镜像（含 Helvetica-first 失败再试系统字体的顺序），双端 PDF 字节完全一致。
