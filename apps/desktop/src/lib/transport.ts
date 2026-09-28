@@ -2,7 +2,7 @@ import { PROTOCOL_VERSION, TOOL_LIST, type DirListing, type EngineEvent, type En
 import type { ResolvedInput } from '@potools/engine/browser';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { engineBridge, isTauri } from './tauri.ts';
-import { callEmbeddedRpc, cancelEmbeddedFileJob } from './embedded-engine.ts';
+import { callEmbeddedRpc, cancelEmbeddedFileJob, configureEmbeddedWorkerPool, embeddedWorkerCount, shutdownEmbeddedWorkerPool } from './embedded-engine.ts';
 
 export type TransportStatus = 'connecting' | 'ready' | 'offline';
 
@@ -63,21 +63,6 @@ function relativeAssetPath(markdownPath: string, source: string): string | null 
   return `${prefix}${parts.join(separator)}`;
 }
 
-/**
- * Vite's dev proxy buffers `text/event-stream`, so browser dev reads the event
- * stream straight from the engine origin. The dev signal is vite's injected
- * `import.meta.hot` rather than a build-time `define`, which the running dev
- * server may not apply to this module.
- */
-function devEngineOrigin(): string | null {
-  if (typeof location === 'undefined' || !import.meta.hot) return null;
-  const configured = import.meta.env?.VITE_ENGINE_PORT;
-  const port = typeof configured === 'string' && configured ? configured : '8787';
-  if (location.port === port) return null;
-  const protocol = location.protocol === 'https:' ? 'https:' : 'http:';
-  return `${protocol}//${location.hostname || '127.0.0.1'}:${port}`;
-}
-
 abstract class BaseTransport implements Transport {
   abstract readonly mode: 'web' | 'tauri';
   status: TransportStatus = 'connecting';
@@ -111,147 +96,6 @@ abstract class BaseTransport implements Transport {
   }
 }
 
-/**
- * @deprecated Web/dev-only path against a locally started Node HTTP engine.
- * The worker-only migration removes Node from the shipped app, so this
- * transport is scheduled for deletion (phase 9) and must not gain features.
- */
-class HttpTransport extends BaseTransport {
-  readonly mode = 'web' as const;
-  private source: EventSource | null = null;
-  private probe: ReturnType<typeof setInterval> | null = null;
-  private probeInFlight = false;
-  private healthTimer: ReturnType<typeof setInterval> | null = null;
-  private healthInFlight = false;
-  private base: string;
-
-  constructor(base = '/engine') {
-    super();
-    this.base = base;
-  }
-
-  async start(): Promise<EngineInfo> {
-    try {
-      const info = await this.call<EngineInfo>('engine.info', {});
-      this.info = info;
-      this.setStatus('ready');
-      this.openEvents();
-      this.startHealthCheck();
-      return info;
-    } catch (error) {
-      this.setStatus('offline');
-      this.startProbe();
-      throw error;
-    }
-  }
-
-  async call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs?: number): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs ?? 120_000);
-    let response: Response;
-    try {
-      response = await fetch(`${this.base}/rpc`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ method, params }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-    if (!response.ok) throw new RpcError('offline', `engine responded ${response.status}`);
-    const payload = (await response.json()) as
-      | { ok: true; result: T }
-      | { ok: false; error: { code: string; message: string; details?: { hintKey?: string } } };
-    if (!payload.ok) {
-      throw new RpcError(payload.error.code, payload.error.message, payload.error.details?.hintKey);
-    }
-    return payload.result;
-  }
-
-  stop(): void {
-    this.source?.close();
-    this.source = null;
-    if (this.probe) clearInterval(this.probe);
-    this.probe = null;
-    this.probeInFlight = false;
-    if (this.healthTimer) clearInterval(this.healthTimer);
-    this.healthTimer = null;
-  }
-
-  private openEvents(): void {
-    if (this.source || typeof EventSource === 'undefined') return;
-    this.source = new EventSource(this.eventsUrl());
-    this.source.onmessage = (message) => {
-      try {
-        this.emitEvent(JSON.parse(message.data) as EngineEvent);
-      } catch {
-        // ignore malformed frames
-      }
-    };
-    this.source.onerror = () => {
-      this.setStatus('offline');
-      this.source?.close();
-      this.source = null;
-      this.startProbe();
-    };
-  }
-
-  /**
-   * Vite's dev proxy buffers `text/event-stream`, so progress frames are read
-   * straight from the engine origin when the dev server injected one.
-   */
-  private eventsUrl(): string {
-    const direct = devEngineOrigin();
-    if (direct) return `${direct}/events`;
-    return `${this.base}/events`;
-  }
-
-  private startProbe(): void {
-    if (this.probe) return;
-    this.probe = setInterval(() => {
-      if (this.probeInFlight) return;
-      this.probeInFlight = true;
-      void this.call<EngineInfo>('engine.info', {}, 2500)
-        .then((info) => {
-          this.info = info;
-          this.setStatus('ready');
-          this.openEvents();
-          this.startHealthCheck();
-          if (this.probe) clearInterval(this.probe);
-          this.probe = null;
-        })
-        .catch(() => this.setStatus('offline'))
-        .finally(() => { this.probeInFlight = false; });
-    }, 3000);
-  }
-
-  private startHealthCheck(): void {
-    if (this.healthTimer) return;
-    this.healthTimer = setInterval(() => {
-      if (this.healthInFlight || this.status !== 'ready') return;
-      this.healthInFlight = true;
-      void this.call<EngineInfo>('engine.info', {}, 2500)
-        .then((info) => {
-          this.info = info;
-          this.setStatus('ready');
-        })
-        .catch(() => {
-          this.setStatus('offline');
-          this.source?.close();
-          this.source = null;
-          this.startProbe();
-        })
-        .finally(() => { this.healthInFlight = false; });
-    }, 5000);
-  }
-}
-
-interface Pending {
-  resolve: (value: unknown) => void;
-  reject: (error: unknown) => void;
-}
-
 function encodeBase64(bytes: Uint8Array): string {
   let binary = '';
   for (let offset = 0; offset < bytes.length; offset += 0x8000) {
@@ -269,8 +113,7 @@ function decodeBase64(value: string): Uint8Array {
 }
 
 class TauriTransport extends BaseTransport {
-  readonly mode = 'tauri' as const;
-  private pending = new Map<string, Pending>();
+  readonly mode: 'web' | 'tauri' = isTauri() ? 'tauri' : 'web';
   private ready: Promise<EngineInfo> | null = null;
   private healthTimer: ReturnType<typeof setInterval> | null = null;
   private healthInFlight = false;
@@ -284,6 +127,11 @@ class TauriTransport extends BaseTransport {
   private systemFontCandidates: Promise<string[]> | null = null;
   private systemFontBytes = new Map<string, Promise<Uint8Array | null>>();
 
+  private requireNativeHost(): Promise<Awaited<ReturnType<typeof engineBridge>>> {
+    if (!isTauri()) throw new RpcError('unsupported', '此功能需要 PoTools 桌面版提供的本机文件系统');
+    return engineBridge();
+  }
+
   /**
    * The Node sidecar is gone from the shipped app: every RPC resolves through
    * the embedded Worker plus host commands, and unsupported inputs fail
@@ -292,20 +140,25 @@ class TauriTransport extends BaseTransport {
 
   async start(options?: { concurrency?: number }): Promise<EngineInfo> {
     if (this.ready) return this.ready;
-    this.embeddedConcurrency = Math.max(1, Math.trunc(options?.concurrency ?? 1));
+    this.embeddedConcurrency = Math.max(1, Math.min(4, Math.trunc(options?.concurrency ?? 1)));
+    configureEmbeddedWorkerPool(this.embeddedConcurrency);
     this.ready = this.bootstrap(options?.concurrency);
     return this.ready;
   }
 
   private async bootstrap(concurrency?: number): Promise<EngineInfo> {
-    const bridge = await engineBridge();
-    const host = await bridge.invoke<{ platform: string; defaultOutputDir: string; defaultTempDir: string }>('desktop_runtime_info');
-    this.embeddedConcurrency = Math.max(1, Math.trunc(concurrency ?? 1));
+    const platform = typeof navigator !== 'undefined' ? navigator.platform : 'unknown';
+    const bridge = isTauri() ? await engineBridge() : null;
+    const host = bridge
+      ? await bridge.invoke<{ platform: string; defaultOutputDir: string; defaultTempDir: string }>('desktop_runtime_info')
+      : { platform, defaultOutputDir: '', defaultTempDir: '' };
+    this.embeddedConcurrency = Math.max(1, Math.min(4, Math.trunc(concurrency ?? 1)));
+    configureEmbeddedWorkerPool(this.embeddedConcurrency);
     // Real self-check values: the embedded Worker bundles MuPDF WASM (rasterizer),
     // canvas codecs serve image transcoding, and host-discovered fonts cover CJK.
-    const fontCandidates = await bridge
-      .invoke<string[]>('system_font_candidates')
-      .catch(() => [] as string[]);
+    const fontCandidates = bridge
+      ? await bridge.invoke<string[]>('system_font_candidates').catch(() => [] as string[])
+      : [];
     const info: EngineInfo = {
       name: '@potools/engine',
       version: '0.1.0',
@@ -337,10 +190,14 @@ class TauriTransport extends BaseTransport {
   private async resolveInput(file: FileRef): Promise<ResolvedInput> {
     let bytes: Uint8Array;
     if (file.path) {
-      const bridge = await engineBridge();
-      bytes = Uint8Array.from(await bridge.invoke<number[]>('read_file_bytes', { path: file.path }));
+      const bridge = await this.requireNativeHost();
+      const value = await bridge.invoke<ArrayBuffer | Uint8Array | number[]>('read_file_binary', { path: file.path });
+      bytes = Array.isArray(value) ? Uint8Array.from(value) : value instanceof Uint8Array ? new Uint8Array(value) : new Uint8Array(value);
     } else if (file.dataBase64) {
       bytes = decodeBase64(file.dataBase64);
+    } else if (typeof File !== 'undefined' && (file as FileRef & { file?: File }).file instanceof File) {
+      const browserFile = (file as FileRef & { file: File }).file;
+      return { id: file.id, name: file.name, path: null, bytes: new Uint8Array(), file: browserFile } as ResolvedInput & { file: File };
     } else {
       throw new RpcError('bad_request', `${file.name || '文件'} 缺少路径或内容`);
     }
@@ -349,21 +206,15 @@ class TauriTransport extends BaseTransport {
 
   private async tryEmbeddedFileRpc<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<{ handled: boolean; result?: T }> {
     if (!params.file || typeof params.file !== 'object') return { handled: false };
-    try {
-      const input = await this.resolveInput(params.file as FileRef);
-      const workerParams = method === 'page.thumbs' ? { ...params, workerSrc: pdfWorkerUrl } : params;
-      const reply = await callEmbeddedRpc(method, workerParams, { inputs: [input] });
-      return { handled: reply.handled, result: reply.result as T };
-    } catch (error) {
-      if (error instanceof RpcError && error.code === 'encrypted_document') throw error;
-      // The compatibility engine retains the established handling for inputs
-      // or documents that the embedded Worker cannot process.
-      return { handled: false };
-    }
+    const input = await this.resolveInput(params.file as FileRef);
+    const workerParams = method === 'page.thumbs' ? { ...params, workerSrc: pdfWorkerUrl } : params;
+    const reply = await callEmbeddedRpc(method, workerParams, { inputs: [input] });
+    if (!reply.handled) throw new RpcError('unsupported', `${method} 不支持此文件或当前浏览器环境`);
+    return { handled: true, result: reply.result as T };
   }
 
   private async scanInvoices<T>(params: Record<string, unknown>, timeoutMs: number): Promise<T> {
-    const bridge = await engineBridge();
+    const bridge = await this.requireNativeHost();
     let listing: {
       sourceDirectory: string;
       files: Array<{ path: string; relativePath: string; name: string; extension: string; sizeBytes: number }>;
@@ -382,11 +233,12 @@ class TauriTransport extends BaseTransport {
       throw new RpcError(message.includes('无法访问来源目录') ? 'unreadable_file' : 'bad_request', message);
     }
 
+    const filesByIndex: Array<InvoiceScanEntry | undefined> = new Array(listing.files.length);
     const files: InvoiceScanEntry[] = [];
     const skipped = [...listing.skipped];
     const emptyFields = (): InvoiceScanEntry['fields'] => ({ date: '', seller: '', buyer: '', invoiceNo: '', amount: '', type: '' });
-    for (const [index, candidate] of listing.files.entries()) {
-      let loaded: { bytes: number[]; currentSizeBytes: number; changedWhileReading: boolean };
+    const analyzeCandidate = async (candidate: typeof listing.files[number], index: number): Promise<void> => {
+      let loaded: { bytes: ArrayBuffer | Uint8Array | number[]; currentSizeBytes: number; changedWhileReading: boolean };
       try {
         loaded = await bridge.invoke('invoice_read_candidate', {
           path: candidate.path,
@@ -397,34 +249,40 @@ class TauriTransport extends BaseTransport {
         if (message.includes('已跳过') || message.includes('单文件 100 MB 上限')) {
           skipped.push({ relativePath: candidate.relativePath, reason: message.includes('已跳过') ? '文件状态已变化，已跳过' : '超过单文件 100 MB 上限' });
         } else {
-          files.push({ ...candidate, sizeBytes: 0, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: message });
+          filesByIndex[index] = { ...candidate, sizeBytes: 0, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: message };
         }
-        continue;
+        return;
       }
-      const bytes = Uint8Array.from(loaded.bytes);
+      const bytes = loaded.bytes instanceof ArrayBuffer
+        ? new Uint8Array(loaded.bytes)
+        : Array.isArray(loaded.bytes) ? Uint8Array.from(loaded.bytes) : new Uint8Array(loaded.bytes);
       if (bytes.byteLength > 100 * 1024 * 1024) {
         skipped.push({ relativePath: candidate.relativePath, reason: '扫描期间文件发生变化或超过大小上限' });
-        continue;
+        return;
       }
       const input: ResolvedInput = { id: `invoice-${index}`, name: candidate.name, path: candidate.path, bytes };
-      let embedded;
       try {
-        embedded = await callEmbeddedRpc('invoice.scan', {
+        const embedded = await callEmbeddedRpc('invoice.scan', {
           file: { ...candidate, changedWhileReading: loaded.changedWhileReading },
         }, { inputs: [input] });
+        if (!embedded.handled) {
+          filesByIndex[index] = { ...candidate, sizeBytes: candidate.sizeBytes, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: '内嵌 Worker 无法解析该发票' };
+          return;
+        }
+        const analyzed = embedded.result as { entry?: InvoiceScanEntry; skipped?: InvoiceScanResult['skipped'][number] } | undefined;
+        if (analyzed?.entry) filesByIndex[index] = analyzed.entry;
+        if (analyzed?.skipped) skipped.push(analyzed.skipped);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        files.push({ ...candidate, sizeBytes: candidate.sizeBytes, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: message });
-        continue;
+        filesByIndex[index] = { ...candidate, sizeBytes: candidate.sizeBytes, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: message };
       }
-      if (!embedded.handled) {
-        files.push({ ...candidate, sizeBytes: candidate.sizeBytes, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: '内嵌 Worker 无法解析该发票' });
-        continue;
-      }
-      const analyzed = embedded.result as { entry?: InvoiceScanEntry; skipped?: InvoiceScanResult['skipped'][number] } | undefined;
-      if (analyzed?.entry) files.push(analyzed.entry);
-      if (analyzed?.skipped) skipped.push(analyzed.skipped);
+    };
+    const batchSize = embeddedWorkerCount();
+    for (let start = 0; start < listing.files.length; start += batchSize) {
+      const batch = listing.files.slice(start, start + batchSize);
+      await Promise.all(batch.map((candidate, offset) => analyzeCandidate(candidate, start + offset)));
     }
+    files.push(...filesByIndex.filter((entry): entry is InvoiceScanEntry => Boolean(entry)));
     return {
       sourceDirectory: listing.sourceDirectory,
       scannedAt: Date.now(),
@@ -447,7 +305,7 @@ class TauriTransport extends BaseTransport {
     if (method === 'tools.list') return TOOL_LIST as T;
     if (method === 'temp.stat' || method === 'temp.clean') {
       if (!this.info) await this.start();
-      const bridge = await engineBridge();
+      const bridge = await this.requireNativeHost();
       const root = this.tempDir ?? this.info?.defaultTempDir ?? '';
       if (method === 'temp.stat') return await bridge.invoke('temp_usage', { root }) as T;
       const protectJobs = [...this.embeddedJobs.values()]
@@ -462,12 +320,12 @@ class TauriTransport extends BaseTransport {
     }
     if (method === 'fs.browse') {
       try {
-        const bridge = await engineBridge();
+        const bridge = await this.requireNativeHost();
         return await bridge.invoke<DirListing>('browse_directories', {
           path: typeof params.path === 'string' ? params.path : null,
         }) as T;
       } catch {
-        // Preserve the compatibility engine's established directory errors.
+        throw new RpcError('unsupported', '目录读取需要 PoTools 桌面版提供的本机文件系统');
       }
     }
     if (method === 'page.thumbs' || method === 'file.probe' || method === 'page.list') {
@@ -475,21 +333,22 @@ class TauriTransport extends BaseTransport {
       if (embedded.handled) return embedded.result as T;
     }
     if (method === 'file.bytes' && params.file && typeof params.file === 'object') {
-      const file = params.file as FileRef;
+      const file = params.file as FileRef & { file?: File };
       if (file.path) {
-        const bridge = await engineBridge();
-        const bytes = Uint8Array.from(await bridge.invoke<number[]>('read_file_bytes', { path: file.path }));
+        const bridge = await this.requireNativeHost();
+        const bytes = new Uint8Array(await bridge.invoke<ArrayBuffer>('read_file_binary', { path: file.path }));
         return { dataBase64: encodeBase64(bytes), name: file.name } as T;
       }
       if (file.dataBase64) return { dataBase64: file.dataBase64, name: file.name } as T;
+      if (typeof File !== 'undefined' && file.file instanceof File) return { dataBase64: encodeBase64(new Uint8Array(await file.file.arrayBuffer())), name: file.name } as T;
     }
     if (method === 'shell.reveal' && typeof params.path === 'string') {
-      const bridge = await engineBridge();
+      const bridge = await this.requireNativeHost();
       await bridge.invoke('open_path', { path: params.path, reveal: params.open !== true });
       return { revealed: true, path: params.path } as T;
     }
     if (method === 'shell.print' && typeof params.path === 'string') {
-      const bridge = await engineBridge();
+      const bridge = await this.requireNativeHost();
       try {
         return await bridge.invoke<T>('print_file', { path: params.path });
       } catch (error) {
@@ -498,7 +357,7 @@ class TauriTransport extends BaseTransport {
     }
     if (method === 'invoice.scan') return this.scanInvoices<T>(params, timeoutMs);
     if (method === 'invoice.archive' && params && typeof params === 'object') {
-      const bridge = await engineBridge();
+      const bridge = await this.requireNativeHost();
       try {
         return await bridge.invoke<T>('invoice_archive', { input: params });
       } catch (error) {
@@ -506,7 +365,7 @@ class TauriTransport extends BaseTransport {
       }
     }
     if (method === 'invoice.undo' && typeof params.archiveId === 'string') {
-      const bridge = await engineBridge();
+      const bridge = await this.requireNativeHost();
       try {
         return await bridge.invoke<T>('invoice_undo', { archiveId: params.archiveId });
       } catch (error) {
@@ -514,8 +373,19 @@ class TauriTransport extends BaseTransport {
       }
     }
     if (method === 'file.write' && typeof params.dataBase64 === 'string') {
+      if (!isTauri()) {
+        const bytes = decodeBase64(params.dataBase64);
+        const blob = new Blob([bytes.slice().buffer as ArrayBuffer]);
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = String(params.name ?? 'output.txt');
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        return { path: anchor.download, name: anchor.download } as T;
+      }
       const bytes = decodeBase64(params.dataBase64);
-      const bridge = await engineBridge();
+      const bridge = await this.requireNativeHost();
       return bridge.invoke<T>('write_output_file', {
         dir: String(params.dir ?? ''),
         name: String(params.name ?? 'output.txt'),
@@ -528,7 +398,7 @@ class TauriTransport extends BaseTransport {
       let runtimeData: Record<string, unknown> | undefined;
       if (tool === 'dns-lookup') {
         try {
-          const bridge = await engineBridge();
+          const bridge = await this.requireNativeHost();
           const options = (params.options ?? {}) as Record<string, unknown>;
           const hostname = String(options.hostname ?? '').replace(/\.$/, '').toLowerCase();
           const recordType = String(options.recordType ?? '').toUpperCase();
@@ -540,7 +410,7 @@ class TauriTransport extends BaseTransport {
       }
       if (['system-network', 'ping-check', 'tcp-check'].includes(tool)) {
         try {
-          const bridge = await engineBridge();
+          const bridge = await this.requireNativeHost();
           const options = (params.options ?? {}) as Record<string, unknown>;
           const native = tool === 'system-network'
             ? await bridge.invoke('system_network_probe')
@@ -581,6 +451,11 @@ class TauriTransport extends BaseTransport {
           });
         } else {
           cancelEmbeddedFileJob(jobId);
+          this.publishEmbeddedJob({
+            ...job,
+            finishedAt: Date.now(),
+            progress: { state: 'cancelled', percent: 0 },
+          });
         }
         return { cancelled: true } as T;
       }
@@ -607,7 +482,7 @@ class TauriTransport extends BaseTransport {
       const staged = this.embeddedArtifactPaths.get(artifactKey);
       const tempRoot = this.embeddedArtifactRoots.get(artifactKey);
       if (staged) {
-        const bridge = await engineBridge();
+        const bridge = await this.requireNativeHost();
         const path = await bridge.invoke<string>('copy_staged_artifact', {
           from: staged,
           dir: String(params.dir ?? ''),
@@ -636,6 +511,7 @@ class TauriTransport extends BaseTransport {
       return this.publishInputFailure<T>(request, failedInput?.file, failedInput?.error ?? error);
     }
 
+    if (!isTauri()) request.output = { ...request.output, dir: null, wantBytes: true };
     const snapshot: JobSnapshot = {
       id: request.id,
       tool: request.tool,
@@ -654,6 +530,7 @@ class TauriTransport extends BaseTransport {
 
   private publishInputFailure<T>(request: JobRequest, file: FileRef | undefined, error: unknown): T {
     const now = Date.now();
+    if (!isTauri()) request.output = { ...request.output, dir: null, wantBytes: true };
     const snapshot: JobSnapshot = {
       id: request.id,
       tool: request.tool,
@@ -742,13 +619,19 @@ class TauriTransport extends BaseTransport {
           const artifact = artifacts[index];
           const snapshotArtifact = final.artifacts[index];
           if (!artifact || !snapshotArtifact) continue;
-          const staged = await bridge.invoke<{ stagedPath: string; outputPath?: string; name: string }>('stage_job_artifact', {
-            jobId: request.id,
-            name: artifact.name,
-            bytes: Array.from(artifact.bytes),
-            outputDir: request.output?.dir ?? null,
-            tempRoot,
-          });
+          const bytes = artifact.bytes.slice().buffer as ArrayBuffer;
+          const staged = await bridge.invoke<{ stagedPath: string; outputPath?: string; name: string }>(
+            'stage_job_artifact_binary',
+            bytes,
+            {
+              headers: {
+                'x-potools-job-id': request.id,
+                'x-potools-name': artifact.name,
+                'x-potools-output-dir': request.output?.dir ?? '',
+                'x-potools-temp-root': tempRoot,
+              },
+            },
+          );
           snapshotArtifact.name = staged.name;
           snapshotArtifact.path = staged.outputPath ?? staged.stagedPath;
           this.embeddedArtifactPaths.set(`${request.id}:${snapshotArtifact.id}`, staged.stagedPath);
@@ -758,7 +641,7 @@ class TauriTransport extends BaseTransport {
       this.publishEmbeddedJob(final);
     } catch (error) {
       const current = this.embeddedJobs.get(request.id);
-      if (!current) return;
+      if (!current || current.progress.state === 'cancelled') return;
       const issue = error as Error & { code?: string; hintKey?: string };
       const failed: JobSnapshot = {
         ...current,
@@ -794,9 +677,8 @@ class TauriTransport extends BaseTransport {
         const path = relativeAssetPath(input.path, source);
         if (!path) continue;
         try {
-          markdownAssets[`${input.id}\0${source}`] = Uint8Array.from(
-            await bridge.invoke<number[]>('read_file_bytes', { path }),
-          );
+          const bytes = await bridge.invoke<ArrayBuffer>('read_file_binary', { path });
+          markdownAssets[`${input.id}\0${source}`] = new Uint8Array(bytes);
         } catch { /* Match the original missing-image warning. */ }
       }
     }
@@ -887,15 +769,15 @@ class TauriTransport extends BaseTransport {
    * The Node sidecar no longer ships: anything that reaches this point was
    * not handled by the embedded Worker or a host command and fails explicitly.
    */
-  private async callSidecar<T = unknown>(method: RpcMethodName, params: Record<string, unknown>): Promise<T> {
-    throw new RpcError('offline', `${method} 未由内嵌 Worker 处理（Node 引擎已随安装包移除）`);
+  private async callSidecar<T = unknown>(method: RpcMethodName, _params: Record<string, unknown>): Promise<T> {
+    throw new RpcError('unsupported', `${method} 尚未接入 Worker 或本机宿主`);
   }
 
   stop(): void {
     if (this.healthTimer) clearInterval(this.healthTimer);
     this.healthTimer = null;
-    this.pending.clear();
     this.ready = null;
+    shutdownEmbeddedWorkerPool();
   }
 
   private startHealthCheck(): void {
@@ -914,14 +796,10 @@ class TauriTransport extends BaseTransport {
 
 let singleton: Transport | null = null;
 
-/**
- * Desktop uses the stdio sidecar; the browser talks to a locally started engine.
- * `force` lets the caller retry with the other transport when IPC is unavailable.
- */
-export function getTransport(force?: 'http' | 'tauri'): Transport {
-  if (singleton && !force) return singleton;
-  const useTauri = force ? force === 'tauri' : isTauri();
-  singleton = useTauri ? new TauriTransport() : new HttpTransport();
+/** All runtime modes use the same embedded Worker dispatcher. */
+export function getTransport(_force?: 'http' | 'tauri'): Transport {
+  if (singleton) return singleton;
+  singleton = new TauriTransport();
   return singleton;
 }
 

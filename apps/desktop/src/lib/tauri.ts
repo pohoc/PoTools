@@ -86,13 +86,13 @@ export async function nativeOpenPath(path: string, reveal = false): Promise<void
 }
 
 export interface EngineBridge {
-  invoke: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
+  invoke: <T>(command: string, args?: Record<string, unknown> | ArrayBuffer | Uint8Array, options?: { headers: HeadersInit }) => Promise<T>;
   listen: (event: string, handler: (payload: unknown) => void) => Promise<() => void>;
 }
 
 export async function engineBridge(): Promise<EngineBridge> {
   return {
-    invoke: <T>(command: string, args?: Record<string, unknown>) => invoke<T>(command, args),
+    invoke: <T>(command: string, args?: Record<string, unknown> | ArrayBuffer | Uint8Array, options?: { headers: HeadersInit }) => invoke<T>(command, args, options),
     listen: async (event, handler) => listen<string>(event, (message) => handler(message.payload)),
   };
 }

@@ -94,13 +94,12 @@ export async function toFileRef(picked: PickedFile): Promise<FileRef> {
     return { id: picked.id, name: picked.name, path: picked.path, sizeBytes: picked.size };
   }
   if (!picked.file) throw new Error('file has neither path nor bytes');
-  const buffer = await picked.file.arrayBuffer();
   return {
     id: picked.id,
     name: picked.name,
     sizeBytes: picked.size,
-    dataBase64: toBase64(new Uint8Array(buffer)),
-  };
+    file: picked.file,
+  } as FileRef & { file: File };
 }
 
 /** Avoid retaining both a browser File and its base64 copy after RPC completes. */

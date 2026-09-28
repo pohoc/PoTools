@@ -1845,24 +1845,34 @@ fn browse_directories(path: Option<String>) -> Result<DirectoryListing, String> 
 }
 
 #[tauri::command]
-fn stage_job_artifact(
-    job_id: String,
-    name: String,
-    bytes: Vec<u8>,
-    output_dir: Option<String>,
-    temp_root: String,
-) -> Result<StagedArtifact, String> {
+fn stage_job_artifact_binary(request: tauri::ipc::Request<'_>) -> Result<StagedArtifact, String> {
+    let header = |name: &str| -> Result<String, String> {
+        request
+            .headers()
+            .get(name)
+            .ok_or_else(|| format!("Missing IPC header: {name}"))?
+            .to_str()
+            .map(str::to_owned)
+            .map_err(|error| error.to_string())
+    };
+    let job_id = header("x-potools-job-id")?;
+    let name = header("x-potools-name")?;
+    let temp_root = header("x-potools-temp-root")?;
+    let output_dir = header("x-potools-output-dir").ok().filter(|value| !value.is_empty());
+    let bytes = match request.body() {
+        tauri::ipc::InvokeBody::Raw(bytes) => bytes,
+        tauri::ipc::InvokeBody::Json(_) => return Err("Expected binary artifact payload".to_string()),
+    };
     let file_name = safe_artifact_name(&name);
     let job_dir = PathBuf::from(temp_root)
         .join("jobs")
         .join(safe_temp_segment(&job_id));
     fs::create_dir_all(&job_dir).map_err(|error| error.to_string())?;
-    let (staged_path, _) = write_unique(&job_dir, &file_name, &bytes)?;
-    let (output_path, final_name) = if let Some(dir) = output_dir.filter(|value| !value.is_empty())
-    {
+    let (staged_path, _) = write_unique(&job_dir, &file_name, bytes)?;
+    let (output_path, final_name) = if let Some(dir) = output_dir {
         let directory = PathBuf::from(dir);
         fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
-        let (path, name) = write_unique(&directory, &file_name, &bytes)?;
+        let (path, name) = write_unique(&directory, &file_name, bytes)?;
         (Some(path.to_string_lossy().to_string()), name)
     } else {
         (None, file_name)
@@ -2105,7 +2115,7 @@ pub fn run() {
             read_file_bytes,
             read_file_binary,
             browse_directories,
-            stage_job_artifact,
+            stage_job_artifact_binary,
             copy_staged_artifact,
             invoice_archive,
             invoice_scan_list,

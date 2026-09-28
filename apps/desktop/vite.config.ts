@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 
-const enginePort = process.env.POTOOLS_ENGINE_PORT ?? '8787';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -18,13 +17,6 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5199,
     strictPort: true,
-    proxy: {
-      '/engine': {
-        target: `http://127.0.0.1:${enginePort}`,
-        rewrite: (path) => path.replace(/^\/engine/, ''),
-        changeOrigin: false,
-      },
-    },
   },
   build: {
     target: 'es2022',
@@ -36,5 +28,5 @@ export default defineConfig({
     format: 'es',
   },
   clearScreen: false,
-  envPrefix: ['VITE_', 'POTOOLS_'],
+  envPrefix: ['VITE_'],
 });

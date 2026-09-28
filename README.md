@@ -136,7 +136,7 @@ Debian/Ubuntu 构建机需安装 Tauri 的 Linux 开发依赖（包括 `libwebki
 
 - `src-tauri/.cargo/config.toml` 把 crates.io 换成了 `rsproxy.cn` 镜像（本机网络直连 crates.io 会卡死）。删掉该文件即回到官方源。
 - 全平台发行包均不包含 Node 运行时、`engine/` 目录或任何旁置引擎文件：工具引擎内建于应用二进制，在 WebView Worker 中运行。
-- MuPDF WASM、ONNX Runtime Web WASM、OCR 模型等运行资产随前端构建编入应用二进制，并在 `docs/worker-only-migration-plan.md` 记录了与原 Node 引擎的逐字节/契约对照基线（浏览器 golden 回放 225/226）。
+- MuPDF WASM、ONNX Runtime Web WASM、OCR 模型等运行资产随前端构建编入应用二进制；Worker 执行架构与浏览器 golden 验证结果见 [`docs/worker-only-migration-plan.md`](docs/worker-only-migration-plan.md)。
 
 ## 6. 设置项
 
