@@ -19,11 +19,9 @@ const outputs = {
     files: {
       x64: [
         `apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/PoTools_${version}_x64-setup.exe`,
-        `apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/PoTools_${version}_windows_x64-portable.zip`,
       ],
       x86: [
         `apps/desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/PoTools_${version}_x86-setup.exe`,
-        `apps/desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle/PoTools_${version}_windows_x86-portable.zip`,
       ],
     },
   },
@@ -70,7 +68,7 @@ if (platform === 'macos') {
   }
   await writeFile(
     path.join(destination, '说明.txt'),
-    'Windows 安装版与绿色版均包含 x64 和 x86 两种架构。绿色版首次启动时会检查 WebView2；如缺少则自动从微软下载并安装，需要网络连接。\r\n',
+    'Windows 安装版包含 x64 和 x86 两种架构。安装包不含 Node 运行时或任何旁置引擎文件：所有工具内建于应用并在本机运行。首次启动时会检查 WebView2；如缺少则自动从微软下载并安装，需要网络连接。\r\n',
     'utf8',
   );
   console.log(`[release] copied ${architecture ?? 'x64 and x86'} Windows installers and portable archives to ${destination}`);
@@ -99,7 +97,7 @@ if (platform === 'macos') {
   }
   await writeFile(
     path.join(destination, '说明.txt'),
-    '当前 Linux 构建配置覆盖 x64、ARM64、ARMv7 hard-float、PowerPC64 LE 和 IBM Z（s390x），兼容性需按目标发行版版本验收。x64/ARM64 配置 AppImage、DEB、RPM；其他架构配置 DEB、RPM。程序运行依赖目标系统的 WebKitGTK 4.1；ARMv7/PowerPC64 LE/IBM Z 的 OCR 使用 WebAssembly，Sharp 运行库要求 glibc 2.36 或更新版本。\r\n',
+    '当前 Linux 构建配置覆盖 x64、ARM64、ARMv7 hard-float、PowerPC64 LE 和 IBM Z（s390x），兼容性需按目标发行版版本验收。x64/ARM64 配置 AppImage、DEB、RPM；其他架构配置 DEB、RPM。程序运行依赖目标系统的 WebKitGTK 4.1。安装包不含 Node 运行时或任何旁置引擎文件：OCR 与图像处理内建于应用并在本机运行。\r\n',
     'utf8',
   );
   console.log(`[release] copied Linux ${architectures.join(' and ')} packages to ${destination}`);

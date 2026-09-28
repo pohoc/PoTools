@@ -2,12 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    #[cfg(all(target_os = "windows", feature = "node-embed"))]
-    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--engine-child")) {
-        let exit_code = potools_lib::run_embedded_engine_child(std::env::args().skip(2).collect());
-        std::process::exit(exit_code);
-    }
-
     #[cfg(target_os = "windows")]
     if let Err(error) = ensure_webview2_runtime() {
         show_webview2_error(&error);

@@ -1,8 +1,0 @@
-{
-  "build": {
-    "beforeBuildCommand": "pnpm --filter @potools/desktop build"
-  },
-  "bundle": {
-    "resources": []
-  }
-}

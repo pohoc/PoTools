@@ -271,13 +271,10 @@ function decodeBase64(value: string): Uint8Array {
 class TauriTransport extends BaseTransport {
   readonly mode = 'tauri' as const;
   private pending = new Map<string, Pending>();
-  private unlisten: (() => void) | null = null;
   private ready: Promise<EngineInfo> | null = null;
-  private sidecarReady: Promise<void> | null = null;
   private healthTimer: ReturnType<typeof setInterval> | null = null;
   private healthInFlight = false;
   private embeddedJobs = new Map<string, JobSnapshot>();
-  private sidecarJobs = new Map<string, JobSnapshot>();
   private embeddedArtifactPaths = new Map<string, string>();
   private embeddedArtifactRoots = new Map<string, string>();
   private embeddedQueue: Array<{ request: JobRequest; inputs: ResolvedInput[] }> = [];
@@ -288,14 +285,10 @@ class TauriTransport extends BaseTransport {
   private systemFontBytes = new Map<string, Promise<Uint8Array | null>>();
 
   /**
-   * Worker-only gray switch (worker-only migration phase 6): set
-   * POTOOLS_NO_SIDECAR=1 to turn every sidecar fallback into an explicit
-   * error, exposing any missed worker boundary.
+   * The Node sidecar is gone from the shipped app: every RPC resolves through
+   * the embedded Worker plus host commands, and unsupported inputs fail
+   * explicitly instead of booting a sidecar.
    */
-  private get noSidecar(): boolean {
-    const value = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.POTOOLS_NO_SIDECAR;
-    return value === '1' || value === 'true';
-  }
 
   async start(options?: { concurrency?: number }): Promise<EngineInfo> {
     if (this.ready) return this.ready;
@@ -419,11 +412,15 @@ class TauriTransport extends BaseTransport {
         embedded = await callEmbeddedRpc('invoice.scan', {
           file: { ...candidate, changedWhileReading: loaded.changedWhileReading },
         }, { inputs: [input] });
-      } catch {
-        // Keep MuPDF's exact text extraction and error behavior as a compatibility fallback.
-        return this.callSidecar<T>('invoice.scan', params, timeoutMs);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        files.push({ ...candidate, sizeBytes: candidate.sizeBytes, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: message });
+        continue;
       }
-      if (!embedded.handled) return this.callSidecar<T>('invoice.scan', params, timeoutMs);
+      if (!embedded.handled) {
+        files.push({ ...candidate, sizeBytes: candidate.sizeBytes, sha256: '', pageCount: null, extractedText: '', recognition: 'failed', fields: emptyFields(), error: '内嵌 Worker 无法解析该发票' });
+        continue;
+      }
       const analyzed = embedded.result as { entry?: InvoiceScanEntry; skipped?: InvoiceScanResult['skipped'][number] } | undefined;
       if (analyzed?.entry) files.push(analyzed.entry);
       if (analyzed?.skipped) skipped.push(analyzed.skipped);
@@ -437,93 +434,14 @@ class TauriTransport extends BaseTransport {
     } as T;
   }
 
-  private async startSidecar(): Promise<void> {
-    if (this.sidecarReady) return this.sidecarReady;
-    this.sidecarReady = (async () => {
-      const bridge = await engineBridge();
-      this.unlisten = await bridge.listen('engine://line', (payload) => this.onLine(String(payload)));
-      const raw = await bridge.invoke<string>('engine_start', { concurrency: this.embeddedConcurrency });
-      let frame: { id?: unknown; result?: EngineInfo };
-      try {
-        frame = JSON.parse(raw) as { id?: unknown; result?: EngineInfo };
-      } catch {
-        throw new RpcError('offline', '引擎启动握手不是有效 JSON');
-      }
-      if (frame.id !== 'ready' || !frame.result || typeof frame.result !== 'object') {
-        throw new RpcError('offline', '引擎启动握手格式不正确');
-      }
-      this.info = frame.result;
-      if (this.tempDir) {
-        const id = nextId();
-        await new Promise<void>((resolve, reject) => {
-          const timer = setTimeout(() => {
-            this.pending.delete(id);
-            reject(new RpcError('offline', '应用临时目录设置超时'));
-          }, 10_000);
-          this.pending.set(id, {
-            resolve: () => { clearTimeout(timer); resolve(); },
-            reject: (error) => { clearTimeout(timer); reject(error); },
-          });
-          bridge.invoke('engine_write', {
-            line: JSON.stringify({ jsonrpc: '2.0', id, method: 'engine.setTempDir', params: { dir: this.tempDir } }),
-          }).catch((error) => {
-            clearTimeout(timer);
-            this.pending.delete(id);
-            reject(error);
-          });
-        });
-      }
-      this.startHealthCheck();
-    })().catch((error) => {
-      this.unlisten?.();
-      this.unlisten = null;
-      this.sidecarReady = null;
-      throw error;
-    });
-    return this.sidecarReady;
-  }
-
-  private onLine(line: string): void {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    let frame: Record<string, unknown>;
-    try {
-      frame = JSON.parse(trimmed) as Record<string, unknown>;
-    } catch {
-      return;
-    }
-    if (frame.event) {
-      const event = frame as unknown as EngineEvent;
-      if (event.event === 'job.updated') this.sidecarJobs.set(event.job.id, event.job);
-      this.emitEvent(event);
-      return;
-    }
-    const id = String(frame.id ?? '');
-    const pending = this.pending.get(id);
-    if (!pending) return;
-    this.pending.delete(id);
-    if (frame.error) {
-      const error = frame.error as { code: string; message: string; details?: { hintKey?: string } };
-      pending.reject(new RpcError(error.code, error.message, error.details?.hintKey));
-    } else {
-      pending.resolve(frame.result);
-    }
-  }
-
   async call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs = 120_000): Promise<T> {
     if (method === 'engine.info') return this.localInfo<T>();
     if (method === 'engine.ping') {
-      if (this.sidecarReady) return this.callSidecar<T>(method, params, timeoutMs);
       return { pong: Date.now() } as T;
     }
     if (method === 'engine.setTempDir') {
       this.tempDir = typeof params.dir === 'string' && params.dir.trim() ? params.dir.trim() : null;
       if (this.info) this.info = { ...this.info, tempDir: this.tempDir ?? this.info.defaultTempDir };
-      if (this.sidecarReady) {
-        const sidecar = await this.callSidecar<{ tempDir: string }>(method, { dir: this.tempDir });
-        if (this.info) this.info = { ...this.info, tempDir: sidecar.tempDir };
-        return sidecar as T;
-      }
       return { tempDir: this.tempDir ?? this.info?.defaultTempDir ?? '' } as T;
     }
     if (method === 'tools.list') return TOOL_LIST as T;
@@ -532,7 +450,7 @@ class TauriTransport extends BaseTransport {
       const bridge = await engineBridge();
       const root = this.tempDir ?? this.info?.defaultTempDir ?? '';
       if (method === 'temp.stat') return await bridge.invoke('temp_usage', { root }) as T;
-      const protectJobs = [...this.embeddedJobs.values(), ...this.sidecarJobs.values()]
+      const protectJobs = [...this.embeddedJobs.values()]
         .filter((job) => job.progress.state === 'queued' || job.progress.state === 'running')
         .map((job) => job.id);
       return await bridge.invoke('temp_clean', {
@@ -604,7 +522,7 @@ class TauriTransport extends BaseTransport {
         bytes: Array.from(bytes),
       });
     }
-    if (method === 'job.list' && !this.sidecarReady) return [...this.embeddedJobs.values()] as T;
+    if (method === 'job.list') return [...this.embeddedJobs.values()] as T;
     if (method === 'tool.run') {
       const tool = String(params.tool ?? '');
       let runtimeData: Record<string, unknown> | undefined;
@@ -666,8 +584,7 @@ class TauriTransport extends BaseTransport {
         }
         return { cancelled: true } as T;
       }
-      if (job) return { cancelled: false } as T;
-      if (!this.sidecarReady) return { cancelled: false } as T;
+      return { cancelled: false } as T;
     }
     if (method === 'job.clear') {
       const jobIds = params.jobIds as string[] | undefined;
@@ -683,11 +600,7 @@ class TauriTransport extends BaseTransport {
         }
         return true;
       });
-      const remaining = jobIds?.filter((id) => !removed.includes(id));
-      if (jobIds && !remaining?.length) return { removed: removed.length } as T;
-      if (!this.sidecarReady) return { removed: removed.length } as T;
-      const result = await this.callSidecar<{ removed: number }>('job.clear', jobIds ? { jobIds: remaining } : {});
-      return { removed: result.removed + removed.length } as T;
+      return { removed: removed.length } as T;
     }
     if (method === 'file.write' && typeof params.jobId === 'string' && typeof params.artifactId === 'string') {
       const artifactKey = `${params.jobId}:${params.artifactId}`;
@@ -704,7 +617,7 @@ class TauriTransport extends BaseTransport {
         return { path, name: path.split(/[\\/]/).pop() } as T;
       }
     }
-    return this.callSidecar<T>(method, params, timeoutMs);
+    return this.callSidecar<T>(method, params);
   }
 
   private async submitEmbeddedJob<T>(request: JobRequest): Promise<T> {
@@ -803,9 +716,18 @@ class TauriTransport extends BaseTransport {
         },
       });
       if (!embedded.handled) {
+        // No sidecar fallback: the tool cannot run on this input in the
+        // worker, so the job fails with the established unsupported contract.
+        const current = this.embeddedJobs.get(request.id);
+        if (current) {
+          this.publishEmbeddedJob({
+            ...current,
+            finishedAt: Date.now(),
+            progress: { state: 'failed', percent: current.progress.percent },
+            error: { code: 'unsupported', message: '该输入在当前内置引擎下不受支持，请更新 PoTools' },
+          });
+        }
         this.embeddedJobs.delete(request.id);
-        if (this.status !== 'ready') await this.start();
-        await this.callSidecar('job.submit', { job: request });
         return;
       }
       const result = embedded.jobResult;
@@ -961,57 +883,23 @@ class TauriTransport extends BaseTransport {
     });
   }
 
-  private async callSidecar<T = unknown>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs = 120_000): Promise<T> {
-    if (this.noSidecar) {
-      // Gray mode: every path that would have reached the Node engine is now
-      // an explicit error, exposing missed worker boundaries instead of
-      // silently booting a sidecar.
-      throw new RpcError('offline', `无 Node 引擎模式：${method} 未由内嵌 Worker 处理`);
-    }
-    if (this.status !== 'ready') await this.start();
-    await this.startSidecar();
-    const bridge = await engineBridge();
-    const id = nextId();
-    const line = JSON.stringify({ jsonrpc: '2.0', id, method, params });
-    return new Promise<T>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        if (this.pending.delete(id)) reject(new RpcError('offline', `${method} timed out`));
-      }, timeoutMs);
-      this.pending.set(id, {
-        resolve: (value) => {
-          clearTimeout(timeout);
-          if (method === 'job.list') {
-            const combined = [...this.embeddedJobs.values(), ...(value as JobSnapshot[])];
-            const unique = new Map(combined.map((job) => [job.id, job]));
-            resolve([...unique.values()] as T);
-          } else {
-            resolve(value as T);
-          }
-        },
-        reject: (error) => { clearTimeout(timeout); reject(error); },
-      });
-      bridge.invoke('engine_write', { line }).catch((error) => {
-        clearTimeout(timeout);
-        if (this.pending.delete(id)) reject(new RpcError('offline', String(error)));
-      });
-    });
+  /**
+   * The Node sidecar no longer ships: anything that reaches this point was
+   * not handled by the embedded Worker or a host command and fails explicitly.
+   */
+  private async callSidecar<T = unknown>(method: RpcMethodName, params: Record<string, unknown>): Promise<T> {
+    throw new RpcError('offline', `${method} 未由内嵌 Worker 处理（Node 引擎已随安装包移除）`);
   }
 
   stop(): void {
-    if (this.sidecarReady) void engineBridge().then((bridge) => bridge.invoke('engine_stop')).catch(() => undefined);
-    this.unlisten?.();
-    this.unlisten = null;
     if (this.healthTimer) clearInterval(this.healthTimer);
     this.healthTimer = null;
     this.pending.clear();
     this.ready = null;
-    this.sidecarReady = null;
   }
 
   private startHealthCheck(): void {
-    // Worker-only gray mode has no sidecar to health-check; engine.ping falls
-    // back to the local pong answer, so polling it would add nothing.
-    if (this.noSidecar) return;
+    // No sidecar to health-check; engine.ping answers locally.
     if (this.healthTimer) return;
     this.healthTimer = setInterval(() => {
       if (this.healthInFlight) return;

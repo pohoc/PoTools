@@ -2408,7 +2408,6 @@ dependencies = [
 name = "potools"
 version = "0.1.0"
 dependencies = [
- "cc",
  "hickory-resolver",
  "serde",
  "serde_json",
