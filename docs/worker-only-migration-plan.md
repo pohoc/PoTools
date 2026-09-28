@@ -33,6 +33,12 @@
 
 ## 进度记录
 
+- **2026-09-28 阶段 1（第一批）**：浏览器基线从 171 PASS / 20 FALLBACK / 35 DIFF 收敛到 **187 PASS / 18 FALLBACK / 21 DIFF / 1 CRASH**。
+  - ✅ hash 能力闸门放行 `algorithm:'all'`（共享实现本就支持，浏览器端组合 6 种算法+降级告警）——2 条 FALLBACK 转 PASS。
+  - ✅ hmac 补 SHA-384（`HMAC_ALGORITHMS` + WebCrypto 映射 + 闸门），保住 Node 现有能力；现有用例不受影响，Node harness 保持 311/312。
+  - ✅ runner 修正比对学：`inputRandom` 条目（随机输入）只比结构不比 text（encrypt/keygen 输出含随机盐，本不可复现）；x509 剩余时间字段随真实时间流逝（`3643.52` vs `3643.50` 天，半小时差 0.02 天分毫不差），归一化后比对；`--keys=` 定向回放；`POTOOLS_GOLDEN_DUMP` 全文导出；summary 双侧归一 `outputBytes`/`sizeDeltaPercent`，structural 工具的 `extra` 不作契约。
+  - 剩余 21 DIFF 全部为阶段 2-5 清单：pdf-lib 系 digest ×12（split/extract-pages/margins/nup/remove-blank 的嵌入式 `normalizePdfBytes` 输入不对称；extract-text ×3 为 PDF.js vs MuPDF 文本抽取空白差异）；organize `empty_selection` ×2；ofd-to-pdf `unreadable_file`；ocr-table 空表格语义（WASM 识别出噪声行）；image-watermark-clean `bad_request` + 60s 超时（SVG 蒙版栅格化）。18 FALLBACK 为字体链路（阶段 3）与抠图/证件照边界（阶段 4）。
+
 - **2026-09-28 阶段 0（部分完成）**：
   - ✅ golden 基线三件套落地：`run-tools.ts` 采集（`--golden-out`，条目含 inputs/options/files 供回放）、`merge-golden.mjs` 双进程比对（稳定条目标 `stable:true`，不稳定条目剥离 digest/text/summary 只留结构契约）、`pnpm test:golden` 产出 `packages/engine/testdata/golden-node.json`（227 条目，两轮采集均 311/312 绿）。
   - ✅ 确定性规范化 `src/testing/canonical-artifact.ts`（Node/浏览器共用，纯 Web API）：PDF 骨架+FlateDecode 解压流内日期归一（含 `endstream` 子串假匹配、对象级 `/Length` 窗口两处解析修复）、ZIP 按条目名+内容语义哈希。不稳定条目 155→33；剩余 20 条为随机/时间族（timestamp/date-format/password-gen/uuid-gen/jwt/aes/rsa，浏览器 harness 需改用固定夹具），13 条为间接 `/Length` 的 PDF/ZIP（留结构契约，字节级一致性由后续 MuPDF 像素比对覆盖）。

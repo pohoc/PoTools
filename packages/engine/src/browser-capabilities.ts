@@ -89,13 +89,16 @@ const TEXT_TOOL_CAPABILITIES: Partial<Record<ToolId, TextToolCapability>> = {
   jwt: jwtCanRunEmbedded,
   aes: embeddedAesPayloadIsSupported,
   hash: (options) => {
-    const algorithm = String(options.algorithm ?? '').toLowerCase();
-    return ['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'blake2b512'].includes(algorithm)
-      && (Boolean(globalThis.crypto?.subtle) || algorithm === 'md5' || algorithm === 'blake2b512');
+    // The shared implementation composes 'all' from available algorithms and
+    // degrades to md5/blake2b512 without WebCrypto, so 'all' is always safe.
+    const algorithm = String(options.algorithm ?? 'all').trim().toLowerCase() || 'all';
+    return algorithm === 'all'
+      || (['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'blake2b512'].includes(algorithm)
+        && (Boolean(globalThis.crypto?.subtle) || algorithm === 'md5' || algorithm === 'blake2b512'));
   },
   hmac: (options) => {
     const algorithm = String(options.algorithm ?? 'sha256').toLowerCase();
-    return ['md5', 'sha1', 'sha256', 'sha512'].includes(algorithm)
+    return ['md5', 'sha1', 'sha256', 'sha384', 'sha512'].includes(algorithm)
       && (Boolean(globalThis.crypto?.subtle) || algorithm === 'md5');
   },
 };

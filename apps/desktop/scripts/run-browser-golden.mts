@@ -49,6 +49,12 @@ function normalizeArtifactName(name: string): string {
   return name.replace(/ \(\d+\)(?=\.[^./]*$)/, '');
 }
 
+/** x509 output embeds remaining-time figures that legitimately tick with real time. */
+function normalizeDynamicText(tool: string, text: string): string {
+  if (tool === 'x509') return text.replace(/\d+(?:\.\d+)? 天/g, 'N 天');
+  return text;
+}
+
 /**
  * Tools whose artifacts come from engines with no byte-level cross-implementation
  * parity: native MuPDF vs MuPDF WASM, native ONNX vs ONNX Runtime Web, and
@@ -67,9 +73,14 @@ const STRUCTURAL_ONLY_TOOLS = new Set([
 ]);
 
 async function main(): Promise<void> {
+  const keysFilter = process.argv.find((arg) => arg.startsWith('--keys='))?.slice(7)
+    .split(',').map((item) => item.trim()).filter(Boolean) ?? [];
   const golden = JSON.parse(await readFile(GOLDEN_PATH, 'utf8')) as { entries: Record<string, GoldenEntry> };
+  const selected = keysFilter.length
+    ? Object.fromEntries(Object.entries(golden.entries).filter(([key]) => keysFilter.some((fragment) => key.includes(fragment))))
+    : golden.entries;
   const samplesDir = resolve(REPO_ROOT, 'samples');
-  const cases: CasePayload[] = Object.entries(golden.entries).map(([key, entry]) => ({
+  const cases: CasePayload[] = Object.entries(selected).map(([key, entry]) => ({
     key,
     kind: entry.kind,
     tool: entry.tool,
@@ -145,7 +156,7 @@ async function main(): Promise<void> {
   let crash = 0;
   const details: string[] = [];
 
-  for (const [key, entry] of Object.entries(golden.entries)) {
+  for (const [key, entry] of Object.entries(selected)) {
     const outcome = byKey.get(key);
     if (!outcome) {
       diff += 1;
@@ -179,13 +190,27 @@ async function main(): Promise<void> {
         }
         continue;
       }
-      if (entry.text !== undefined) {
-        if (result?.text === entry.text && equalJson(result?.warnings ?? [], entry.warnings)) pass += 1;
+      if (entry.text !== undefined && entry.stable) {
+        if (normalizeDynamicText(entry.tool, result?.text ?? '') === normalizeDynamicText(entry.tool, entry.text ?? '')
+          && equalJson(result?.warnings ?? [], entry.warnings)) pass += 1;
         else {
           diff += 1;
-          details.push(`DIFF  ${key}: text/warnings 与 Node 不一致`);
+          const expected = entry.text ?? '';
+          const actual = result?.text ?? '';
+          let at = 0;
+          while (at < Math.min(expected.length, actual.length) && expected[at] === actual[at]) at += 1;
+          const dumpFragment = process.env.POTOOLS_GOLDEN_DUMP;
+          if (dumpFragment && key.includes(dumpFragment)) {
+            await import('node:fs/promises').then((fs) => Promise.all([
+              fs.writeFile(`/tmp/golden-expected.txt`, expected),
+              fs.writeFile(`/tmp/golden-actual.txt`, actual),
+            ]));
+          }
+          details.push(`DIFF  ${key}: text 与 Node 不一致 @${at}\n        期望 ${JSON.stringify(expected.slice(at, at + 90))}\n        实际 ${JSON.stringify(actual.slice(at, at + 90))}`);
         }
       } else if (equalJson(result?.warnings ?? [], entry.warnings)) {
+        // inputRandom (replayed random inputs) and digest-stripped entries:
+        // only the stable surface (warnings/error contract) is comparable.
         pass += 1;
       } else {
         diff += 1;
@@ -231,10 +256,20 @@ async function main(): Promise<void> {
       details.push(`DIFF  ${key}: warnings 不一致`);
       continue;
     }
-    if (entry.summary && !equalJson(snapshot.summary ? { ...snapshot.summary, outputBytes: undefined, sizeDeltaPercent: undefined } : undefined, { ...entry.summary })) {
-      diff += 1;
-      details.push(`DIFF  ${key}: summary 不一致`);
-      continue;
+    if (entry.summary) {
+      // outputBytes/sizeDeltaPercent tick with embedded timestamps on both
+      // sides; structural producers additionally differ in size-derived
+      // summary.extra, which is not part of their contract.
+      const normalize = (value: Record<string, unknown> | undefined) => {
+        const base = { ...value, outputBytes: undefined, sizeDeltaPercent: undefined };
+        if (STRUCTURAL_ONLY_TOOLS.has(entry.tool)) base.extra = undefined;
+        return base;
+      };
+      if (!equalJson(normalize(snapshot.summary), normalize({ ...entry.summary }))) {
+        diff += 1;
+        details.push(`DIFF  ${key}: summary 不一致`);
+        continue;
+      }
     }
     pass += 1;
   }

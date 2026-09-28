@@ -13,7 +13,7 @@ type DigestFormat = 'hex' | 'base64';
 
 const HASH_ALGORITHMS: readonly HashName[] = ['md5', 'sha1', 'sha256', 'sha384', 'sha512', 'blake2b512'];
 const FILE_ALGORITHMS: readonly HashName[] = ['md5', 'sha1', 'sha256', 'sha512'];
-const HMAC_ALGORITHMS: readonly HashName[] = ['sha256', 'sha1', 'sha512', 'md5'];
+const HMAC_ALGORITHMS: readonly HashName[] = ['sha256', 'sha1', 'sha384', 'sha512', 'md5'];
 
 const B64_STD = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const B64_URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -435,7 +435,7 @@ const hmacTool: ToolImpl = {
     const keyBytes = textToBytes(secretRaw, 'utf8');
     const messageBytes = textToBytes(message, 'utf8');
     ctx.report({ percent: 40, phase: 'sign' });
-    const webAlgorithm: Partial<Record<HashName, string>> = { sha1: 'SHA-1', sha256: 'SHA-256', sha512: 'SHA-512' };
+    const webAlgorithm: Partial<Record<HashName, string>> = { sha1: 'SHA-1', sha256: 'SHA-256', sha384: 'SHA-384', sha512: 'SHA-512' };
     const signed = await Promise.all(names.map(async (name) => {
       let mac: Uint8Array;
       if (name === 'md5') {
