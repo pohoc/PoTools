@@ -33,6 +33,19 @@
 
 ## 进度记录
 
+- **2026-09-28 阶段 10（本机可执行部分）**：
+  - macOS Release 构建 + `.app` 打包成功，产物目录审计通过（见阶段 7 条目）；DMG 卷打包依赖 Finder AppleScript，在无 GUI 会话中失败——需在用户 GUI 会话运行 `pnpm package:macos` 产出。
+  - Windows/Linux 的 NSIS、AppImage、DEB、RPM 打包与干净虚拟机验收需在对应平台执行（阶段 10 剩余项）。
+- **2026-09-28 阶段 7 + 8（实施完成，提交 1ad5aab）**：Node 运行时与 node-embed 路线整体移除。
+  - tauri.conf.json：`bundle.resources` 五条清空，`beforeBuildCommand` 仅构建前端；删除 prepare-engine-runtime/prepare-ocr-runtime。
+  - lib.rs 删除 Engine 状态与全部 sidecar 机器（约 530 行）；transport 删除 sidecar 状态机，`callSidecar` 一律显式报错；invoice.scan 单文件失败入报告。
+  - 删除 node-embed 全套（Cargo feature、build.rs 静态链接、node_embed.cpp、main.rs 分流、embedded conf、CI workflow、SDK 脚本、build/package/check 脚本、engine `build:embedded` 与 115MB embedded.cjs）；根打包脚本收敛为 `package:windows:x64|x86`（NSIS）。
+  - **产物审计通过**：`PoTools.app` 仅含 `Contents/MacOS/potools` + `Contents/Resources/icon.icns`，共 44MB；无 engine/、node、node_modules。
+- **2026-09-28 阶段 9（实施完成，提交 765e961）**：Node 引擎实现与依赖删除。
+  - 删除执行层（index/rpc/jobs/serve）、13 个 Node-only 工具双实现、6 个 Node-only lib；render/docmodel/office 剥离 sharp 与 exceljs 路径。
+  - 依赖移除：sharp、onnxruntime-node、exceljs、@img/sharp-wasm32、@emnapi/runtime、esbuild、fontkit（sharp 转 devDependency 仅供 `make-samples` 生成夹具）。
+  - `test:tools` 指向浏览器 golden 回放；许可文档删除 Node.js 运行时章节与许可文件；README 技术栈/打包说明更新；单 EXE 调研文档标注已终止。
+  - 验证：workspace typecheck 全绿、desktop build 通过、cargo check 干净、浏览器 golden **225 PASS / 0 FALLBACK / 1 DIFF / 0 CRASH**（226 条）。
 - **2026-09-28 阶段 6（灰度开关）**：
   - ✅ transport 增加 `noSidecar` 灰度开关（`POTOOLS_NO_SIDECAR=1`，经 vite `envPrefix` 进入应用）：`callSidecar` 直接抛 `offline` 显式错误（不再静默拉起 sidecar），健康检查轮询跳过（`engine.ping`/`engine.setTempDir` 本地应答路径天然生效）。
   - ✅ `engine.info` 真实自检：`rasterizer: 'mupdf'`（Worker 内嵌 MuPDF WASM）、`imageCodec` 运行时探测（OffscreenCanvas + createImageBitmap）、`cjkFont` 取宿主字体候选首项——设置页三个长期误报的警告随之修正。

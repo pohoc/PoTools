@@ -1,5 +1,9 @@
 # Windows 单 EXE 运行时迁移
 
+> **状态：已终止（2026-09-28）。** 本文档记录的 node-embed 静态链接路线已被
+> `docs/worker-only-migration-plan.md`（方案 A：全面 Worker 化）取代并实施完毕。
+> Node 运行时已从发行包整体移除，单 EXE 嵌入不再需要。以下内容仅作历史调研记录。
+
 ## 目标
 
 绿色版交付时只有一个架构对应的 `PoTools.exe`。主进程运行 Tauri UI；需要 Node 引擎时，由同一个 `PoTools.exe` 以内部参数启动隔离子进程。Node runtime、引擎 bundle 和必需运行时资产都必须随该 EXE 分发，不释放到磁盘，也不旁置 `node.exe` 或 `engine/` 目录。现有工具行为和 JSON-RPC 语义需要保持。
