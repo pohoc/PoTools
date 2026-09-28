@@ -33,9 +33,11 @@
 
 ## 进度记录
 
-- **2026-09-28 阶段 10（本机可执行部分）**：
-  - macOS Release 构建 + `.app` 打包成功，产物目录审计通过（见阶段 7 条目）；DMG 卷打包依赖 Finder AppleScript，在无 GUI 会话中失败——需在用户 GUI 会话运行 `pnpm package:macos` 产出。
-  - Windows/Linux 的 NSIS、AppImage、DEB、RPM 打包与干净虚拟机验收需在对应平台执行（阶段 10 剩余项）。
+- **2026-09-28 阶段 10（构建矩阵 + ocr-table 专项回归）**：
+  - ✅ macOS：Release + `.app` 打包成功（44MB，审计通过）；DMG 卷打包的 Finder AppleScript 在无 GUI 会话不可用，已改用 `hdiutil` 直接产出（41MB）并挂载抽检（卷内仅 PoTools.app，x86_64 Mach-O）。
+  - ✅ Windows x64/x86：经 cargo-xwin + llvm@22 + sysroot 缓存交叉构建 NSIS 成功——`PoTools_0.1.0_x64-setup.exe` / `PoTools_0.1.0_x86-setup.exe`，各 **40MB**（对比旧 sidecar 包 122MB，-67%）。
+  - ✅ ocr-table 专项回归（唯一 DIFF 收敛为已登记分歧）：dump 浏览器产物证实 WASM 链路识别出的是**真实页面文本**（标题/正文/页脚"1/3"），非噪声——无表格文档被组织为单列工作表输出，而 Node 原生链路对该输入报 `empty_selection`。产物可用非损坏；已登记 `KNOWN_DIVERGENCES` 台账（带 golden 期望 guard：仅 `empty_selection` 期望时豁免），**DIFF 归零：225 PASS / 0 DIFF / 1 KNOWN**，runner exit=0。
+  - ⬜ Linux（AppImage/DEB/RPM）需 Linux 主机（WebKitGTK 依赖安装 GB 级；本机 docker daemon 未运行）；干净虚拟机安装/首启/抽检需对应平台环境。
 - **2026-09-28 阶段 7 + 8（实施完成，提交 1ad5aab）**：Node 运行时与 node-embed 路线整体移除。
   - tauri.conf.json：`bundle.resources` 五条清空，`beforeBuildCommand` 仅构建前端；删除 prepare-engine-runtime/prepare-ocr-runtime。
   - lib.rs 删除 Engine 状态与全部 sidecar 机器（约 530 行）；transport 删除 sidecar 状态机，`callSidecar` 一律显式报错；invoice.scan 单文件失败入报告。
