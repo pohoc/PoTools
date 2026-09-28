@@ -18,7 +18,7 @@ function formatKb(bytes: number): string {
 import { createEngine, type Engine } from '../src/rpc.ts';
 import { DAY_MS, formatInZone, parseFlex, zonedParts } from '../src/tools/time-core.ts';
 import { openRaster } from '../src/lib/render.ts';
-import { canonicalArtifactDigest } from '../src/testing/canonical-artifact.ts';
+import { canonicalArtifactDigest, CANONICAL_VERSION } from '../src/testing/canonical-artifact.ts';
 
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -79,7 +79,7 @@ async function captureJobGolden(
     artifacts.push({
       name: artifact.name,
       kind: artifact.kind,
-      sha256: await canonicalArtifactDigest(bytes),
+      sha256: await canonicalArtifactDigest(bytes, artifact.kind),
     });
   }
   let stableSummary: GoldenEntry['summary'];
@@ -1686,6 +1686,7 @@ async function main(): Promise<void> {
       capturedAt: new Date().toISOString().slice(0, 10),
       node: process.version,
       engine: info.version,
+      canonicalVersion: CANONICAL_VERSION,
       entries: snapshotGolden(),
       manifest: results,
     }, null, 2)}\n`);

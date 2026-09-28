@@ -9,6 +9,9 @@
  */
 import JSZip from 'jszip';
 
+/** Bump when canonicalization changes; golden files record the version they were captured with. */
+export const CANONICAL_VERSION = 4;
+
 const ENCODER = new TextEncoder();
 const ISO_DATE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
 
@@ -98,12 +101,24 @@ export async function canonicalPdfText(bytes: Uint8Array): Promise<string> {
       else if (content.endsWith('\n')) content = content.slice(0, -1);
       nextIndex = contentEnd;
     }
-    out += text.slice(cursor, streamStart);
+    let skeleton = text.slice(cursor, streamStart);
     if (/\/FlateDecode/.test(dict)) {
-      const inflated = await inflateZlib(fromLatin1(content));
-      out += inflated
-        ? `«flatedigest:${await sha256Text(stripTimestamps(latin1(inflated)))}»`
-        : content;
+      // Compressed length depends on deflate entropy (e.g. timestamp bytes
+      // inside the stream), not on document content — normalize it.
+      skeleton = skeleton.replace(/\/Length\s+\d+(?![\s\S]*\/Length)/, (match) => match.replace(/\d+/, 'N'));
+    }
+    out += skeleton;
+    if (/\/FlateDecode/.test(dict)) {
+      if (/\/Type\s*\/XRef/.test(dict)) {
+        // Cross-reference streams are pure offset bookkeeping; their packed
+        // offsets shift with any benign length change elsewhere.
+        out += '«xref»';
+      } else {
+        const inflated = await inflateZlib(fromLatin1(content));
+        out += inflated
+          ? `«flatedigest:${await sha256Text(stripTimestamps(latin1(inflated)))}»`
+          : content;
+      }
     } else {
       out += content;
     }
@@ -111,7 +126,7 @@ export async function canonicalPdfText(bytes: Uint8Array): Promise<string> {
     keyword.lastIndex = nextIndex;
   }
   out += text.slice(cursor);
-  return stripTimestamps(out);
+  return stripTimestamps(out).replace(/startxref\r?\n\d+/g, 'startxref\nN');
 }
 
 interface ZipEntryFingerprint {
@@ -141,14 +156,19 @@ export async function zipEntryFingerprints(bytes: Uint8Array): Promise<ZipEntryF
  * Digest that is stable across runs and across the Node/browser producers:
  * PDFs compare modulo timestamps (including compressed streams), ZIP
  * containers compare by entry names and date-normalized uncompressed
- * contents, everything else compares raw bytes.
+ * contents, text artifacts compare with extractor-specific blank-run counts
+ * collapsed (MuPDF and PDF.js pad pages differently), everything else
+ * compares raw bytes.
  */
-export async function canonicalArtifactDigest(bytes: Uint8Array): Promise<string> {
+export async function canonicalArtifactDigest(bytes: Uint8Array, kind?: string): Promise<string> {
   if (bytes.length >= 5 && latin1(bytes.subarray(0, 5)) === '%PDF-') {
     return sha256Text(`pdf:${await canonicalPdfText(bytes)}`);
   }
   if (bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
     return sha256Text(`zip:${JSON.stringify(await zipEntryFingerprints(bytes))}`);
+  }
+  if (kind === 'text' || kind === 'json') {
+    return sha256Text(`text:${stripTimestamps(latin1(bytes)).replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '')}`);
   }
   return sha256Bytes(bytes);
 }

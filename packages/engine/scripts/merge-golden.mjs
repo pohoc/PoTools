@@ -46,6 +46,7 @@ await writeFile(outPath, `${JSON.stringify({
   capturedAt: first.capturedAt,
   node: first.node,
   engine: first.engine,
+  canonicalVersion: first.canonicalVersion ?? 1,
   entries,
   manifest: first.manifest,
 }, null, 2)}\n`);

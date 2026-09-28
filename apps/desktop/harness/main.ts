@@ -51,6 +51,8 @@ interface GoldenCase {
   options: Record<string, unknown>;
   locale?: string;
   files?: Array<{ name: string; url: string }>;
+  /** Return artifact bytes base64 instead of digests (byte-level debugging). */
+  dump?: boolean;
 }
 
 interface GoldenOutcome {
@@ -117,7 +119,9 @@ interface GoldenOutcome {
                   artifacts: await Promise.all(jobResult.artifacts.map(async (artifact) => ({
                     name: artifact.name,
                     kind: artifact.kind,
-                    sha256: await canonicalArtifactDigest(artifact.bytes),
+                    ...(item.dump
+                      ? { dataBase64: btoa(String.fromCharCode(...artifact.bytes.subarray(0, Math.min(artifact.bytes.length, 24_000_000)))) }
+                      : { sha256: await canonicalArtifactDigest(artifact.bytes, artifact.kind) }),
                   }))),
                 };
               }

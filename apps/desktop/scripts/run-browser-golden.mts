@@ -38,6 +38,7 @@ interface CasePayload {
   options: Record<string, unknown>;
   locale?: string;
   files?: Array<{ name: string; url: string }>;
+  dump?: boolean;
 }
 
 function equalJson(left: unknown, right: unknown): boolean {
@@ -52,6 +53,11 @@ function normalizeArtifactName(name: string): string {
 /** x509 output embeds remaining-time figures that legitimately tick with real time. */
 function normalizeDynamicText(tool: string, text: string): string {
   if (tool === 'x509') return text.replace(/\d+(?:\.\d+)? 天/g, 'N 天');
+  if (tool === 'extract-text') {
+    // MuPDF and PDF.js emit different trailing-blank-run counts per page;
+    // the content contract is the text lines, not inter-page blank runs.
+    return text.replace(/\n{3,}/g, '\n\n');
+  }
   return text;
 }
 
@@ -73,13 +79,19 @@ const STRUCTURAL_ONLY_TOOLS = new Set([
 ]);
 
 async function main(): Promise<void> {
+  const { CANONICAL_VERSION } = await import('../../../packages/engine/src/testing/canonical-artifact.ts');
   const keysFilter = process.argv.find((arg) => arg.startsWith('--keys='))?.slice(7)
     .split(',').map((item) => item.trim()).filter(Boolean) ?? [];
-  const golden = JSON.parse(await readFile(GOLDEN_PATH, 'utf8')) as { entries: Record<string, GoldenEntry> };
+  const golden = JSON.parse(await readFile(GOLDEN_PATH, 'utf8')) as { entries: Record<string, GoldenEntry>; canonicalVersion?: number };
+  if (golden.canonicalVersion !== CANONICAL_VERSION) {
+    console.error(`golden file canonicalVersion=${golden.canonicalVersion ?? '(none)'} but code is v${CANONICAL_VERSION} — re-run 'pnpm --filter @potools/engine test:golden' first`);
+    process.exit(1);
+  }
   const selected = keysFilter.length
     ? Object.fromEntries(Object.entries(golden.entries).filter(([key]) => keysFilter.some((fragment) => key.includes(fragment))))
     : golden.entries;
   const samplesDir = resolve(REPO_ROOT, 'samples');
+  const dumpFragment = process.argv.find((arg) => arg.startsWith('--dump='))?.slice(7);
   const cases: CasePayload[] = Object.entries(selected).map(([key, entry]) => ({
     key,
     kind: entry.kind,
@@ -87,6 +99,7 @@ async function main(): Promise<void> {
     options: entry.inputs.options ?? {},
     locale: entry.inputs.locale,
     files: (entry.inputs.files ?? []).map((name) => ({ name, url: `/@fs${join(samplesDir, name)}` })),
+    dump: Boolean(dumpFragment && key.includes(dumpFragment)),
   }));
 
   const server: ViteDevServer = await createServer({
@@ -146,6 +159,22 @@ async function main(): Promise<void> {
     }
   }
   console.error('[progress] replay finished');
+
+  const dumpDir = '/tmp/golden-dump-browser';
+  const dumped = outcomes.flatMap((outcome) =>
+    (((outcome.jobResult as { artifacts?: Array<Record<string, unknown>> } | null)?.artifacts ?? []) as Array<Record<string, unknown>>)
+      .map((artifact, index) => ({ key: String(outcome.key), index, artifact }))
+      .filter((item) => Boolean(item.artifact.dataBase64)),
+  );
+  if (dumped.length) {
+    const fs = await import('node:fs/promises');
+    await fs.mkdir(dumpDir, { recursive: true });
+    for (const item of dumped) {
+      const target = join(dumpDir, `${item.key.replace(/[^A-Za-z0-9_-]/g, '-')}-${item.index}-${String(item.artifact.name)}`);
+      await fs.writeFile(target, Buffer.from(String(item.artifact.dataBase64), 'base64'));
+      console.error(`[dump] ${target}`);
+    }
+  }
   await browser.close();
   await server.close();
 

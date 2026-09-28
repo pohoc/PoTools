@@ -2,6 +2,7 @@
   "capturedAt": "2026-09-28",
   "node": "v24.13.0",
   "engine": "0.1.0",
+  "canonicalVersion": 4,
   "entries": {
     "job/merge/639ffd16ab54": {
       "kind": "job",
@@ -16,13 +17,19 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 38420,
+        "pageCountIn": 5,
+        "pageCountOut": 5
+      },
       "artifacts": [
         {
           "name": "sample-a-merge (4).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "5e00370daccbcae5d537c54d19f56ba81289c03c746ab6cd23450aff7f37a657"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/merge/870c4ffd1875": {
       "kind": "job",
@@ -43,13 +50,19 @@
       "warnings": [
         "已按目标页面尺寸缩放内容，可能出现留白"
       ],
+      "summary": {
+        "inputBytes": 38420,
+        "pageCountIn": 5,
+        "pageCountOut": 5
+      },
       "artifacts": [
         {
           "name": "sample-a-merge (2).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "63a5359317de3871b63755e26d81775fe4fe9020c17541d326ea892970c38c1e"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/split/fc7495b972bc": {
       "kind": "job",
@@ -77,17 +90,17 @@
         {
           "name": "sample-a-split.pdf",
           "kind": "pdf",
-          "sha256": "d74faf6aec773758826a62e7ae05b8d38e7ed6598373163193898b34a0ac977e"
+          "sha256": "74d5f657308ef523273653834a424e751e52d9103c2e81d89e8af1e76878cd37"
         },
         {
           "name": "sample-a-split (2).pdf",
           "kind": "pdf",
-          "sha256": "399683d30ebd34822b001c2cb74ae2c141d29722d9766ee3f8ce872fbe50232e"
+          "sha256": "77c14ced6d998415514ff133334a2d5a94f6e95be50e8e1cfcfb4c82dfcf8574"
         },
         {
           "name": "sample-a-split (3).pdf",
           "kind": "pdf",
-          "sha256": "9c0874f95483c28ab632784047071064b0b3ce65c2a8d4a3d26675dbec9818e4"
+          "sha256": "7fb94ea52478c64302efa8e556689c7dc83698c942cf23d8f5d6697f4793df56"
         }
       ],
       "stable": true
@@ -119,12 +132,12 @@
         {
           "name": "sample-a-split (4).pdf",
           "kind": "pdf",
-          "sha256": "9b081f3937f23bddbf06a39e89cc7282b194f35114401f22d072708a6699e0f6"
+          "sha256": "2e26c9807528a13b09e9657fae29227f1799da214ef38203214e87d2269903dd"
         },
         {
           "name": "sample-a-split (5).pdf",
           "kind": "pdf",
-          "sha256": "9c0874f95483c28ab632784047071064b0b3ce65c2a8d4a3d26675dbec9818e4"
+          "sha256": "7fb94ea52478c64302efa8e556689c7dc83698c942cf23d8f5d6697f4793df56"
         }
       ],
       "stable": true
@@ -156,12 +169,12 @@
         {
           "name": "sample-a-split (6).pdf",
           "kind": "pdf",
-          "sha256": "9b081f3937f23bddbf06a39e89cc7282b194f35114401f22d072708a6699e0f6"
+          "sha256": "2e26c9807528a13b09e9657fae29227f1799da214ef38203214e87d2269903dd"
         },
         {
           "name": "sample-a-split (7).pdf",
           "kind": "pdf",
-          "sha256": "9c0874f95483c28ab632784047071064b0b3ce65c2a8d4a3d26675dbec9818e4"
+          "sha256": "7fb94ea52478c64302efa8e556689c7dc83698c942cf23d8f5d6697f4793df56"
         }
       ],
       "stable": true
@@ -194,7 +207,7 @@
         {
           "name": "sample-a-split (8).pdf",
           "kind": "pdf",
-          "sha256": "3b82f9b1a5595f89ed70f3747098baf3c6e676cde5f51976478c8f3b1d50aeaf"
+          "sha256": "7b557ea9c482ed8efb13fb7704657545dc03e10046aaf804dae18cb36ce21acd"
         }
       ],
       "stable": true
@@ -225,12 +238,12 @@
         {
           "name": "sample-a-split (9).pdf",
           "kind": "pdf",
-          "sha256": "9b081f3937f23bddbf06a39e89cc7282b194f35114401f22d072708a6699e0f6"
+          "sha256": "2e26c9807528a13b09e9657fae29227f1799da214ef38203214e87d2269903dd"
         },
         {
           "name": "sample-a-split (10).pdf",
           "kind": "pdf",
-          "sha256": "9c0874f95483c28ab632784047071064b0b3ce65c2a8d4a3d26675dbec9818e4"
+          "sha256": "7fb94ea52478c64302efa8e556689c7dc83698c942cf23d8f5d6697f4793df56"
         }
       ],
       "stable": true
@@ -277,7 +290,7 @@
         {
           "name": "sample-a-organize.pdf",
           "kind": "pdf",
-          "sha256": "44d0bcdfde12ae87d97d76da6f7a869ef70b50dd92f275ae412fe9f8b81860ad"
+          "sha256": "704fa192a6e5eb2b1da2a75e18273b2308e4dd5e33c6fd50382fcf9c88f8d209"
         }
       ],
       "stable": true
@@ -309,7 +322,7 @@
         {
           "name": "sample-a-rotated.pdf",
           "kind": "pdf",
-          "sha256": "ab36c82a485fe6dcd579382e0af10bc672fc90d82b7987bb9d4054282cfefc5d"
+          "sha256": "6e498a6880f5e64266e3be206481c9aded04badcd2df0be01c95a27b39c3c221"
         }
       ],
       "stable": true
@@ -337,7 +350,7 @@
         {
           "name": "sample-a-extract.pdf",
           "kind": "pdf",
-          "sha256": "814a9eef38236bd32e8b32d0d212e5c46d6bd294ca4e5aca9ce6cf90130de78f"
+          "sha256": "d705379e5acfe2a9caa1f7c9d5e8d3d2874c9e96209981390f830deef742f91c"
         }
       ],
       "stable": true
@@ -366,12 +379,12 @@
         {
           "name": "sample-a-extract (2).pdf",
           "kind": "pdf",
-          "sha256": "d74faf6aec773758826a62e7ae05b8d38e7ed6598373163193898b34a0ac977e"
+          "sha256": "74d5f657308ef523273653834a424e751e52d9103c2e81d89e8af1e76878cd37"
         },
         {
           "name": "sample-a-extract (3).pdf",
           "kind": "pdf",
-          "sha256": "9c0874f95483c28ab632784047071064b0b3ce65c2a8d4a3d26675dbec9818e4"
+          "sha256": "7fb94ea52478c64302efa8e556689c7dc83698c942cf23d8f5d6697f4793df56"
         }
       ],
       "stable": true
@@ -399,7 +412,7 @@
         {
           "name": "sample-a-trimmed (2).pdf",
           "kind": "pdf",
-          "sha256": "129654f74a86defb44061ae9519ba41a8a682930e1cd80ed59c9ff7c777788fe"
+          "sha256": "5db91a03d090dd736ef741ded72666473794a96799973dc966f90a6723845f96"
         }
       ],
       "stable": true
@@ -430,7 +443,7 @@
         {
           "name": "sample-a-watermarked.pdf",
           "kind": "pdf",
-          "sha256": "644d7f375e1cabec5de4ecdb95dbba719db02250c89c6dbf73ca0220e246b10f"
+          "sha256": "00a91af0b3748b218fc697f29c29b86da59393600f42f25c42421248229a2ac5"
         }
       ],
       "stable": true
@@ -463,7 +476,7 @@
         {
           "name": "sample-a-watermarked (2).pdf",
           "kind": "pdf",
-          "sha256": "af639c32f9fa2f25bde7202a24af3302c5ca129193b0a080924de5ac5db159b2"
+          "sha256": "4e82306f2eee93057b56e49efeb77dd3b28f14467d0abcfa15bbebfb605c74ae"
         }
       ],
       "stable": true
@@ -495,7 +508,7 @@
         {
           "name": "sample-a-watermarked (3).pdf",
           "kind": "pdf",
-          "sha256": "c7bfe630491117f593c0c30f8ab060ee54822804c44b6f1d44b1d5c9c411e1b3"
+          "sha256": "ca62c3b71ce026c4b70fa6d00698c1db571df8c0a53e4af32ca18b4b2ab41b0a"
         }
       ],
       "stable": true
@@ -527,7 +540,7 @@
         {
           "name": "sample-a-watermarked (4).pdf",
           "kind": "pdf",
-          "sha256": "324b7ba646a6c8fd6fd87033129eb0e8bfd493346edb15ecac1b0c5d683a3073"
+          "sha256": "366cca471c3a794942ad769a9d7ca818eb6482e086416ba33db2e8dd76cac867"
         }
       ],
       "stable": true
@@ -558,7 +571,7 @@
         {
           "name": "sample-a-numbered.pdf",
           "kind": "pdf",
-          "sha256": "6bf46b00892bc50cda4d00d706adfb87a09a870fbfbf4db41423ab0220597bba"
+          "sha256": "87685ba57e54fd946430d6d85a4ab56bafd0d2fd4221abaaf427b76784fcd213"
         }
       ],
       "stable": true
@@ -590,7 +603,7 @@
         {
           "name": "sample-a-numbered (2).pdf",
           "kind": "pdf",
-          "sha256": "44f0170f3b967d9a76e9c43694f545625a4f47733866bb81b194768e0e6e84f6"
+          "sha256": "40d19284aaa73e5313b09a1589de146531053542e3a3906bcc758b1808069518"
         }
       ],
       "stable": true
@@ -623,7 +636,7 @@
         {
           "name": "sample-a-meta.pdf",
           "kind": "pdf",
-          "sha256": "9b8410387f8441c7f7956e6628d33745375990a2356bf023b0a728864f2f9210"
+          "sha256": "a125fdb231920a531d5f0ba7c2c0806176d4fd647d89dad32c37e447d0996c6b"
         }
       ],
       "stable": true
@@ -654,7 +667,7 @@
         {
           "name": "sample-a-clean.pdf",
           "kind": "pdf",
-          "sha256": "d1b32ac873ea692f69d9564a856a91426e20533a080bbd787fa44d9e2b0bcf50"
+          "sha256": "f65416ae4dff6dfb9413cd72197949d0d4163dc560ae03651ae10cf6657f6ec9"
         }
       ],
       "stable": true
@@ -685,7 +698,7 @@
         {
           "name": "document-info.json",
           "kind": "json",
-          "sha256": "e987ab4393e78c27a8dfa8559ff87be013a840f1dfc503647eb685f4673624fc"
+          "sha256": "40430cd161f23b3b579f417ae4766975f14c1ec978e9c97c0501713fad79ea68"
         }
       ],
       "stable": true
@@ -717,7 +730,7 @@
         {
           "name": "sample-photos-compressed.pdf",
           "kind": "pdf",
-          "sha256": "2b0d56b6dd56ef68e45a402d824af499e5cf9345a0b4c5b2f96c81195aee5157"
+          "sha256": "2e876fdcc962a5707ac56c56f170250311ade01abb561a867aef550dece1dde3"
         }
       ],
       "stable": true
@@ -751,7 +764,7 @@
         {
           "name": "sample-a-compressed.pdf",
           "kind": "pdf",
-          "sha256": "8b5bdbaa63e8d8cb14f82d1e04ece09338e7a543155a8187ad1edb0efec32853"
+          "sha256": "2eb1915f4c693aa322c404fef1e57b46ce1132c2b6c8fa97efe166b286d65411"
         }
       ],
       "stable": true
@@ -878,13 +891,22 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 4439920,
+        "pageCountIn": 0,
+        "pageCountOut": 3,
+        "extra": {
+          "images": 3
+        }
+      },
       "artifacts": [
         {
           "name": "sample-photo-1-3pages-images.pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "133a78c44b31eb04b8c23db55a771cfc66219ae6a52d136ad3c9682e255f3f2a"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/images-to-pdf/4f1ab2bcfb0c": {
       "kind": "job",
@@ -903,13 +925,22 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 2693238,
+        "pageCountIn": 0,
+        "pageCountOut": 2,
+        "extra": {
+          "images": 2
+        }
+      },
       "artifacts": [
         {
           "name": "sample-photo-1-2pages-images.pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "28c3b1b8e2ef9175ffa8fc62ab87389168a8c6afda2fd17c1c6ca4a9947d6251"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/images-to-pdf/d5f1991117b6": {
       "kind": "job",
@@ -939,7 +970,7 @@
         {
           "name": "sample-scan-2-images.pdf",
           "kind": "pdf",
-          "sha256": "9cce653c02457440391460d92d283d99cc9419020708e5ff744811c16b80a482"
+          "sha256": "2f4262a82914b43d7fddb3c7f6de349c43bb8089194a74495c94d4f7395cf540"
         }
       ],
       "stable": true
@@ -967,7 +998,7 @@
         {
           "name": "sample-b-resized (2).pdf",
           "kind": "pdf",
-          "sha256": "163051be51fc65ed36de8f84449023941221c305480fa42df4d0bb67ae5be75b"
+          "sha256": "051a7a6b86f46d8381db111a69041bef576150ba127274075ed00e4b6a07b6af"
         }
       ],
       "stable": true
@@ -996,7 +1027,7 @@
         {
           "name": "sample-a-resized.pdf",
           "kind": "pdf",
-          "sha256": "40a81bf4bccc05d5d63d4e244d5c4ef07d13a7ded4430dd0909f054764b8be5f"
+          "sha256": "ae9958c6d7327449cda6acbcf588de81578578b5f3a0c18314c8be345c6e0c2b"
         }
       ],
       "stable": true
@@ -1030,7 +1061,7 @@
         {
           "name": "sample-a-cropped (3).pdf",
           "kind": "pdf",
-          "sha256": "8a9ba735d651741a2cad862d407b324847b6dee801bde63e57a9e286f17d4868"
+          "sha256": "c147b899b11a765439cf341d97b1073fd79929c349665131b0b5b1968f5e0b6e"
         }
       ],
       "stable": true
@@ -1061,7 +1092,7 @@
         {
           "name": "sample-a-cropped (2).pdf",
           "kind": "pdf",
-          "sha256": "e8e87c3c4dfff8cff55d27059ab359186f3faaedb2c3dc21482876ea9c88aeb5"
+          "sha256": "13763cddcabcbdcfd8fa111f7a78fe6f87fbdb4a1de8f5706efcd015eeef4d8c"
         }
       ],
       "stable": true
@@ -1090,7 +1121,7 @@
         {
           "name": "sample-a-margins.pdf",
           "kind": "pdf",
-          "sha256": "1b0c7a244f9fd3a2ec5c23b9f744ff01a4d14c4b41f48980ec0fb7622d673821"
+          "sha256": "8e3442804bde769abc22b1a812b0fd3e716c7f380e4e38f4166f27b25720bee4"
         }
       ],
       "stable": true
@@ -1119,7 +1150,7 @@
         {
           "name": "sample-a-margins (3).pdf",
           "kind": "pdf",
-          "sha256": "75d2e2d64d0bc8a9706c3c3021b96e6923eef526adcf7a7fb6621430be28bce7"
+          "sha256": "e1fd12c1631ab2faead0811891f4a07160aca04e5aa203965ccdf357997d03bd"
         }
       ],
       "stable": true
@@ -1151,7 +1182,7 @@
         {
           "name": "sample-a-nup.pdf",
           "kind": "pdf",
-          "sha256": "fe21a2ef32172e6d71736df15e48aa886358e6c3f9882008ae553b5e9e33f0f2"
+          "sha256": "57bdc0eb6f7f3ac3633da8e27cdf1187cb184ca42db2e71ebdb60c6c34b6e0a1"
         }
       ],
       "stable": true
@@ -1184,7 +1215,7 @@
         {
           "name": "sample-photos-nup.pdf",
           "kind": "pdf",
-          "sha256": "e129195fec7dc5a23178bd5b98babfa0ead9350b0250cd17a9511c7f7de5c002"
+          "sha256": "109cfea6ce12ca63c29fd666f50a6952002ea9a97d0904c0622b069838e5aa92"
         }
       ],
       "stable": true
@@ -1215,7 +1246,7 @@
         {
           "name": "sample-invoice-invoices.pdf",
           "kind": "pdf",
-          "sha256": "727549cf3799520b2e29c7547dcd1e9527f86f05f35d8cc97f1844f5dc8ea761"
+          "sha256": "effdcd1448073d054ac6c03d3efde80a3eff773fbf33aeb8290311ad431db748"
         }
       ],
       "stable": true
@@ -1248,7 +1279,7 @@
         {
           "name": "sample-invoice-invoices (2).pdf",
           "kind": "pdf",
-          "sha256": "2e01d250449eeb29be9626637a208d207a20955b1282ec60c9cee9bb44781fd7"
+          "sha256": "9f51182fd553f1276df587791828d4e13807956c2158d34acccb11420a999e52"
         }
       ],
       "stable": true
@@ -1282,7 +1313,7 @@
         {
           "name": "sample-a-invoices.pdf",
           "kind": "pdf",
-          "sha256": "e5a4c8603048f92b980765d6c17df6a2cd0552bee082e03895a7cdc60fe90b45"
+          "sha256": "c1ee6835ea0d851e6bbbb1e81e01bdedbddbe68bf3a105656eb412056694691b"
         }
       ],
       "stable": true
@@ -1316,7 +1347,7 @@
         {
           "name": "sample-invoice-invoices (3).pdf",
           "kind": "pdf",
-          "sha256": "727549cf3799520b2e29c7547dcd1e9527f86f05f35d8cc97f1844f5dc8ea761"
+          "sha256": "effdcd1448073d054ac6c03d3efde80a3eff773fbf33aeb8290311ad431db748"
         }
       ],
       "stable": true
@@ -1336,13 +1367,24 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 753,
+        "pageCountIn": 1,
+        "pageCountOut": 1,
+        "extra": {
+          "sheets": 1,
+          "invoices": 1,
+          "duplicates": 0
+        }
+      },
       "artifacts": [
         {
           "name": "sample-rotated-invoices.pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "d7d03f8a47bbb86914e0ece16b7792009f53d97152b21e62f06a193487b3ca4e"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/header-footer/b884140298e0": {
       "kind": "job",
@@ -1371,7 +1413,7 @@
         {
           "name": "sample-a-hf.pdf",
           "kind": "pdf",
-          "sha256": "d5eb61e95afea12f0b82dbae61061d6daace1afde749358cb9bd6e5afb920f27"
+          "sha256": "eeda9e0c30bbbf9f0178773bd16ead395b4cc52e2365f890d83d448f666d8342"
         }
       ],
       "stable": true
@@ -1404,7 +1446,7 @@
         {
           "name": "sample-a-no-blank.pdf",
           "kind": "pdf",
-          "sha256": "eab58264d26c9cd6b95f4c9fbb7eb6fed7dcf3b6bd1ee79c3ee02ab0dc22562b"
+          "sha256": "5e9c06fce10ed4da9c667706569b437d29a28a0839e4d2de0e90800a7f79607c"
         }
       ],
       "stable": true
@@ -1437,7 +1479,7 @@
         {
           "name": "sample-a-blank-report.json",
           "kind": "json",
-          "sha256": "cd172f7d060c2cd385ee0597d50ae5dc3eeab86204c923fe8402dd0c3a3e12b3"
+          "sha256": "11ea20c0770e453361f529e07a76345f0fc3da0746299dd02b6a22741e581f5b"
         }
       ],
       "stable": true
@@ -1465,7 +1507,7 @@
         {
           "name": "sample-photos-repaired.pdf",
           "kind": "pdf",
-          "sha256": "1c6783e607eca3601b15a67d7f1f979b7fe2167ca06893b2b28b044013f518d3"
+          "sha256": "fe20f3bed8aaad19988545cd6fe259721a0af28aa6eb73f5b806c29546278836"
         }
       ],
       "stable": true
@@ -1653,7 +1695,7 @@
         {
           "name": "sample-a (2).txt",
           "kind": "text",
-          "sha256": "8693e218ff42b00de3d25e77ce1980fcd10d5813a8f08bd3bcfdda2db823b963"
+          "sha256": "338777876cc472e8d23010571e9f231a320fa1629112f3268d9a384b2d479fc2"
         }
       ],
       "stable": true
@@ -1681,17 +1723,17 @@
         {
           "name": "sample-a-p01.txt",
           "kind": "text",
-          "sha256": "5ac71eb0c6d4988e0f1500fadbc265e5d0398450506d19360e83bec4b8c10c37"
+          "sha256": "f8f4930f94aaf5703b588f15216006bd727421ee8276f0fd42df571dc517dddc"
         },
         {
           "name": "sample-a-p02.txt",
           "kind": "text",
-          "sha256": "cb3c158be2548934dd944242d6a7d8e4caf866eaeaa7dcfc3e0d098cfd597e7e"
+          "sha256": "669892f8d6af50189fb495f31264ea5c162e5e1a9146db7c5d30b42c32b75252"
         },
         {
           "name": "sample-a-p03.txt",
           "kind": "text",
-          "sha256": "baf41030795a9cacd434f572472ab116a80bdd0d60acd570d1b2dd73e07b2406"
+          "sha256": "d6aafe6ca399a173316e949cc9eb3673277358869c4f03e9a94cf92b3fc5ee60"
         }
       ],
       "stable": true
@@ -1731,12 +1773,12 @@
         {
           "name": "sample-a-split (11).pdf",
           "kind": "pdf",
-          "sha256": "9b081f3937f23bddbf06a39e89cc7282b194f35114401f22d072708a6699e0f6"
+          "sha256": "2e26c9807528a13b09e9657fae29227f1799da214ef38203214e87d2269903dd"
         },
         {
           "name": "sample-a-split (12).pdf",
           "kind": "pdf",
-          "sha256": "9c0874f95483c28ab632784047071064b0b3ce65c2a8d4a3d26675dbec9818e4"
+          "sha256": "7fb94ea52478c64302efa8e556689c7dc83698c942cf23d8f5d6697f4793df56"
         }
       ],
       "stable": true
@@ -2032,13 +2074,19 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 2735,
+        "pageCountIn": 0,
+        "pageCountOut": 2
+      },
       "artifacts": [
         {
           "name": "sample-office-ofd-pdf (3).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "0929b706374973d3e0ee7efd4130d4d71c050a25102cd21a0ccc81adc76b7500"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/ofd-to-pdf/9708257e2050": {
       "kind": "job",
@@ -2054,13 +2102,19 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 2735,
+        "pageCountIn": 0,
+        "pageCountOut": 1
+      },
       "artifacts": [
         {
           "name": "sample-office-ofd-pdf (2).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "f225baec0f5cce3c88d1e63541d42bde35493d94947221c8f814b562586b75bb"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/markdown-to-pdf/a7d4fcc631f6": {
       "kind": "job",
@@ -2083,7 +2137,7 @@
         {
           "name": "sample-office-md-pdf (2).pdf",
           "kind": "pdf",
-          "sha256": "67dc7ae43e61e966bd550c478d30e6502af8f46596600a467b0972dddadeb58d"
+          "sha256": "a2608ba9fa8bd5b4e1fc7d599001d17dae502b3cc7906d81884b955582028afc"
         }
       ],
       "stable": true
@@ -2109,7 +2163,7 @@
         {
           "name": "corrupt-repaired.pdf",
           "kind": "pdf",
-          "sha256": "8b5bdbaa63e8d8cb14f82d1e04ece09338e7a543155a8187ad1edb0efec32853"
+          "sha256": "2eb1915f4c693aa322c404fef1e57b46ce1132c2b6c8fa97efe166b286d65411"
         }
       ],
       "stable": true
@@ -2257,7 +2311,7 @@
         {
           "name": "sample-a-rotated (2).pdf",
           "kind": "pdf",
-          "sha256": "905703ff8c491d370cb1dbd77a89ec12a417c9000efa668a1236c1e98a2d6e40"
+          "sha256": "4d7157094fc1abc8a3fa4434fa6109de761c58dcb29904d3ce50936978055928"
         }
       ],
       "stable": true
@@ -2290,7 +2344,7 @@
         {
           "name": "sample-a-watermarked (5).pdf",
           "kind": "pdf",
-          "sha256": "853eb9f9ebd4df498e6bacf28730eb56f90f928ca868db5f161839906b616f7e"
+          "sha256": "f4ae32bdda1751bcb8ca79b71cd6da78847c8a8fa721a9997faeca26727185ec"
         }
       ],
       "stable": true
@@ -2321,7 +2375,7 @@
         {
           "name": "sample-a-numbered (3).pdf",
           "kind": "pdf",
-          "sha256": "fefae5b99b49ddc3b15233119a3b8197379f6da2529d9a7e915e9667bedd21f5"
+          "sha256": "6d4b74cacf1a6855aebc4345873be2b82cacc496e1d260674d56e20c0e44cf23"
         }
       ],
       "stable": true
@@ -2353,7 +2407,7 @@
         {
           "name": "sample-a-hf (2).pdf",
           "kind": "pdf",
-          "sha256": "f03866ba415ee7376998bb564da415ee075fe8ca1fa2f7080b17e66dd5e788c7"
+          "sha256": "18b43b729c8f989f15d8ad1d71fc3e71cd440fb0be5a2c567ce8a386aa1b54cb"
         }
       ],
       "stable": true
@@ -2383,7 +2437,7 @@
         {
           "name": "sample-photos-compressed (3).pdf",
           "kind": "pdf",
-          "sha256": "2b0d56b6dd56ef68e45a402d824af499e5cf9345a0b4c5b2f96c81195aee5157"
+          "sha256": "2e876fdcc962a5707ac56c56f170250311ade01abb561a867aef550dece1dde3"
         }
       ],
       "stable": true
@@ -2409,7 +2463,7 @@
         {
           "name": "roundtrip-ofd-pdf.pdf",
           "kind": "pdf",
-          "sha256": "819115d4b495dcc2da5feb97792927ff4708420f01f93010b31f9226ddc807a5"
+          "sha256": "94f9b4b718c5614381e36990f105545ce41575ae0c790047d5ee273f89dd57f1"
         }
       ],
       "stable": true
@@ -2430,13 +2484,24 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 14085,
+        "pageCountIn": 3,
+        "pageCountOut": 2,
+        "extra": {
+          "sheets": 2,
+          "invoices": 3,
+          "duplicates": 0
+        }
+      },
       "artifacts": [
         {
           "name": "sample-invoice-invoices (4).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "3c35761d4bfb68799fa3ce0f967aa713a7a2099ac959fc158f578c9a4dbf4849"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/merge/e830664f9d70": {
       "kind": "job",
@@ -2544,7 +2609,7 @@
         {
           "name": "checksums.txt",
           "kind": "text",
-          "sha256": "08f24b468f7f1299727fdf6a51cbfd4213c276013f27e3cb6eb1d90eaba7eb7e"
+          "sha256": "623b5e816892d76b15330e27362526668de6d2c988f1ae8d024d82233b580440"
         }
       ],
       "stable": true
@@ -3535,7 +3600,7 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── 证书 1/1（叶证书） ──────────────────────────────────────\n\n  序列号             1C7A3EAE4B4AAD3E8050FD2DE40B9C01EADEB33B\n  序列号（十进制）   162577892768227699540499885780183853120261894971\n  公钥算法           rsa · 2048 bit\n  证书 DER 长度      923 字节\n  公钥 SPKI SHA-256  E5:47:22:7D:DE:46:BE:70:18:74:D3:D5:AE:40:94:F7:E2:F3:07:21:84:17:62:FD:32:87:78:AF:FF:3F:2B:B9\n  指纹 SHA-1         94:B6:25:71:EE:F7:A2:5F:69:BC:FF:05:90:D8:1C:E8:5A:3B:BC:9B\n  指纹 SHA-256       94:64:B1:1E:10:41:0E:11:31:B7:4B:6E:78:31:85:65:4E:0B:DB:C3:87:F0:1D:C3:05:AB:56:9B:FC:CD:1E:55\n  指纹 SHA-512       15:60:4E:BA:27:5B:1D:1A:BD:2F:63:87:C8:C6:1B:EC:C0:00:68:A3:C0:71:57:C2:11:0F:14:42:37:60:CD:8C:A3:39:8F:9F:AB:A2:99:A1:78:C8:6F:4A:4B:BA:DD:94:F2:20:5C:95:F2:A0:91:CD:44:2D:39:7E:3F:53:3E:24\n\n── 主体（subject） ─────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 颁发者（issuer） ────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 有效期 ──────────────────────────────────────────────────\n\n  notBefore  2026/9/21 22:04:35（本地 UTC+08:00） · 2026-09-21T14:04:35.000Z\n  notAfter   2036/9/18 22:04:35（本地 UTC+08:00） · 2036-09-18T14:04:35.000Z\n  剩余时间   还有 3643.52 天 · 9年后\n  总有效期   3650.00 天（超出浏览器信任上限 398 天）\n  当前状态   有效期内\n\n── 使用者备用名（SAN） ─────────────────────────────────────\n\n    结果  证书未包含 subjectAltName 扩展\n\n── 扩展与用途 ──────────────────────────────────────────────\n\n  版本                           X.509 v3\n  签名算法                       sha256WithRSAEncryption\n  签名算法 OID                   1.2.840.113549.1.1.11\n  basicConstraints               CA:TRUE · critical\n  CA 判定                        CA 证书（可签发下级） · node ca 属性 = true\n  keyUsage                       证书未包含该扩展\n  extendedKeyUsage               证书未包含该扩展\n  subjectKeyIdentifier           AD637CB7C2F22651368975D171B1032EBE1D34F2\n  authorityKeyIdentifier         AD637CB7C2F22651368975D171B1032EBE1D34F2\n  critical 扩展 OID              2.5.29.19\n  SAN 条目数                     0\n  infoAccess（OCSP/CA Issuers）  无\n\n── 链与信任 ────────────────────────────────────────────────\n\n  自签名              是（颁发者 = 主体）\n  可否签发下级        是（basicConstraints CA:TRUE）\n  剩余天数            3643.52 天 · 9年后\n  同链上一张签发关系  —\n\n── 说明 ────────────────────────────────────────────────────\n\n· 主体、issuer、序列号、公钥及扩展从证书 DER 解析；指纹使用 SHA-1/SHA-256/SHA-512 计算。本工具不验证证书链是否受系统信任。\n· 有效期同时给出本地时区（含 UTC 偏移）、UTC ISO 与相对描述，剩余天数按 notAfter−now 计算。\n· 指纹为证书 DER 的摘要：SHA-1 用于兼容性比对，日常核验请用 SHA-256。\n· basicConstraints/keyUsage 等扩展在证书未携带时明确标注“未包含该扩展”，不会凭空补默认值。\n· chain=false：只展开第 1 张（共检测到 1 张），需要看链请打开 chain。\n· output=summary：只看摘要，可用 full-json 导出结构化数据。\n",
+      "text": "── 证书 1/1（叶证书） ──────────────────────────────────────\n\n  序列号             1C7A3EAE4B4AAD3E8050FD2DE40B9C01EADEB33B\n  序列号（十进制）   162577892768227699540499885780183853120261894971\n  公钥算法           rsa · 2048 bit\n  证书 DER 长度      923 字节\n  公钥 SPKI SHA-256  E5:47:22:7D:DE:46:BE:70:18:74:D3:D5:AE:40:94:F7:E2:F3:07:21:84:17:62:FD:32:87:78:AF:FF:3F:2B:B9\n  指纹 SHA-1         94:B6:25:71:EE:F7:A2:5F:69:BC:FF:05:90:D8:1C:E8:5A:3B:BC:9B\n  指纹 SHA-256       94:64:B1:1E:10:41:0E:11:31:B7:4B:6E:78:31:85:65:4E:0B:DB:C3:87:F0:1D:C3:05:AB:56:9B:FC:CD:1E:55\n  指纹 SHA-512       15:60:4E:BA:27:5B:1D:1A:BD:2F:63:87:C8:C6:1B:EC:C0:00:68:A3:C0:71:57:C2:11:0F:14:42:37:60:CD:8C:A3:39:8F:9F:AB:A2:99:A1:78:C8:6F:4A:4B:BA:DD:94:F2:20:5C:95:F2:A0:91:CD:44:2D:39:7E:3F:53:3E:24\n\n── 主体（subject） ─────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 颁发者（issuer） ────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 有效期 ──────────────────────────────────────────────────\n\n  notBefore  2026/9/21 22:04:35（本地 UTC+08:00） · 2026-09-21T14:04:35.000Z\n  notAfter   2036/9/18 22:04:35（本地 UTC+08:00） · 2036-09-18T14:04:35.000Z\n  剩余时间   还有 3643.47 天 · 9年后\n  总有效期   3650.00 天（超出浏览器信任上限 398 天）\n  当前状态   有效期内\n\n── 使用者备用名（SAN） ─────────────────────────────────────\n\n    结果  证书未包含 subjectAltName 扩展\n\n── 扩展与用途 ──────────────────────────────────────────────\n\n  版本                           X.509 v3\n  签名算法                       sha256WithRSAEncryption\n  签名算法 OID                   1.2.840.113549.1.1.11\n  basicConstraints               CA:TRUE · critical\n  CA 判定                        CA 证书（可签发下级） · node ca 属性 = true\n  keyUsage                       证书未包含该扩展\n  extendedKeyUsage               证书未包含该扩展\n  subjectKeyIdentifier           AD637CB7C2F22651368975D171B1032EBE1D34F2\n  authorityKeyIdentifier         AD637CB7C2F22651368975D171B1032EBE1D34F2\n  critical 扩展 OID              2.5.29.19\n  SAN 条目数                     0\n  infoAccess（OCSP/CA Issuers）  无\n\n── 链与信任 ────────────────────────────────────────────────\n\n  自签名              是（颁发者 = 主体）\n  可否签发下级        是（basicConstraints CA:TRUE）\n  剩余天数            3643.47 天 · 9年后\n  同链上一张签发关系  —\n\n── 说明 ────────────────────────────────────────────────────\n\n· 主体、issuer、序列号、公钥及扩展从证书 DER 解析；指纹使用 SHA-1/SHA-256/SHA-512 计算。本工具不验证证书链是否受系统信任。\n· 有效期同时给出本地时区（含 UTC 偏移）、UTC ISO 与相对描述，剩余天数按 notAfter−now 计算。\n· 指纹为证书 DER 的摘要：SHA-1 用于兼容性比对，日常核验请用 SHA-256。\n· basicConstraints/keyUsage 等扩展在证书未携带时明确标注“未包含该扩展”，不会凭空补默认值。\n· chain=false：只展开第 1 张（共检测到 1 张），需要看链请打开 chain。\n· output=summary：只看摘要，可用 full-json 导出结构化数据。\n",
       "stable": true
     },
     "tool.run/password-gen/684576e7e286": {
@@ -3611,12 +3676,12 @@
       "warnings": [],
       "stable": false
     },
-    "tool.run/aes/0936ebea97f7": {
+    "tool.run/aes/ec18402bc700": {
       "kind": "text",
       "tool": "aes",
       "inputs": {
         "options": {
-          "input": "AQEBAAJJ8BCO94fRdCUJ1nW3br4ZeOtYDM9wEZ218YYMMjTSPBCkrtuQSGNd3DpFEGLQKe4vTv9ZtWmVxnx1MEaVSflxVyA=",
+          "input": "AQEBAAJJ8BBxWgF5EwxanUA4hWJ+QUz2DAjtbz3FZNy0C0skdhAUitq25DcQQvIOZWeRSMKI/vVQWwhxodSkut6QlAJ9NqQ=",
           "mode": "decrypt",
           "passphrase": "pw123"
         },
@@ -3624,16 +3689,16 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── AES 解密 · aes-256-gcm · scrypt · 成功 ──────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\n机密 round-trip\n\n  容器长度    71 字节\n  密文长度    17 字节\n  明文长度    17 字节\n  容器自描述  aes-256-gcm · scrypt · iterations=150000\n  authTag     a4aedb9048635ddc3a451062d029ee2f（校验通过）\n  UTF-8 往返  一致（标准 UTF-8）\n\n── 说明 ────────────────────────────────────────────────────\n\n· 算法/KDF/迭代/salt/IV/authTag 全部来自容器头部，与 mode=encrypt 输出一一对应。\n· 表单 cipher、kdf、iterations 在解密时被忽略（容器优先），因此换设备只改 format 也能解开。\n· 只有 authTag 校验通过才会走到这里；篡改容器或口令错误都会在上一步终止。\n",
+      "text": "── AES 解密 · aes-256-gcm · scrypt · 成功 ──────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\n机密 round-trip\n\n  容器长度    71 字节\n  密文长度    17 字节\n  明文长度    17 字节\n  容器自描述  aes-256-gcm · scrypt · iterations=150000\n  authTag     148adab6e4371042f20e65679148c288（校验通过）\n  UTF-8 往返  一致（标准 UTF-8）\n\n── 说明 ────────────────────────────────────────────────────\n\n· 算法/KDF/迭代/salt/IV/authTag 全部来自容器头部，与 mode=encrypt 输出一一对应。\n· 表单 cipher、kdf、iterations 在解密时被忽略（容器优先），因此换设备只改 format 也能解开。\n· 只有 authTag 校验通过才会走到这里；篡改容器或口令错误都会在上一步终止。\n",
       "stable": false,
       "inputRandom": true
     },
-    "tool.run/aes/da78284aa3db": {
+    "tool.run/aes/0b33626da80c": {
       "kind": "text",
       "tool": "aes",
       "inputs": {
         "options": {
-          "input": "AQEBAAJJ8BCO94fRdCUJ1nW3br4ZeOtYDM9wEZ218YYMMjTSPBCkrtuQSGNd3DpFEGLQKe4vTv9ZtWmVxnx1MEaVSflxVyAA",
+          "input": "AQEBAAJJ8BBxWgF5EwxanUA4hWJ+QUz2DAjtbz3FZNy0C0skdhAUitq25DcQQvIOZWeRSMKI/vVQWwhxodSkut6QlAJ9NqAA",
           "mode": "decrypt",
           "passphrase": "pw123"
         },
@@ -3641,7 +3706,7 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── AES 解密 · aes-256-gcm · scrypt · 失败 ──────────────────\n\n  容器长度      72 字节\n  容器算法编号  1（aes-256-gcm）\n  salt/IV/tag   8ef787d1742509d675b76ebe1978eb58 / cf70119db5f1860c3234d23c / a4aedb9048635ddc3a451062d029ee2f\n  密文长度      18 字节\n  底层信息      Unsupported state or unable to authenticate data\n\n── 结论 ────────────────────────────────────────────────────\n\n✗ GCM 认证标签校验失败：容器被篡改或口令错误，密文一个字节都不可信\n\n── 说明 ────────────────────────────────────────────────────\n\n· 未输出任何部分明文：解密只在完整性校验通过时才产出，避免把乱码当结果继续传播。\n",
+      "text": "── AES 解密 · aes-256-gcm · scrypt · 失败 ──────────────────\n\n  容器长度      72 字节\n  容器算法编号  1（aes-256-gcm）\n  salt/IV/tag   715a0179130c5a9d403885627e414cf6 / 08ed6f3dc564dcb40b4b2476 / 148adab6e4371042f20e65679148c288\n  密文长度      18 字节\n  底层信息      Unsupported state or unable to authenticate data\n\n── 结论 ────────────────────────────────────────────────────\n\n✗ GCM 认证标签校验失败：容器被篡改或口令错误，密文一个字节都不可信\n\n── 说明 ────────────────────────────────────────────────────\n\n· 未输出任何部分明文：解密只在完整性校验通过时才产出，避免把乱码当结果继续传播。\n",
       "stable": false,
       "inputRandom": true
     },
@@ -3658,31 +3723,31 @@
       "warnings": [],
       "stable": false
     },
-    "tool.run/rsa/b833c88d3436": {
+    "tool.run/rsa/1a5a0b780410": {
       "kind": "text",
       "tool": "rsa",
       "inputs": {
         "options": {
           "mode": "sign",
-          "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCkBPQhFaRvGGVo\nuqidW0Tl8gd2RCHCHJ+lWUhWcW+sAlfaeZJG6cj2Ag/nFMiG9gduDNGnJHv6SOGm\nZYeQjT/2zOCY6bxPoWp5TaVJIzMHROp1drANox1245rFfm04NDREsVWnDRjdzfLw\ntUUezHF1SKU8KUOvW3fJH0GzYyRnBnunLrM71Kgh88ZseqwCp8Jj79NAUbDZp0Qu\nrioCOErcEPaOlv1dYPLXNNan5Wk6nM4pS4S2HuusTf7wLLvqsxDhmAY9LN8NMK2c\n4bWlVPwROQP6EKkVQwLooLOHIMtBzQDAdYAtQvAvuuqU0IZXz7uHddHo3LYqj0tN\n3tSUSN8pAgMBAAECggEADCUcwZ1lY1+KVMariRlSwPcas9hoKoQtkxQJHfOA2hsD\nT9dcLDmP6p1s+YapsYqisrSqyoZSUs5WPRi8AMlgwODbSZ9XFQtmA6zq7f83/lQN\nS1zaPOxE2IKSeYi6xCRjcWmzJq861eOz1zyI7XakeRODvrBshV3PwRn6JrMS5Tjw\nigEmdFCrclAS0TRnf1RNuKBvcRalxHXkW8S40A4/JfYrp5c8Dm8ytpZiLpPfcHxE\nDLDob6o3aGV8Rjh+OfjWnxSmTf747xEifXI8mV/u19dXa9kudOYQH4Tlg9eZgHWC\nz/vbm47sahibmBIAYux00FRs+cHQpLBPdjNwWLZsvQKBgQDW8owDi9pilnthOY12\n11GNTdgnEMzFA/ft6p4pnFc097fV6cWqKHOoqaULcPpTlKkHG5CUNq+QqS4ceQa9\n61osmt1GnnFX99c8+FcVIUNoLGbyn605WTVmVpxDoXYmX+9JbUl46DsBiVM8VQy4\nw1/A404w/HLAk8KJdPyao1ggxQKBgQDDWF9mt8PysjrdVJ/cOkNpRsaZk1ZmcQks\nNnlmIb6t7hc7bcnQJQw/kpfI8rs8dLxKyBkEzdhbksc5JFMIiW0k51mRutypHt4m\n4DGhGn5sWo6OQ3mJjaEEZfeQPFWt8ItJmQI+I0e9OAe2O1raID4kCac8k5aAdnN9\nfbsRRfpjFQKBgD9VK+gHlwshZ60X9hSkEMVfwGaSTqNmLfEOBhgglplmu+XtgW5H\niPyTL6wVV8y0qrELcCgbjNNE5e9BwbjH1cP6xWP/X0oaHnM6gP4a1O+m1ZZ7ceDJ\n5jAHKPfMZTGdZrXt244ibvBe9AV80cjG2DnPP8SzPWR8pP83Vw6BPoA5AoGAOUPS\n073TR3ZQI0oHgvvhfx8sYSD8FxPT6I4fkH0b9MjzLozEuKvjp09GB7aAhPyDpjh6\nfRoK7u1cUbgAT2RaBpN7gmkQ/tL5tNPMOLoXjZQObk4Bdv150lxB8pp9U3xMmMqu\nCaE2CpY+TIGh5IfHL7FUwUFSwV34BTWyfSHSgPECgYAlMwPYnU/zGeGkUaeqcj89\ncS9mFy+hGetJzud9hyg4hmwehDDk/8NpgHt++ZmOCdFfEWrNZiJI9HMCBigud8t/\n3a1KyUheEJRcTOLS4jCjPYIXiKPbYpa2vm6khhWKvfviKOMUuCxgn3iDBSh7h2tD\n264rtR8KChWnDMi+OJPP0g==\n-----END PRIVATE KEY-----",
+          "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC2/99ANtDhTMPA\nKg63aeMAskg4d+nKt1lA+BChRdWA7nL73hoq8uHhej8NXEgNDj6858jolx2dDjWm\n8fntL518Fb/EKIXnuXVkG4MWqqdYWQYsoa80l9Byceqx7v7Im1qp+cVqxejCDmNT\n1PjQU6qROdZYyfjjccEKHlM3oDa9tdLXCxkJQRzsA4FZtwXvSXhDa9hwdDfLHFMj\nvniTmcrPTAPkLPv+yF47WuvJwljqBSMinafhlShBU14tS4MECJI/qxKRx9RiR93k\nKZ+c2MuX5o2w5b/ZNjw5GU0v3QE21YWLIf13pwOCX3AyjacL3Ur1ZtUfjxqb0TNR\nyl2BhUE9AgMBAAECggEAEZ3eOwtL3nSKX6Rs2EFMRhPjmfQJQKeX4wY+a5gSbqAF\n17NQ55OMJS2khj+8++zEI2FY2PM7OZRVm+WtfqTXz0s0s8iG44DaCTIQ04zIIVwo\nmQFToYd/3JSU2F4+jsdN2hEebSHyP0QtUbOt5Dg5slNUDCYdXJ/lyniS4Eb/HhIK\nNkmN1Yb/BJaIPOKClUaWEsQoyXd6NSySGJIYPa2/D18uP3Vrl+cdBnPc7iBD4q2L\nEFXRmM0WhkzGMMTt3aimlaYiI0qh/+zGrEYkgheyFHfIIClOKwNseAL+z5CmnxKz\nYKTdQqRjVqeZY0r/EnGa3QE4BcyzV37REQkeJmOdTQKBgQDaXxU2MYXiUeIPOXw/\nhLvCG7lPdsnujneQZLs4krCOJO3bV75crK0jCAcfQOttwnRLFyDRybV8vjzsfI+e\nRgn2+3udLiwSfBB7cJjZNoBNrtseCGeBRidEy9/Q2OT4/2IRu/J756BC95kP/D+i\nWxyeNYrIV6RzmeHBnjkNrCn0iwKBgQDWiHG4153UPkhdvUXLApaqNg1dSf8vsANL\nSCeyHXpPaEIYNe9+HZyX77sNQVXC/FV9hcqVocRZNM13gurv4IEsW3ztuR0GFiWW\nbbB5dNLIpX1aJ5pumsje3CSi59m2qwqqFlkFLHb9HyrXtzPADpRklDIICF0yBCkf\nLIUhmIAyVwKBgQDK3Tgkb19UgANFZ38AtzuCOSUvKEiyANIcZyfyh3vToYUClwH2\nsEfr2mJba4ELJ3HH7IWFvyCF8WlBvPni7GgHdVtCCwnQZkcdld25NMN+52kR/nbB\nhr2mUMvtBgG5O+8MUJEVAHpGnCQq0IkBOCle5Ji4Q4s4BYXPzEBubjlPvwKBgCK3\nD5f2pB6NOY6ZqyqPr6u5dW4sJDQmSlIrSekjpgAlgdSDHc8NoaJgc6dQdD1KMddP\nCBowhCJfTgRR1gydCqoP3+Zj9xNeEBUIiO8OfXFkfiVRlUbimzCc9Py7gdpyURZ2\n6U7SBCsvmPIxPhmNAmxIItRz7gjC7ZiSzrRCBjSfAoGAIQn5fXMl65wfn+3C/LDn\nPuODJxqjdZfgfOe/uFSlTWrcn7FXhlEhKx8WvNRC+qCeeDQc3IarTcLEznRy7xHu\niUC/3gJJallM/pgISSrer/l0Wt2MNUs+okY+CM0KfzZZ4CjWcQrurQmByLyNooWA\nuNBr4Boero1M5NkH4naZ/Uo=\n-----END PRIVATE KEY-----",
           "message": "待签名内容"
         },
         "locale": "zh-CN"
       },
       "error": null,
       "warnings": [],
-      "text": "── RSA 签名 · SHA256 ───────────────────────────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\nfiGrUsAKXuw09VXgsJ+QZOl3HCmWNAarR7CgBhVgjD9cI6VdB6FjX3Z6S7Go/UhptZimc9+3zXf9c+mkP7Y5J1YSmcQR/9O1apQtYGNJuq0/lhaj8pUABvnnJWqYtHtvQdRITiHWziLdN4ahOgQjJsOkAwDbvxPpF3elRqvOb1k3ydUorIYNZ7C+H7zhKD03xSDiFLivfkh3lCkeCIjStvpNTKLAEOZ50j9wMqDqmlpba3zCAMTFyHaV+hnCGRCOS2zApqPPtN/IR0Aau3jm9xdkNS1WZ7L5JmRdbeBhyNQ1kEdrPMh6WZLbZHIfO3Ky6TYBJ8TWPbDzLfQZE1Vecw==\n\n  密钥      PKCS#8 private key\n  消息长度  15 字节\n  签名长度  256 字节\n  填充      PKCS#1 v1.5（RSASSA-PKCS1-v1_5）\n\n── 签名（hex） ─────────────────────────────────────────────\n\n7e21ab52c00a5eec34f555e0b09f9064e9771c29963406ab47b0a00615608c3f5c23a55d07a1635f767a4bb1a8fd4869b598a673dfb7cd77fd73e9a43fb63927561299c411ffd3b56a942d606349baad3f9616a3f2950006f9e7256a98b47b6f41d4484e21d6ce22dd3786a13a042326c3a40300dbbf13e91777a546abce6f5937c9d528ac860d67b0be1fbce1283d37c520e214b8af7e487794291e0888d2b6fa4d4ca2c010e679d23f7032a0ea9a5a5b6b7cc200c4c5c87695fa19c219108e4b6cc0a6a3cfb4dfc847401abb78e6f71764352d5667b2f926645d6de061c8d43590476b3cc87a5992db64721f3b72b2e9360127c4d63db0f32df41913555e73\n\n── 验签输入（整块复制粘贴到 mode=verify 的 message） ───────\n\nsignature: fiGrUsAKXuw09VXgsJ+QZOl3HCmWNAarR7CgBhVgjD9cI6VdB6FjX3Z6S7Go/UhptZimc9+3zXf9c+mkP7Y5J1YSmcQR/9O1apQtYGNJuq0/lhaj8pUABvnnJWqYtHtvQdRITiHWziLdN4ahOgQjJsOkAwDbvxPpF3elRqvOb1k3ydUorIYNZ7C+H7zhKD03xSDiFLivfkh3lCkeCIjStvpNTKLAEOZ50j9wMqDqmlpba3zCAMTFyHaV+hnCGRCOS2zApqPPtN/IR0Aau3jm9xdkNS1WZ7L5JmRdbeBhyNQ1kEdrPMh6WZLbZHIfO3Ky6TYBJ8TWPbDzLfQZE1Vecw==\n待签名内容\n\n── 说明 ────────────────────────────────────────────────────\n\n· 签名 = RSA 私钥对 DigestInfo(SHA-256/512 ‖ 消息) 的幂运算，确定性输出。\n· 上面的“验签输入”块把签名与原文绑在一起，避免验签端漏填其一。\n· 长消息可直接签名（签名长度恒为模数长度，与消息长度无关）。\n",
+      "text": "── RSA 签名 · SHA256 ───────────────────────────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\nc4A6mfKSJ6n515wul2ROejoVx1RpgfjQJrIKXbD443m0q3WsvwnknisKm9iNmgOlmzNS/po8JKsPcTiwjDtMTK/icu8en3AMzdGDrbqyT1sBu/eCRUecJ15f3pCSVZTXZSrKjAk0xHaVUrO9btkOY10iOjM15LA6x2tEG4aQTeG1Yy5K/lTnuotfwZ9gZIDV42imT4ihHFqBq0eNLZARwdIU0yBLygXQcHItTN2rzNbs4B+jMe2AoFUq96VczluLz5t0pTk6GlHC5yvjASeyI4BTtCBMRMPMqFHwFX9xW8HRmVb4duIuTLKhRsyvKMLWQqn/wPxxQiG0U14diMcYIQ==\n\n  密钥      PKCS#8 private key\n  消息长度  15 字节\n  签名长度  256 字节\n  填充      PKCS#1 v1.5（RSASSA-PKCS1-v1_5）\n\n── 签名（hex） ─────────────────────────────────────────────\n\n73803a99f29227a9f9d79c2e97644e7a3a15c7546981f8d026b20a5db0f8e379b4ab75acbf09e49e2b0a9bd88d9a03a59b3352fe9a3c24ab0f7138b08c3b4c4cafe272ef1e9f700ccdd183adbab24f5b01bbf78245479c275e5fde90925594d7652aca8c0934c4769552b3bd6ed90e635d223a3335e4b03ac76b441b86904de1b5632e4afe54e7ba8b5fc19f606480d5e368a64f88a11c5a81ab478d2d9011c1d214d3204bca05d070722d4cddabccd6ece01fa331ed80a0552af7a55cce5b8bcf9b74a5393a1a51c2e72be30127b2238053b4204c44c3cca851f0157f715bc1d19956f876e22e4cb2a146ccaf28c2d642a9ffc0fc714221b4535e1d88c71821\n\n── 验签输入（整块复制粘贴到 mode=verify 的 message） ───────\n\nsignature: c4A6mfKSJ6n515wul2ROejoVx1RpgfjQJrIKXbD443m0q3WsvwnknisKm9iNmgOlmzNS/po8JKsPcTiwjDtMTK/icu8en3AMzdGDrbqyT1sBu/eCRUecJ15f3pCSVZTXZSrKjAk0xHaVUrO9btkOY10iOjM15LA6x2tEG4aQTeG1Yy5K/lTnuotfwZ9gZIDV42imT4ihHFqBq0eNLZARwdIU0yBLygXQcHItTN2rzNbs4B+jMe2AoFUq96VczluLz5t0pTk6GlHC5yvjASeyI4BTtCBMRMPMqFHwFX9xW8HRmVb4duIuTLKhRsyvKMLWQqn/wPxxQiG0U14diMcYIQ==\n待签名内容\n\n── 说明 ────────────────────────────────────────────────────\n\n· 签名 = RSA 私钥对 DigestInfo(SHA-256/512 ‖ 消息) 的幂运算，确定性输出。\n· 上面的“验签输入”块把签名与原文绑在一起，避免验签端漏填其一。\n· 长消息可直接签名（签名长度恒为模数长度，与消息长度无关）。\n",
       "stable": false,
       "inputRandom": true
     },
-    "tool.run/rsa/2e55c5c7e2cd": {
+    "tool.run/rsa/402bda76e3f1": {
       "kind": "text",
       "tool": "rsa",
       "inputs": {
         "options": {
           "mode": "verify",
-          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApAT0IRWkbxhlaLqonVtE\n5fIHdkQhwhyfpVlIVnFvrAJX2nmSRunI9gIP5xTIhvYHbgzRpyR7+kjhpmWHkI0/\n9szgmOm8T6FqeU2lSSMzB0TqdXawDaMdduOaxX5tODQ0RLFVpw0Y3c3y8LVFHsxx\ndUilPClDr1t3yR9Bs2MkZwZ7py6zO9SoIfPGbHqsAqfCY+/TQFGw2adELq4qAjhK\n3BD2jpb9XWDy1zTWp+VpOpzOKUuEth7rrE3+8Cy76rMQ4ZgGPSzfDTCtnOG1pVT8\nETkD+hCpFUMC6KCzhyDLQc0AwHWALULwL7rqlNCGV8+7h3XR6Ny2Ko9LTd7UlEjf\nKQIDAQAB\n-----END PUBLIC KEY-----",
-          "message": "signature: fiGrUsAKXuw09VXgsJ+QZOl3HCmWNAarR7CgBhVgjD9cI6VdB6FjX3Z6S7Go/UhptZimc9+3zXf9c+mkP7Y5J1YSmcQR/9O1apQtYGNJuq0/lhaj8pUABvnnJWqYtHtvQdRITiHWziLdN4ahOgQjJsOkAwDbvxPpF3elRqvOb1k3ydUorIYNZ7C+H7zhKD03xSDiFLivfkh3lCkeCIjStvpNTKLAEOZ50j9wMqDqmlpba3zCAMTFyHaV+hnCGRCOS2zApqPPtN/IR0Aau3jm9xdkNS1WZ7L5JmRdbeBhyNQ1kEdrPMh6WZLbZHIfO3Ky6TYBJ8TWPbDzLfQZE1Vecw==\n待签名内容"
+          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtv/fQDbQ4UzDwCoOt2nj\nALJIOHfpyrdZQPgQoUXVgO5y+94aKvLh4Xo/DVxIDQ4+vOfI6JcdnQ41pvH57S+d\nfBW/xCiF57l1ZBuDFqqnWFkGLKGvNJfQcnHqse7+yJtaqfnFasXowg5jU9T40FOq\nkTnWWMn443HBCh5TN6A2vbXS1wsZCUEc7AOBWbcF70l4Q2vYcHQ3yxxTI754k5nK\nz0wD5Cz7/sheO1rrycJY6gUjIp2n4ZUoQVNeLUuDBAiSP6sSkcfUYkfd5CmfnNjL\nl+aNsOW/2TY8ORlNL90BNtWFiyH9d6cDgl9wMo2nC91K9WbVH48am9EzUcpdgYVB\nPQIDAQAB\n-----END PUBLIC KEY-----",
+          "message": "signature: c4A6mfKSJ6n515wul2ROejoVx1RpgfjQJrIKXbD443m0q3WsvwnknisKm9iNmgOlmzNS/po8JKsPcTiwjDtMTK/icu8en3AMzdGDrbqyT1sBu/eCRUecJ15f3pCSVZTXZSrKjAk0xHaVUrO9btkOY10iOjM15LA6x2tEG4aQTeG1Yy5K/lTnuotfwZ9gZIDV42imT4ihHFqBq0eNLZARwdIU0yBLygXQcHItTN2rzNbs4B+jMe2AoFUq96VczluLz5t0pTk6GlHC5yvjASeyI4BTtCBMRMPMqFHwFX9xW8HRmVb4duIuTLKhRsyvKMLWQqn/wPxxQiG0U14diMcYIQ==\n待签名内容"
         },
         "locale": "zh-CN"
       },
@@ -3692,14 +3757,14 @@
       "stable": false,
       "inputRandom": true
     },
-    "tool.run/rsa/ac192593b3a2": {
+    "tool.run/rsa/1dd76aee64b2": {
       "kind": "text",
       "tool": "rsa",
       "inputs": {
         "options": {
           "mode": "verify",
-          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApAT0IRWkbxhlaLqonVtE\n5fIHdkQhwhyfpVlIVnFvrAJX2nmSRunI9gIP5xTIhvYHbgzRpyR7+kjhpmWHkI0/\n9szgmOm8T6FqeU2lSSMzB0TqdXawDaMdduOaxX5tODQ0RLFVpw0Y3c3y8LVFHsxx\ndUilPClDr1t3yR9Bs2MkZwZ7py6zO9SoIfPGbHqsAqfCY+/TQFGw2adELq4qAjhK\n3BD2jpb9XWDy1zTWp+VpOpzOKUuEth7rrE3+8Cy76rMQ4ZgGPSzfDTCtnOG1pVT8\nETkD+hCpFUMC6KCzhyDLQc0AwHWALULwL7rqlNCGV8+7h3XR6Ny2Ko9LTd7UlEjf\nKQIDAQAB\n-----END PUBLIC KEY-----",
-          "message": "signature: fiGrUsAKXuw09VXgsJ+QZOl3HCmWNAarR7CgBhVgjD9cI6VdB6FjX3Z6S7Go/UhptZimc9+3zXf9c+mkP7Y5J1YSmcQR/9O1apQtYGNJuq0/lhaj8pUABvnnJWqYtHtvQdRITiHWziLdN4ahOgQjJsOkAwDbvxPpF3elRqvOb1k3ydUorIYNZ7C+H7zhKD03xSDiFLivfkh3lCkeCIjStvpNTKLAEOZ50j9wMqDqmlpba3zCAMTFyHaV+hnCGRCOS2zApqPPtN/IR0Aau3jm9xdkNS1WZ7L5JmRdbeBhyNQ1kEdrPMh6WZLbZHIfO3Ky6TYBJ8TWPbDzLfQZE1Vecw==\n被改动的原文"
+          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtv/fQDbQ4UzDwCoOt2nj\nALJIOHfpyrdZQPgQoUXVgO5y+94aKvLh4Xo/DVxIDQ4+vOfI6JcdnQ41pvH57S+d\nfBW/xCiF57l1ZBuDFqqnWFkGLKGvNJfQcnHqse7+yJtaqfnFasXowg5jU9T40FOq\nkTnWWMn443HBCh5TN6A2vbXS1wsZCUEc7AOBWbcF70l4Q2vYcHQ3yxxTI754k5nK\nz0wD5Cz7/sheO1rrycJY6gUjIp2n4ZUoQVNeLUuDBAiSP6sSkcfUYkfd5CmfnNjL\nl+aNsOW/2TY8ORlNL90BNtWFiyH9d6cDgl9wMo2nC91K9WbVH48am9EzUcpdgYVB\nPQIDAQAB\n-----END PUBLIC KEY-----",
+          "message": "signature: c4A6mfKSJ6n515wul2ROejoVx1RpgfjQJrIKXbD443m0q3WsvwnknisKm9iNmgOlmzNS/po8JKsPcTiwjDtMTK/icu8en3AMzdGDrbqyT1sBu/eCRUecJ15f3pCSVZTXZSrKjAk0xHaVUrO9btkOY10iOjM15LA6x2tEG4aQTeG1Yy5K/lTnuotfwZ9gZIDV42imT4ihHFqBq0eNLZARwdIU0yBLygXQcHItTN2rzNbs4B+jMe2AoFUq96VczluLz5t0pTk6GlHC5yvjASeyI4BTtCBMRMPMqFHwFX9xW8HRmVb4duIuTLKhRsyvKMLWQqn/wPxxQiG0U14diMcYIQ==\n被改动的原文"
         },
         "locale": "zh-CN"
       },
@@ -3803,12 +3868,12 @@
       "warnings": [],
       "stable": false
     },
-    "tool.run/aes/fc88228d429e": {
+    "tool.run/aes/e2815e1390db": {
       "kind": "text",
       "tool": "aes",
       "inputs": {
         "options": {
-          "input": "AQEBAAJJ8BAhA9FJa2VAeSNjeLIa0B+mDFnNpRZnK7NV++KNXRD6Q8pIoSrZaf6bzMLbHnnpDmHQXlIXcdE90dJg/oRv1uJJ",
+          "input": "AQEBAAJJ8BBk3i0UhDOjKks5R0gijkmeDNhnPs1eIISP+JmCqBC01wZlXo7skLa97VDyI72tekis/7IWwWIv3PpxxVNv3WxI",
           "mode": "decrypt",
           "passphrase": "pw123"
         },
@@ -3816,7 +3881,7 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── AES decrypt - aes-256-gcm - scrypt - succeeded ──────────\n\n── Result ──────────────────────────────────────────────────\n\nround-trip payload\n\n  Container length            72 bytes\n  Ciphertext length           18 bytes\n  Plaintext length            18 bytes\n  Container self-description  aes-256-gcm · scrypt · iterations=150000\n  authTag                     fa43ca48a12ad969fe9bccc2db1e79e9 (verified)\n  UTF-8 round trip            identical (standard UTF-8)\n\n── Notes ───────────────────────────────────────────────────\n\n- algorithm/KDF/iterations/salt/IV/authTag all come from the container header and match the mode=encrypt output one for one.\n- The form fields cipher, kdf and iterations are ignored on decrypt (the container wins), so switching devices only needs a format change.\n- Only a passing authTag reaches this point; a tampered container or a wrong passphrase stopped one step earlier.\n",
+      "text": "── AES decrypt - aes-256-gcm - scrypt - succeeded ──────────\n\n── Result ──────────────────────────────────────────────────\n\nround-trip payload\n\n  Container length            72 bytes\n  Ciphertext length           18 bytes\n  Plaintext length            18 bytes\n  Container self-description  aes-256-gcm · scrypt · iterations=150000\n  authTag                     b4d706655e8eec90b6bded50f223bdad (verified)\n  UTF-8 round trip            identical (standard UTF-8)\n\n── Notes ───────────────────────────────────────────────────\n\n- algorithm/KDF/iterations/salt/IV/authTag all come from the container header and match the mode=encrypt output one for one.\n- The form fields cipher, kdf and iterations are ignored on decrypt (the container wins), so switching devices only needs a format change.\n- Only a passing authTag reaches this point; a tampered container or a wrong passphrase stopped one step earlier.\n",
       "stable": false,
       "inputRandom": true
     },
@@ -4054,13 +4119,23 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 23578,
+        "pageCountIn": 3,
+        "pageCountOut": 2,
+        "extra": {
+          "sheets": 2,
+          "perSheet": 2
+        }
+      },
       "artifacts": [
         {
           "name": "sample-a-nup (2).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "57bdc0eb6f7f3ac3633da8e27cdf1187cb184ca42db2e71ebdb60c6c34b6e0a1"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/header-footer/984ed7f95c2e": {
       "kind": "job",
@@ -4096,7 +4171,7 @@
         {
           "name": "sample-a-hf (3).pdf",
           "kind": "pdf",
-          "sha256": "434516931391503c03c4e6bbde3b3f0fb7a70924bbd2cbbd804bad6e51f1fabd"
+          "sha256": "65cc30fffd23b1a28ec09c9592cf9ef23196e2185870cfa1a6c031e771eba2f7"
         }
       ],
       "stable": true
@@ -4126,7 +4201,7 @@
         {
           "name": "probe.txt",
           "kind": "text",
-          "sha256": "030c39a6fb38eaeb0426e466ba1c385e418d76dc79b9e54c7cc97532b9c80773"
+          "sha256": "bfb2f40185ff289e4bc09f99f75898375eea1a195575107e762101e630bb6a9d"
         }
       ],
       "stable": true
@@ -4155,7 +4230,7 @@
         {
           "name": "sample-a-extract (4).pdf",
           "kind": "pdf",
-          "sha256": "3b82f9b1a5595f89ed70f3747098baf3c6e676cde5f51976478c8f3b1d50aeaf"
+          "sha256": "7b557ea9c482ed8efb13fb7704657545dc03e10046aaf804dae18cb36ce21acd"
         }
       ],
       "stable": true
@@ -4470,7 +4545,7 @@
         {
           "name": "image-info.json",
           "kind": "json",
-          "sha256": "8a59b3bdbcf37d6a69a280e7f4aea75eaedbe9fa1af2e6cdacdc2038434dfe11"
+          "sha256": "734f89bbd7060749107be4528327f91925221434058ff85bf6c9219a401640d4"
         }
       ],
       "stable": true
@@ -4488,13 +4563,22 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 4090842,
+        "pageCountIn": 0,
+        "pageCountOut": 2,
+        "extra": {
+          "images": 2
+        }
+      },
       "artifacts": [
         {
           "name": "sample-photo-1-2pages-images (3).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "b6b889c9751c656d7c7eb269bbb8f48eb48d7bb63a7603d68525306ee8407dd1"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/split/313e7eaef646": {
       "kind": "job",
@@ -4520,17 +4604,17 @@
         {
           "name": "sample-a-split (13).pdf",
           "kind": "pdf",
-          "sha256": "d74faf6aec773758826a62e7ae05b8d38e7ed6598373163193898b34a0ac977e"
+          "sha256": "74d5f657308ef523273653834a424e751e52d9103c2e81d89e8af1e76878cd37"
         },
         {
           "name": "sample-a-split (14).pdf",
           "kind": "pdf",
-          "sha256": "399683d30ebd34822b001c2cb74ae2c141d29722d9766ee3f8ce872fbe50232e"
+          "sha256": "77c14ced6d998415514ff133334a2d5a94f6e95be50e8e1cfcfb4c82dfcf8574"
         },
         {
           "name": "sample-a-split (15).pdf",
           "kind": "pdf",
-          "sha256": "9c0874f95483c28ab632784047071064b0b3ce65c2a8d4a3d26675dbec9818e4"
+          "sha256": "7fb94ea52478c64302efa8e556689c7dc83698c942cf23d8f5d6697f4793df56"
         }
       ],
       "stable": true
@@ -4575,7 +4659,7 @@
         {
           "name": "sample-a-organize (2).pdf",
           "kind": "pdf",
-          "sha256": "794baa0bcc116b970930b2afbf0bebdf2a63b6a40a8dd3f32a3932ac17a1a49f"
+          "sha256": "1b30721edb3d9b838d72c825f5d07ba4d1607e3b5aa98dffe4eecf85a6b1eff9"
         }
       ],
       "stable": true
@@ -4605,12 +4689,12 @@
         {
           "name": "sample-a-rotated (3).pdf",
           "kind": "pdf",
-          "sha256": "905703ff8c491d370cb1dbd77a89ec12a417c9000efa668a1236c1e98a2d6e40"
+          "sha256": "4d7157094fc1abc8a3fa4434fa6109de761c58dcb29904d3ce50936978055928"
         },
         {
           "name": "sample-b-rotated.pdf",
           "kind": "pdf",
-          "sha256": "e35e96c8f7d6f78daf008589fc21d3a6602c19295ea9c502f7a031ac612f1f3f"
+          "sha256": "55d03e8762a48cf6deb42ad1ca7d78269ec3a99182c28a9d71f86ec736eb7182"
         }
       ],
       "stable": true
@@ -4637,12 +4721,12 @@
         {
           "name": "sample-a-extract (5).pdf",
           "kind": "pdf",
-          "sha256": "d74faf6aec773758826a62e7ae05b8d38e7ed6598373163193898b34a0ac977e"
+          "sha256": "74d5f657308ef523273653834a424e751e52d9103c2e81d89e8af1e76878cd37"
         },
         {
           "name": "sample-b-extract.pdf",
           "kind": "pdf",
-          "sha256": "8d8a186ff0726191fbd9207a956fa73992459de602cd7524a9cc1385875de3d5"
+          "sha256": "ae0122a4e1d5d6d2a7a478f7158e6ba7b00a297e0e09abee2b1fb5bd73147aaa"
         }
       ],
       "stable": true
@@ -4671,12 +4755,12 @@
         {
           "name": "sample-a-trimmed (3).pdf",
           "kind": "pdf",
-          "sha256": "129654f74a86defb44061ae9519ba41a8a682930e1cd80ed59c9ff7c777788fe"
+          "sha256": "5db91a03d090dd736ef741ded72666473794a96799973dc966f90a6723845f96"
         },
         {
           "name": "sample-b-trimmed.pdf",
           "kind": "pdf",
-          "sha256": "72274c6cd0a7f85145c60b973779e25bc715affca4967747a244fbeff3260415"
+          "sha256": "5d51e8303d3819d0c043915308d17154588d694ac038f46a03c7d56c2c167912"
         }
       ],
       "stable": true
@@ -4706,12 +4790,12 @@
         {
           "name": "sample-a-watermarked (6).pdf",
           "kind": "pdf",
-          "sha256": "853eb9f9ebd4df498e6bacf28730eb56f90f928ca868db5f161839906b616f7e"
+          "sha256": "f4ae32bdda1751bcb8ca79b71cd6da78847c8a8fa721a9997faeca26727185ec"
         },
         {
           "name": "sample-b-watermarked.pdf",
           "kind": "pdf",
-          "sha256": "b000af3146876bf6dfc0a669b914539b39e8872daad8351792f41c548397bbcf"
+          "sha256": "7f99f183bebbe86f4c2f449f725342cc2409a7152127e46a287699c67c51e61d"
         }
       ],
       "stable": true
@@ -4741,12 +4825,12 @@
         {
           "name": "sample-a-numbered (4).pdf",
           "kind": "pdf",
-          "sha256": "fefae5b99b49ddc3b15233119a3b8197379f6da2529d9a7e915e9667bedd21f5"
+          "sha256": "6d4b74cacf1a6855aebc4345873be2b82cacc496e1d260674d56e20c0e44cf23"
         },
         {
           "name": "sample-b-numbered.pdf",
           "kind": "pdf",
-          "sha256": "24dd1a8676e12ab8e3d635990235ffc3498feb0e127d7cc90032eef5015aef95"
+          "sha256": "ec1390cd1a0cd16919a476ec7723c8a5e857139de09b6bb05b942368c3d717f0"
         }
       ],
       "stable": true
@@ -4779,12 +4863,12 @@
         {
           "name": "sample-a-meta (2).pdf",
           "kind": "pdf",
-          "sha256": "e0e9769d3f8a1b32b0c04625e06bfbcac86e19a7d3e2836715b3e58b04b2fe46"
+          "sha256": "c5d502ec05698eb847685e380d50ccf7047b84414a3e819977258ec8a95e564c"
         },
         {
           "name": "sample-b-meta.pdf",
           "kind": "pdf",
-          "sha256": "946ca1dfa1298d1bc87e913246e95b8845acd88ded4c5ce4bab33e1ae624f8c0"
+          "sha256": "cf4ca78ae8c41b16100c617801ca28fea31e3e8d3a4d7f9ff8d1fc36dc1867e6"
         }
       ],
       "stable": true
@@ -4862,12 +4946,12 @@
         {
           "name": "sample-a-resized (2).pdf",
           "kind": "pdf",
-          "sha256": "92eaf33c536830e272ccc4a57341037728ea9110160eec4c652480574b9e9039"
+          "sha256": "6455b9100fa6c481c2f2c248e61a5baef08b8078a0084a767cd5bcebb4e65d3a"
         },
         {
           "name": "sample-b-resized (3).pdf",
           "kind": "pdf",
-          "sha256": "163051be51fc65ed36de8f84449023941221c305480fa42df4d0bb67ae5be75b"
+          "sha256": "051a7a6b86f46d8381db111a69041bef576150ba127274075ed00e4b6a07b6af"
         }
       ],
       "stable": true
@@ -4897,12 +4981,12 @@
         {
           "name": "sample-a-cropped (4).pdf",
           "kind": "pdf",
-          "sha256": "baaad902d0dcc48f9f32889531ce6dc3f91584c938d9d2494ee53a7e94c86006"
+          "sha256": "a5b895100fe52687eb51409534c7a4a7eecec0f05183df34f3924c89973a2b40"
         },
         {
           "name": "sample-b-cropped.pdf",
           "kind": "pdf",
-          "sha256": "2b39ac3b0e5b09305ea5da3732c9fb87b36bf5d66c6441eff681b87007582f89"
+          "sha256": "ce547045f5d5583d6a92bb596bbcb507894bf66e17c648b728b9067d35840799"
         }
       ],
       "stable": true
@@ -4929,12 +5013,12 @@
         {
           "name": "sample-a-margins (4).pdf",
           "kind": "pdf",
-          "sha256": "f0b3e97ea6eb06c4a2382d6119009bdaed4714514c948c735d76bb3831fcb4c1"
+          "sha256": "aa280c56ec0ec5934b530129dc4a03770297bd8495b80b823713f8097a987dc3"
         },
         {
           "name": "sample-b-margins.pdf",
           "kind": "pdf",
-          "sha256": "2c81532208b00c660961c6edb7a00913c4ecb0989742a56c9e47add973252bb7"
+          "sha256": "acc62797af5b765665bf1d2f17a507e995ac94ad978c24255b32ba70f2c8db33"
         }
       ],
       "stable": true
@@ -4964,7 +5048,7 @@
         {
           "name": "sample-a-nup (3).pdf",
           "kind": "pdf",
-          "sha256": "309f4d169e3b55c02073a4d6febb564ff37740d0c2853a95a68c156671dc6898"
+          "sha256": "57bdc0eb6f7f3ac3633da8e27cdf1187cb184ca42db2e71ebdb60c6c34b6e0a1"
         }
       ],
       "stable": true
@@ -4994,12 +5078,12 @@
         {
           "name": "sample-a-hf (4).pdf",
           "kind": "pdf",
-          "sha256": "d603b6510a5101b1198ccf74c1df4f927e94597971c2448b4b1a51ee4fac89f8"
+          "sha256": "a07b656610d5dcdbd953a9cf18371bcd18ed689c31f83cbc9ca2b1cbab3bcbc2"
         },
         {
           "name": "sample-b-hf.pdf",
           "kind": "pdf",
-          "sha256": "37517b8b45e2cb6930864fcb8d0bc3b07ddc22536229f27418b19dc0f12349f0"
+          "sha256": "8d9cb92d84f4d33bca69a4664e69da5a097edf464237bb0ccf3b0253a8dd90d0"
         }
       ],
       "stable": true
@@ -5032,12 +5116,12 @@
         {
           "name": "sample-a-no-blank (2).pdf",
           "kind": "pdf",
-          "sha256": "eab58264d26c9cd6b95f4c9fbb7eb6fed7dcf3b6bd1ee79c3ee02ab0dc22562b"
+          "sha256": "5e9c06fce10ed4da9c667706569b437d29a28a0839e4d2de0e90800a7f79607c"
         },
         {
           "name": "sample-b-no-blank.pdf",
           "kind": "pdf",
-          "sha256": "020459e2d2598befa36c1d65342d9df50de4488cc7e565a9e6f6890d92d4abfb"
+          "sha256": "7d7bcd289dd37da03aa0573e5521db64d8c405377917c2ab7664c9736795a5d8"
         }
       ],
       "stable": true
@@ -5064,12 +5148,12 @@
         {
           "name": "sample-a-repaired.pdf",
           "kind": "pdf",
-          "sha256": "8b5bdbaa63e8d8cb14f82d1e04ece09338e7a543155a8187ad1edb0efec32853"
+          "sha256": "2eb1915f4c693aa322c404fef1e57b46ce1132c2b6c8fa97efe166b286d65411"
         },
         {
           "name": "sample-b-repaired.pdf",
           "kind": "pdf",
-          "sha256": "6ea1a16f0163e904811d5cac253b64d1bec7a2da42304d0b8a7b34002b03ea12"
+          "sha256": "d3d1b02d92f867e902893673817bfe28cc0f943873f68ce2daeddfc720b0acf6"
         }
       ],
       "stable": true
@@ -5135,12 +5219,12 @@
         {
           "name": "sample-a (3).txt",
           "kind": "text",
-          "sha256": "8693e218ff42b00de3d25e77ce1980fcd10d5813a8f08bd3bcfdda2db823b963"
+          "sha256": "338777876cc472e8d23010571e9f231a320fa1629112f3268d9a384b2d479fc2"
         },
         {
           "name": "sample-b.txt",
           "kind": "text",
-          "sha256": "cedcecfbd6dfc7e78d70552dd6eaf5b061646282c7a64c549e5729253b0877dc"
+          "sha256": "df4d72f5b970006a54b3d91660a7eb3ae4ddf673f10a99aca30b6daf7db68b29"
         }
       ],
       "stable": true
@@ -5170,12 +5254,12 @@
         {
           "name": "sample-a-ocr.txt",
           "kind": "text",
-          "sha256": "1e2d2d29db0ffdea8ac07aaa56146651029a50ff45586bae17af9f73caebd5d5"
+          "sha256": "aad0ca59036495a2ef8251942fe112de97bb325cd4182672c95c3e88a574c24a"
         },
         {
           "name": "sample-b-ocr.txt",
           "kind": "text",
-          "sha256": "97a3d7ec2248bddb9923ef43f94f70d5e7720f10efa2276d9201092dd0091dbe"
+          "sha256": "10b00b5af206e63a6d4b3188ee1b7a75e7a82cb4b7d21bd32bc9c5970bd23f39"
         }
       ],
       "stable": true
@@ -5212,13 +5296,24 @@
       "state": "succeeded",
       "error": null,
       "warnings": [],
+      "summary": {
+        "inputBytes": 38420,
+        "pageCountIn": 5,
+        "pageCountOut": 5,
+        "extra": {
+          "sheets": 5,
+          "invoices": 5,
+          "duplicates": 0
+        }
+      },
       "artifacts": [
         {
           "name": "sample-a-invoices (2).pdf",
-          "kind": "pdf"
+          "kind": "pdf",
+          "sha256": "b66edef23ef7e8ef72203b853392a5e9bdb943e584e3496b705e9ae37bb3d8ce"
         }
       ],
-      "stable": false
+      "stable": true
     },
     "job/pdf-to-word/639ffd16ab54": {
       "kind": "job",
@@ -5699,7 +5794,7 @@
         {
           "name": "image-info (2).json",
           "kind": "json",
-          "sha256": "d3b30b14023800dfafc750e93f8262c08a607929f056161382fe758fa957c2ca"
+          "sha256": "8c978a77ab2e9313e747407bbfec8dfda1f86f4e8f43b930e7a4c6028d844265"
         }
       ],
       "stable": true
@@ -5832,7 +5927,7 @@
         {
           "name": "checksums (2).txt",
           "kind": "text",
-          "sha256": "605066dc5b9faaa639da653669da64bac605e800594087036ebdb762f8a1c8fb"
+          "sha256": "bef8332edc9eab0cb39c49b118285b9843ab80587b78e3ce07dad8e9844b266e"
         }
       ],
       "stable": true
@@ -5862,7 +5957,7 @@
         {
           "name": "sample-a.pdf.base64.txt",
           "kind": "text",
-          "sha256": "1412e9a795f4c9909b3945ec03a1920e6c111d4411604935ef75463b5663c916"
+          "sha256": "fe361499c08ff9987a51f2ab3d374cdae27134ccf456813a41cb4d2c3eb3c35e"
         }
       ],
       "stable": true
@@ -6247,12 +6342,12 @@
     {
       "name": "temp.stat",
       "ok": true,
-      "detail": "162 job dirs, 79704 KB"
+      "detail": "163 job dirs, 79704 KB"
     },
     {
       "name": "temp.clean keeps newest",
       "ok": true,
-      "detail": "removed 160, kept 2, freed 79704 KB"
+      "detail": "removed 161, kept 2, freed 79681 KB"
     },
     {
       "name": "saving a cleaned artifact",
@@ -6407,47 +6502,47 @@
     {
       "name": "text timestamp",
       "ok": true,
-      "detail": "2 处断言命中，65 字符，1 artifact，8.89ms"
+      "detail": "2 处断言命中，65 字符，1 artifact，10.25ms"
     },
     {
       "name": "text date-diff",
       "ok": true,
-      "detail": "2 处断言命中，949 字符，1 artifact，14.45ms"
+      "detail": "2 处断言命中，949 字符，1 artifact，18.65ms"
     },
     {
       "name": "text date-math",
       "ok": true,
-      "detail": "1 处断言命中，607 字符，1 artifact，4.18ms"
+      "detail": "1 处断言命中，607 字符，1 artifact，6.12ms"
     },
     {
       "name": "text workdays",
       "ok": true,
-      "detail": "2 处断言命中，800 字符，1 artifact，1.93ms"
+      "detail": "2 处断言命中，800 字符，1 artifact，2.88ms"
     },
     {
       "name": "text timezone-board",
       "ok": true,
-      "detail": "4 处断言命中，814 字符，1 artifact，4.17ms"
+      "detail": "4 处断言命中，814 字符，1 artifact，5.45ms"
     },
     {
       "name": "text duration",
       "ok": true,
-      "detail": "2 处断言命中，1002 字符，1 artifact，1.11ms"
+      "detail": "2 处断言命中，1002 字符，1 artifact，1.47ms"
     },
     {
       "name": "text cron",
       "ok": true,
-      "detail": "2 处断言命中，1243 字符，1 artifact，7.02ms"
+      "detail": "2 处断言命中，1243 字符，1 artifact，7.43ms"
     },
     {
       "name": "text date-format",
       "ok": true,
-      "detail": "1 处断言命中，1464 字符，1 artifact，3.44ms"
+      "detail": "1 处断言命中，1464 字符，1 artifact，4.44ms"
     },
     {
       "name": "text relative-time",
       "ok": true,
-      "detail": "1 处断言命中，560 字符，1 artifact，3.89ms"
+      "detail": "1 处断言命中，560 字符，1 artifact，4.83ms"
     },
     {
       "name": "timezone-board default style",
@@ -6477,7 +6572,7 @@
     {
       "name": "timestamp showNow live stamp",
       "ok": true,
-      "detail": "Unix 秒=1790558927"
+      "detail": "Unix 秒=1790563484"
     },
     {
       "name": "timestamp showRange/showNow off",
@@ -6667,47 +6762,47 @@
     {
       "name": "text hmac",
       "ok": true,
-      "detail": "1 处断言命中，534 字符，1 artifact，1.24ms"
+      "detail": "1 处断言命中，534 字符，1 artifact，1.25ms"
     },
     {
       "name": "text base64",
       "ok": true,
-      "detail": "1 处断言命中，308 字符，1 artifact，0.28ms"
+      "detail": "1 处断言命中，308 字符，1 artifact，0.35ms"
     },
     {
       "name": "text radix",
       "ok": true,
-      "detail": "1 处断言命中，317 字符，1 artifact，0.24ms"
+      "detail": "1 处断言命中，317 字符，1 artifact，0.3ms"
     },
     {
       "name": "text hex",
       "ok": true,
-      "detail": "1 处断言命中，312 字符，1 artifact，0.22ms"
+      "detail": "1 处断言命中，312 字符，1 artifact，0.27ms"
     },
     {
       "name": "text url-codec",
       "ok": true,
-      "detail": "1 处断言命中，310 字符，1 artifact，0.38ms"
+      "detail": "1 处断言命中，310 字符，1 artifact，0.43ms"
     },
     {
       "name": "text unicode-escape",
       "ok": true,
-      "detail": "1 处断言命中，314 字符，1 artifact，0.27ms"
+      "detail": "1 处断言命中，314 字符，1 artifact，0.34ms"
     },
     {
       "name": "text totp",
       "ok": true,
-      "detail": "1 处断言命中，849 字符，1 artifact，1.88ms"
+      "detail": "1 处断言命中，849 字符，1 artifact，23.41ms"
     },
     {
       "name": "text x509",
       "ok": true,
-      "detail": "3 处断言命中，2596 字符，1 artifact，3.57ms"
+      "detail": "3 处断言命中，2596 字符，1 artifact，5.12ms"
     },
     {
       "name": "text password-gen",
       "ok": true,
-      "detail": "0 处断言命中，63 字符，1 artifact，0.87ms"
+      "detail": "0 处断言命中，63 字符，1 artifact，1.25ms"
     },
     {
       "name": "text password-gen",
@@ -6717,12 +6812,12 @@
     {
       "name": "text uuid-gen v4",
       "ok": true,
-      "detail": "2 处断言命中，600 字符，1 artifact，0.38ms"
+      "detail": "2 处断言命中，598 字符，1 artifact，0.58ms"
     },
     {
       "name": "text uuid-gen",
       "ok": true,
-      "detail": "v4 匹配 3/3，文本 600 字符"
+      "detail": "v4 匹配 3/3，文本 598 字符"
     },
     {
       "name": "text jwt verify",
@@ -6737,7 +6832,7 @@
     {
       "name": "text rsa keygen",
       "ok": true,
-      "detail": "2 处断言命中，2901 字符，1 artifact，66.82ms"
+      "detail": "2 处断言命中，2901 字符，1 artifact，74.97ms"
     },
     {
       "name": "text rsa sign/verify",
@@ -6802,7 +6897,7 @@
     {
       "name": "tool.run leaves temp untouched",
       "ok": true,
-      "detail": "前 25 任务/16 文件/763282 B → 后 25/16/763282 B"
+      "detail": "前 25 任务/17 文件/786859 B → 后 25/17/786859 B"
     },
     {
       "name": "tool.run leaves queue untouched",
@@ -6822,7 +6917,7 @@
     {
       "name": "parser +3d",
       "ok": true,
-      "detail": "+3d → 2026-10-01 09:28:48（期望 2026-10-01 09:28:48）"
+      "detail": "+3d → 2026-10-01 10:44:45（期望 2026-10-01 10:44:45）"
     },
     {
       "name": "parser yesterday 14:30",
@@ -6832,7 +6927,7 @@
     {
       "name": "text date-format yesterday 14:30",
       "ok": true,
-      "detail": "1 处断言命中，1496 字符，1 artifact，1.91ms"
+      "detail": "1 处断言命中，1496 字符，1 artifact，2.37ms"
     },
     {
       "name": "image cutout exports transparent PNG",
@@ -6902,7 +6997,7 @@
     {
       "name": "pdf to EPUB is a real zip container",
       "ok": true,
-      "detail": "3623 bytes, magic PK"
+      "detail": "3621 bytes, magic PK"
     },
     {
       "name": "image compress cuts bytes, keeps pixels",

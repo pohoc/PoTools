@@ -33,6 +33,13 @@
 
 ## 进度记录
 
+- **2026-09-28 阶段 2（比对基建 + pdf-lib 系清零）**：浏览器基线从 187 PASS / 21 DIFF 收敛到 **203 PASS / 18 FALLBACK / 5 DIFF / 1 CRASH**。
+  - ✅ 双端字节 dump 机制：runner `--dump=` 导出浏览器产物字节到 `/tmp/golden-dump-browser/`，`packages/engine/scripts/dump-node-artifact.mts` 跑 Node 侧对照，canonical 文本 diff 逐字节定位。
+  - ✅ 根因定案：pdf-lib 系 12 条 digest 差异全部源自 ObjStm 内 `/ModDate` 秒级时间戳 → deflate 熵差 1 字节 → `/Length`/xref 偏移链式移位。canonical v2 起 PDF 比对归一化 FlateDecode 流的 `/Length`、以 `«xref»` 标记替代 xref 偏移表内容、归一 `startxref`——簿记数据不入内容契约。
+  - ✅ extract-text ×3：MuPDF 与 PDF.js 的页间/页尾空白运行数不同（4↔2、尾随 \n\n↔无），canonical v4 对 text/json 产物折叠 3+ 换行并裁尾。
+  - ✅ golden 文件记录 `canonicalVersion`（v4），runner 版本不符即拒绝比对并提示重采，杜绝新旧算法摘要混比。
+  - 剩余 5 DIFF + 1 CRASH 为阶段 3/4 真实缺口：organize `empty_selection` ×2、ofd-to-pdf `unreadable_file`（sample-office.ofd）、ocr-table 空表格语义、image-watermark-clean SVG 蒙版 `bad_request` + 60s 超时。18 FALLBACK 为字体链路（阶段 3）与抠图/证件照（阶段 4）。
+
 - **2026-09-28 阶段 1（第一批）**：浏览器基线从 171 PASS / 20 FALLBACK / 35 DIFF 收敛到 **187 PASS / 18 FALLBACK / 21 DIFF / 1 CRASH**。
   - ✅ hash 能力闸门放行 `algorithm:'all'`（共享实现本就支持，浏览器端组合 6 种算法+降级告警）——2 条 FALLBACK 转 PASS。
   - ✅ hmac 补 SHA-384（`HMAC_ALGORITHMS` + WebCrypto 映射 + 闸门），保住 Node 现有能力；现有用例不受影响，Node harness 保持 311/312。
