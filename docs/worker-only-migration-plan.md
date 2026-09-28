@@ -38,7 +38,9 @@
   - ✅ Windows x64/x86：经 cargo-xwin + llvm@22 + sysroot 缓存交叉构建 NSIS 成功——`PoTools_0.1.0_x64-setup.exe` / `PoTools_0.1.0_x86-setup.exe`，各 **40MB**（对比旧 sidecar 包 122MB，-67%）。
   - ✅ ocr-table 专项回归（唯一 DIFF 收敛为已登记分歧）：dump 浏览器产物证实 WASM 链路识别出的是**真实页面文本**（标题/正文/页脚"1/3"），非噪声——无表格文档被组织为单列工作表输出，而 Node 原生链路对该输入报 `empty_selection`。产物可用非损坏；已登记 `KNOWN_DIVERGENCES` 台账（带 golden 期望 guard：仅 `empty_selection` 期望时豁免），**DIFF 归零：225 PASS / 0 DIFF / 1 KNOWN**，runner exit=0。
   - ⬜ Linux（AppImage/DEB/RPM）需 Linux 主机（WebKitGTK 依赖安装 GB 级；本机 docker daemon 未运行）；干净虚拟机安装/首启/抽检需对应平台环境。
-  - ⬜ Linux 容器构建已就绪待执行：Docker Desktop 卡在特权辅助 GUI 授权（`osascript` 等待用户点击），daemon 无法在无头会话启动。容器脚本已备好（Debian 12 + Node 20 + pnpm + Rust + WebKitGTK 4.1 全套，`pnpm install --frozen-lockfile` 后 `APPIMAGE_EXTRACT_AND_RUN=1 pnpm tauri build --bundles deb,rpm,appimage --target x86_64-unknown-linux-gnu`，再 `node scripts/collect-release-artifacts.mjs linux x64`）；用户点击 Docker 授权后即可运行。
+  - ⬜ Linux 容器构建已就绪待执行：Docker Desktop 卡在特权辅助 GUI 授权（`osascript` 等待用户点击），daemon 无法在无头会话启动。容器脚本已备好（Debian 12 + Node 20 + pnpm + Rust + WebKitGTK 4.1 全套）。用户授权 Docker 后，在仓库根目录运行：
+    `docker run --rm -v "$PWD":/repo -v /tmp/linux-x64-build.sh:/build.sh debian:bookworm bash /build.sh`
+    脚本内容：`pnpm install --frozen-lockfile` → `APPIMAGE_EXTRACT_AND_RUN=1 pnpm tauri build --bundles deb,rpm,appimage --target x86_64-unknown-linux-gnu` → `node scripts/collect-release-artifacts.mjs linux x64`（产物落 `release/Linux/`）。
   - ✅ 13 个迁移提交已推送 `origin/main`（5678d5d..ae55d5f）。
 - **2026-09-28 阶段 7 + 8（实施完成，提交 1ad5aab）**：Node 运行时与 node-embed 路线整体移除。
   - tauri.conf.json：`bundle.resources` 五条清空，`beforeBuildCommand` 仅构建前端；删除 prepare-engine-runtime/prepare-ocr-runtime。
