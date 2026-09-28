@@ -37,7 +37,8 @@
   - ✅ golden 基线三件套落地：`run-tools.ts` 采集（`--golden-out`，条目含 inputs/options/files 供回放）、`merge-golden.mjs` 双进程比对（稳定条目标 `stable:true`，不稳定条目剥离 digest/text/summary 只留结构契约）、`pnpm test:golden` 产出 `packages/engine/testdata/golden-node.json`（227 条目，两轮采集均 311/312 绿）。
   - ✅ 确定性规范化 `src/testing/canonical-artifact.ts`（Node/浏览器共用，纯 Web API）：PDF 骨架+FlateDecode 解压流内日期归一（含 `endstream` 子串假匹配、对象级 `/Length` 窗口两处解析修复）、ZIP 按条目名+内容语义哈希。不稳定条目 155→33；剩余 20 条为随机/时间族（timestamp/date-format/password-gen/uuid-gen/jwt/aes/rsa，浏览器 harness 需改用固定夹具），13 条为间接 `/Length` 的 PDF/ZIP（留结构契约，字节级一致性由后续 MuPDF 像素比对覆盖）。
   - ✅ 前端去重：pdf.worker 统一 legacy（6 处，2→1 份，-2.2MB）；transport 移除主线程 `canRunEmbeddedRpc` 预判改为 worker-first（dispatcher 为权威，`handled:false` 才回退 sidecar），主应用图不再拖入全部 Worker 实现，pptxgen chunk 2→1；`apps/desktop/dist` 84MB→80MB；全仓 typecheck 绿。
-  - ⬜ 待办：Playwright 浏览器 harness（Chromium 已缓存，加载真实 `embedded-engine.worker` 跑 golden 回放比对；随机族工具用固定夹具单独断言）。
+  - ✅ Playwright 浏览器 harness（`apps/desktop/harness/` + `scripts/run-browser-golden.mts`，`pnpm --filter @potools/desktop test:golden:browser`）：Chromium 内加载真实 `embedded-engine.worker`，分批（25 条/批，批间可恢复）回放 227 条 golden；产物在页面内完成 canonical 摘要（避免渲染进程内存堆积）；产物名称剥离环境相关的 `(N)` 后缀；跨实现产物工具（sharp↔canvas、原生↔WASM MuPDF/ONNX，共 22 个）显式按结构比对，pdf-lib 系保持字节严格。
+  - **浏览器基线（2026-09-28）：171 PASS / 20 FALLBACK / 35 DIFF / 1 CRASH（227 条）**。剩余项即阶段 1-5 工作清单：aes/rsa/x509 文本差异 ×5（WebCrypto vs node:crypto 语义，阶段 1）；pdf-lib 系 digest 差异 ~12（嵌入式 normalizePdfBytes 输入不对称，阶段 2 排查）；organize `empty_selection` ×2、ofd-to-pdf `unreadable_file`、image-watermark-clean `bad_request`、ocr-table 错误语义（阶段 2-5）；FALLBACK 20 条=字体链路（watermark/page-numbers/header-footer/markdown-to-pdf/pdf-to-ofd，阶段 3）+ hash 算法白名单 + 修复/抠图边界（阶段 4）；image-watermark-clean 一例 60s 超时待查。
 
 ### 阶段 0：基线与测试网（其他一切的前提）
 

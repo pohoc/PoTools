@@ -1,0 +1,142 @@
+/**
+ * Golden replay harness page (worker-only migration phase 0): hosts the real
+ * embedded-engine Worker and replays captured tool.run / job.submit cases.
+ * `run-browser-golden.mts` drives it through Playwright and diffs replies
+ * against the Node-captured golden file.
+ */
+import { defaultOptions } from 'core';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
+import { canonicalArtifactDigest } from '../../../packages/engine/src/testing/canonical-artifact.ts';
+
+interface ReplyMessage {
+  id: number;
+  handled?: boolean;
+  progress?: unknown;
+  [field: string]: unknown;
+}
+
+const worker = new Worker(new URL('../src/lib/embedded-engine.worker.ts', import.meta.url), { type: 'module' });
+void pdfWorkerUrl;
+
+let sequence = 0;
+const pending = new Map<number, { resolve: (reply: ReplyMessage) => void; reject: (error: Error) => void }>();
+
+worker.onmessage = ({ data }: MessageEvent<ReplyMessage>) => {
+  // Progress events share the request id; only final replies carry `handled`.
+  if (data.progress !== undefined && data.handled === undefined) return;
+  const entry = pending.get(data.id);
+  if (!entry) return;
+  pending.delete(data.id);
+  entry.resolve(data);
+};
+
+worker.onerror = (event) => {
+  const error = new Error(`worker crashed: ${event.message}`);
+  for (const entry of pending.values()) entry.reject(error);
+  pending.clear();
+};
+
+function callWorker(message: Record<string, unknown>, transfer: Transferable[]): Promise<ReplyMessage> {
+  const id = (sequence += 1);
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ id, ...message }, transfer);
+  });
+}
+
+interface GoldenCase {
+  key: string;
+  kind: 'text' | 'job';
+  tool: string;
+  options: Record<string, unknown>;
+  locale?: string;
+  files?: Array<{ name: string; url: string }>;
+}
+
+interface GoldenOutcome {
+  key: string;
+  handled: boolean;
+  result?: unknown;
+  jobResult?: { snapshot?: unknown; artifacts?: Array<{ name: string; kind: string; sha256: string }> } | null;
+  error?: { code?: string; message?: string } | null;
+  crash?: string;
+}
+
+(globalThis as unknown as { __golden: { run(cases: GoldenCase[]): Promise<GoldenOutcome[]> } }).__golden = {
+  async run(cases: GoldenCase[]): Promise<GoldenOutcome[]> {
+    const notify = (globalThis as unknown as { __goldenProgress?: (key: string, index: number, total: number) => void }).__goldenProgress;
+    const outcomes: GoldenOutcome[] = [];
+    for (let index = 0; index < cases.length; index += 1) {
+      const item = cases[index];
+      try {
+        const guard = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('case timeout (60s)')), 60_000));
+        let outcome: GoldenOutcome;
+        if (item.kind === 'text') {
+          outcome = await Promise.race([
+            (async (): Promise<GoldenOutcome> => {
+              const reply = await callWorker({
+                rpc: { method: 'tool.run', params: { tool: item.tool, options: item.options, globals: { locale: item.locale ?? 'zh-CN' } } },
+                inputs: [],
+              }, []);
+              return {
+                key: item.key,
+                handled: Boolean(reply.handled),
+                result: reply.result ?? null,
+                error: (reply.error as GoldenOutcome['error']) ?? null,
+              };
+            })(),
+            guard,
+          ]);
+        } else {
+          outcome = await Promise.race([
+            (async (): Promise<GoldenOutcome> => {
+              const inputs = [] as Array<{ id: string; name: string; path: string | null; bytes: Uint8Array }>;
+              for (const file of item.files ?? []) {
+                const response = await fetch(file.url);
+                if (!response.ok) throw new Error(`sample fetch failed: ${file.url} HTTP ${response.status}`);
+                inputs.push({ id: file.name, name: file.name, path: null, bytes: new Uint8Array(await response.arrayBuffer()) });
+              }
+              const job = {
+                id: item.key.replace(/[^A-Za-z0-9_-]/g, '-'),
+                tool: item.tool,
+                files: inputs.map((input) => ({ id: input.id, name: input.name })),
+                options: { ...defaultOptions(item.tool as never), ...item.options },
+                output: { dir: '' },
+              };
+              const reply = await callWorker({
+                rpc: { method: 'job.submit', params: { job } },
+                inputs,
+              }, inputs.map((input) => input.bytes.buffer));
+              const jobResult = (reply.jobResult as GoldenOutcome['jobResult']) ?? null;
+              // Digest inside the page so multi-MB artifacts never pile up
+              // in the renderer nor cross the Playwright serialization bridge.
+              let digested = jobResult;
+              if (jobResult?.artifacts) {
+                digested = {
+                  ...jobResult,
+                  artifacts: await Promise.all(jobResult.artifacts.map(async (artifact) => ({
+                    name: artifact.name,
+                    kind: artifact.kind,
+                    sha256: await canonicalArtifactDigest(artifact.bytes),
+                  }))),
+                };
+              }
+              return {
+                key: item.key,
+                handled: Boolean(reply.handled),
+                jobResult: digested,
+                error: (reply.error as GoldenOutcome['error']) ?? null,
+              };
+            })(),
+            guard,
+          ]);
+        }
+        outcomes.push(outcome);
+      } catch (error) {
+        outcomes.push({ key: item.key, handled: false, crash: error instanceof Error ? error.message : String(error) });
+      }
+      notify?.(item.key, index + 1, cases.length);
+    }
+    return outcomes;
+  },
+};
