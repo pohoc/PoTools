@@ -17,6 +17,7 @@ export const embeddedPdfToOfdTool: ToolImpl = {
     const hostFonts = systemFontResources(ctx.runtimeData);
     const dpi = num(ctx.options, 'dpi');
     let produced = 0;
+    let oversizeFontWarned = false;
     for (const [index, input] of ctx.inputs.entries()) {
       const doc = await ctx.loadPdf(input, ctx.globals);
       if (!doc.getPageCount()) throw new EngineError('empty_selection', `${input.name} 没有页面`);
@@ -32,9 +33,17 @@ export const embeddedPdfToOfdTool: ToolImpl = {
         ? { name: fontResource.name, bytes: fontResource.bytes }
         : matchedFont;
       if (mode === 'text' && !selectedFont) throw new InMemoryFallback('Text-mode OFD export requires a system font that covers the document');
+      // The native engine resolves the font once per job, so its oversize
+      // warning appears once; keep that contract for per-input font picks.
       const font = mode === 'text' && selectedFont
         ? selectedFont.bytes.byteLength > 3_000_000
-          ? (ctx.warnings.push('字体体积过大，OFD 内只登记字体名，请用装有该字体的阅读器打开'), { name: selectedFont.name })
+          ? (() => {
+            if (!oversizeFontWarned) {
+              oversizeFontWarned = true;
+              ctx.warnings.push('字体体积过大，OFD 内只登记字体名，请用装有该字体的阅读器打开');
+            }
+            return { name: selectedFont.name };
+          })()
           : { name: selectedFont.name, bytes: selectedFont.bytes }
         : null;
       const raster = mode === 'image' ? await openRaster(input.bytes, ctx.globals) : null;

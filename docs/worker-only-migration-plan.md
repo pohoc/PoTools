@@ -33,6 +33,13 @@
 
 ## 进度记录
 
+- **2026-09-28 阶段 4（第一批：能力路由对齐 + 语义修复）**：浏览器基线从 216 PASS / 3 FALLBACK / 7 DIFF 收敛到 **221 PASS / 0 FALLBACK / 5 DIFF / 1 CRASH——FALLBACK 清零**，Worker 能力路由与真实 transport 完全对齐。
+  - ✅ ofd-to-pdf 接入系统字体：此前实现从不消费 `systemFonts` runtimeData，非拉丁文本直接回退 sidecar；现复用 `lib/system-fonts.ts` 的 `systemFontForText`（字形全覆盖匹配 + fontkit TTC face 选择 + subset 嵌入，按字体名缓存），3 条 FALLBACK 清零，其中 1 条摘要全等。
+  - ✅ organize `empty_selection` ×2：根因是 Node harness 的 `fileId` 带全局计数后缀（`sample-a.pdf-13`），浏览器回放的输入 id 不含后缀导致 plan 匹配失败；harness 增加递归 `fileId` 重映射（精确匹配 → 剥后缀匹配）。
+  - ✅ repair truncated 错误码：MuPDF WASM 比原生更宽容，重建出 pdf-lib 序列化时会崩的结构（裸 TypeError → internal）；现在工具层捕获非 EngineError 后用原始字节重跑 `loadDocument`，抛出与 Node 逐字一致的 pdf-lib 解析错误（`unreadable_file`）。
+  - ✅ pdf-to-ofd warnings：超限字体告警从每输入一条改为每任务一条（对齐原生实现"每任务解析一次字体"的契约）。
+  - 剩余 5 DIFF + 1 CRASH：ofd-to-pdf ×2 与 markdown-to-pdf ×1 为系统字体选择/子集嵌入字节差异（视觉等价、字节不同）；ocr-table 空表格语义（WASM 识别噪声行）；image-watermark-clean SVG 蒙版 `bad_request` 与 60s 超时待深挖。
+
 - **2026-09-28 阶段 3（字体链路 + 运行时夹具）**：浏览器基线从 203 PASS / 18 FALLBACK 收敛到 **216 PASS / 3 FALLBACK / 7 DIFF / 1 CRASH**。
   - ✅ harness 复刻 transport 字体注入：runner 按 Rust `system_font_candidates` 同款逻辑（macOS 优先字体 + 目录递归扫描）收集候选，经 vite middleware `/__font` 服务给页面，预算镜像（8 个/64MB/128MB）；页面按 transport 语义（markup 合并 defaultOptions 后测非 ASCII、markdown/OFD 族恒注入）组装 `systemFonts` runtimeData，字体按 URL 缓存。
   - ✅ 运行时夹具沉淀：golden 采集把 corrupt.pdf/truncated.pdf（损坏夹具）与 OUT_DIR 产物（probe.pdf 等 6 个）复制到 `testdata/golden-passN-fixtures/`，merge 合并到 `testdata/fixtures/`；harness 取文件时 samples 缺失即回退夹具目录——browser 侧首次成功回放损坏文件修复/文本探测用例。

@@ -94,6 +94,27 @@ async function loadFonts(urls: string[]): Promise<Array<{ name: string; bytes: U
   return fonts;
 }
 
+/**
+ * The Node harness captures options that reference files by `fileId` values
+ * like "sample-a.pdf-13" (its global counter suffix). Rewrites those to the
+ * replay inputs' actual ids, tolerating the missing/present suffix.
+ */
+function remapFileIds(value: unknown, idByName: Map<string, string>): unknown {
+  if (Array.isArray(value)) return value.map((entry) => remapFileIds(entry, idByName));
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (key === 'fileId' && typeof entry === 'string') {
+        out[key] = idByName.get(entry) ?? idByName.get(entry.replace(/-\d+$/, '')) ?? entry;
+      } else {
+        out[key] = remapFileIds(entry, idByName);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 interface GoldenOutcome {
   key: string;
   handled: boolean;
@@ -138,11 +159,12 @@ interface GoldenOutcome {
                 inputs.push({ id: file.name, name: file.name, path: null, bytes: new Uint8Array(await response.arrayBuffer()) });
               }
               const runtimeData = await systemFontRuntimeData(item);
+              const idByName = new Map(inputs.map((input) => [input.name, input.id]));
               const job = {
                 id: item.key.replace(/[^A-Za-z0-9_-]/g, '-'),
                 tool: item.tool,
                 files: inputs.map((input) => ({ id: input.id, name: input.name })),
-                options: { ...defaultOptions(item.tool as never), ...item.options },
+                options: remapFileIds({ ...defaultOptions(item.tool as never), ...item.options }, idByName),
                 output: { dir: '' },
               };
               const reply = await callWorker({

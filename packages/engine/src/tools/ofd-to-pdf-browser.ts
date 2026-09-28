@@ -6,6 +6,7 @@ import { InMemoryFallback } from '../lib/memory-job.ts';
 import { baseName, renderName } from '../lib/naming.ts';
 import { str } from '../lib/options.ts';
 import { mmToPt, readOfd } from '../lib/ofd.ts';
+import { systemFontForText, systemFontResources } from '../lib/system-fonts.ts';
 import type { ToolImpl } from '../types.ts';
 
 /** OFD import using only bundled JS/WASM-friendly libraries and input bytes. */
@@ -24,17 +25,30 @@ export const embeddedOfdToPdfTool: ToolImpl = {
       out.setModificationDate(new Date());
 
       const embeddedFonts = new Map<string, PDFFont>();
-      if (doc.fonts.size) out.registerFontkit(fontkit);
+      out.registerFontkit(fontkit);
       for (const [name, bytes] of doc.fonts) {
         try {
           embeddedFonts.set(name, await out.embedFont(bytes, { subset: true }));
         } catch {
           // The original engine reports this and falls back to a host font.
-          // Let unsupported text take the compatibility route below.
+          // Let unsupported text take the system-font path below.
           ctx.warnings.push(`字体 ${name} 无法嵌入，尝试使用标准字体`);
         }
       }
       const standardFont = await out.embedFont(StandardFonts.Helvetica);
+      const hostFonts = systemFontResources(ctx.runtimeData);
+      const hostEmbeds = new Map<string, PDFFont>();
+      const hostFontFor = async (text: string): Promise<PDFFont | null> => {
+        const match = systemFontForText(text, hostFonts);
+        if (!match) return null;
+        let embedded = hostEmbeds.get(match.resource.name);
+        if (!embedded) {
+          out.registerFontkit({ create: () => match.face });
+          embedded = await out.embedFont(match.resource.bytes, { subset: true });
+          hostEmbeds.set(match.resource.name, embedded);
+        }
+        return embedded;
+      };
 
       for (const [index, source] of doc.pages.entries()) {
         if (!wanted.has(index + 1)) continue;
@@ -59,12 +73,18 @@ export const embeddedOfdToPdfTool: ToolImpl = {
         }
         for (const line of source.texts) {
           const selectedFont = line.font ? embeddedFonts.get(line.font) : undefined;
-          const font = selectedFont ?? standardFont;
+          let font = selectedFont ?? standardFont;
           try {
             font.encodeText(line.text);
           } catch {
-            // System font discovery/registry access belongs to the native host.
-            throw new InMemoryFallback(`OFD text needs a system font: ${line.text.slice(0, 24)}`);
+            // Mirror the native host: discover a system font that covers the glyphs.
+            try {
+              const hostFont = await hostFontFor(line.text);
+              if (!hostFont) throw new Error('no host font covers this text');
+              font = hostFont;
+            } catch {
+              throw new InMemoryFallback(`OFD text needs a system font: ${line.text.slice(0, 24)}`);
+            }
           }
           page.drawText(line.text, {
             x: mmToPt(line.x),

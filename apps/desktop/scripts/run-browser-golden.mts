@@ -317,7 +317,7 @@ async function main(): Promise<void> {
         pass += 1;
       } else {
         diff += 1;
-        details.push(`DIFF  ${key}: warnings 不一致`);
+        details.push(`DIFF  ${key}: warnings 不一致\n        期望 ${JSON.stringify(entry.warnings)}\n        实际 ${JSON.stringify(result?.warnings ?? [])}`);
       }
       continue;
     }
@@ -328,7 +328,7 @@ async function main(): Promise<void> {
       if (snapshot?.error?.code === entry.error?.code) pass += 1;
       else {
         diff += 1;
-        details.push(`DIFF  ${key}: 错误码 ${snapshot?.error?.code} ≠ ${entry.error?.code}`);
+        details.push(`DIFF  ${key}: 错误码 ${snapshot?.error?.code} ≠ ${entry.error?.code}（实际：${snapshot?.error?.message ?? '-'}）`);
       }
       continue;
     }
@@ -354,11 +354,11 @@ async function main(): Promise<void> {
         continue;
       }
     }
-    if (!equalJson(snapshot.warnings ?? [], entry.warnings)) {
-      diff += 1;
-      details.push(`DIFF  ${key}: warnings 不一致`);
-      continue;
-    }
+      if (!equalJson(snapshot.warnings ?? [], entry.warnings)) {
+        diff += 1;
+        details.push(`DIFF  ${key}: warnings 不一致\n        期望 ${JSON.stringify(entry.warnings)}\n        实际 ${JSON.stringify(snapshot.warnings ?? [])}`);
+        continue;
+      }
     if (entry.summary) {
       // outputBytes/sizeDeltaPercent tick with embedded timestamps on both
       // sides; structural producers additionally differ in size-derived
