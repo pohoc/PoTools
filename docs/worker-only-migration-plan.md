@@ -33,6 +33,12 @@
 
 ## 进度记录
 
+- **2026-09-28 阶段 4（第二批：字体字节级对齐 + 蒙版真实性）**：浏览器基线从 221 PASS / 5 DIFF / 1 CRASH 收敛到 **225 PASS / 0 FALLBACK / 1 DIFF / 0 CRASH**（226 条，两条 watermark-clean 用例因同输入合并）。
+  - ✅ ofd-to-pdf 字号双重换算（**真实产品 bug**）：`lib/ofd.ts` 解析时已做 mmToPt，浏览器端 drawText 又换算一次，渲染字号放大 2.83 倍；Node 端正确。修正为 `size: line.size` 后两端字节一致。
+  - ✅ ofd-to-pdf / markdown-to-pdf 对象创建顺序：Node `textFont` 每个文本行**新鲜嵌入** Helvetica + CJK 字体（新子集实例、字形 ID 从 0001 重排、无缓存）；浏览器端改为逐行镜像（含 Helvetica-first 失败再试系统字体的顺序），双端 PDF 字节完全一致。
+  - ✅ image-watermark-clean：coverage 用例的 SVG 蒙版改为与专用用例相同的 sharp PNG 蒙版——真实 UI 只发送 PNG（预览涂选画布），SVG 是测试构造伪差异（Chromium `createImageBitmap` 不支持 SVG）；修复循环对大图实测 ~70s，该工具用例预算放宽到 300s。
+  - 剩余唯一 DIFF：ocr-table 对无表格矢量 PDF——浏览器 pdf.js 渲染 + WASM OCR 链路识别出噪声行（Node 原生渲染 + 原生 ONNX 干净报空），属识别质量对齐问题，非语义错误；已记录，待专项回归。
+
 - **2026-09-28 阶段 4（第一批：能力路由对齐 + 语义修复）**：浏览器基线从 216 PASS / 3 FALLBACK / 7 DIFF 收敛到 **221 PASS / 0 FALLBACK / 5 DIFF / 1 CRASH——FALLBACK 清零**，Worker 能力路由与真实 transport 完全对齐。
   - ✅ ofd-to-pdf 接入系统字体：此前实现从不消费 `systemFonts` runtimeData，非拉丁文本直接回退 sidecar；现复用 `lib/system-fonts.ts` 的 `systemFontForText`（字形全覆盖匹配 + fontkit TTC face 选择 + subset 嵌入，按字体名缓存），3 条 FALLBACK 清零，其中 1 条摘要全等。
   - ✅ organize `empty_selection` ×2：根因是 Node harness 的 `fileId` 带全局计数后缀（`sample-a.pdf-13`），浏览器回放的输入 id 不含后缀导致 plan 匹配失败；harness 增加递归 `fileId` 重映射（精确匹配 → 剥后缀匹配）。

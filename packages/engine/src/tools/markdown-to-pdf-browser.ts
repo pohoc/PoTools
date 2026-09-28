@@ -1,4 +1,4 @@
-import { PDFDocument, type PDFFont } from 'pdf-lib';
+import { PDFDocument, StandardFonts, type PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { EngineError } from '../errors.ts';
 import { InMemoryFallback } from '../lib/memory-job.ts';
@@ -38,9 +38,19 @@ export const embeddedMarkdownToPdfTool: ToolImpl = {
       const out = await createDocument();
       const fontResolver: TypesetterFontResolver = async (doc, text) => fontBytes
         ? embedConfiguredFont(doc, text, fontBytes)
-        : embedSystemFont(doc, text, hostFonts).catch((error) => {
-          throw new InMemoryFallback(error instanceof Error ? error.message : String(error));
-        });
+        : (async () => {
+          // Mirrors the native engine's textFont: a fresh Helvetica embed
+          // precedes the system-font lookup, so object numbering matches.
+          try {
+            const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+            helvetica.encodeText(text);
+            return helvetica;
+          } catch {
+            return embedSystemFont(doc, text, hostFonts).catch((error) => {
+              throw new InMemoryFallback(error instanceof Error ? error.message : String(error));
+            });
+          }
+        })();
       const typesetter = new Typesetter(
         out,
         box,

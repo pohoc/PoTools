@@ -35,19 +35,15 @@ export const embeddedOfdToPdfTool: ToolImpl = {
           ctx.warnings.push(`字体 ${name} 无法嵌入，尝试使用标准字体`);
         }
       }
-      const standardFont = await out.embedFont(StandardFonts.Helvetica);
       const hostFonts = systemFontResources(ctx.runtimeData);
-      const hostEmbeds = new Map<string, PDFFont>();
+      // Byte parity with the native engine's textFont: it embeds Helvetica and
+      // the CJK font fresh for every text line (new subset instances, glyph ids
+      // restarting at 0001), so no caching here even though it would be cheaper.
       const hostFontFor = async (text: string): Promise<PDFFont | null> => {
         const match = systemFontForText(text, hostFonts);
         if (!match) return null;
-        let embedded = hostEmbeds.get(match.resource.name);
-        if (!embedded) {
-          out.registerFontkit({ create: () => match.face });
-          embedded = await out.embedFont(match.resource.bytes, { subset: true });
-          hostEmbeds.set(match.resource.name, embedded);
-        }
-        return embedded;
+        out.registerFontkit({ create: () => match.face });
+        return out.embedFont(match.resource.bytes, { subset: true });
       };
 
       for (const [index, source] of doc.pages.entries()) {
@@ -73,23 +69,30 @@ export const embeddedOfdToPdfTool: ToolImpl = {
         }
         for (const line of source.texts) {
           const selectedFont = line.font ? embeddedFonts.get(line.font) : undefined;
-          let font = selectedFont ?? standardFont;
-          try {
-            font.encodeText(line.text);
-          } catch {
-            // Mirror the native host: discover a system font that covers the glyphs.
+          let font: PDFFont;
+          if (selectedFont) {
+            font = selectedFont;
+          } else {
+            // Mirrors the native engine's textFont line-for-line: a fresh
+            // Helvetica embed first, then a fresh covering system font.
             try {
-              const hostFont = await hostFontFor(line.text);
-              if (!hostFont) throw new Error('no host font covers this text');
-              font = hostFont;
+              const helvetica = await out.embedFont(StandardFonts.Helvetica);
+              helvetica.encodeText(line.text);
+              font = helvetica;
             } catch {
-              throw new InMemoryFallback(`OFD text needs a system font: ${line.text.slice(0, 24)}`);
+              try {
+                const hostFont = await hostFontFor(line.text);
+                if (!hostFont) throw new Error('no host font covers this text');
+                font = hostFont;
+              } catch {
+                throw new InMemoryFallback(`OFD text needs a system font: ${line.text.slice(0, 24)}`);
+              }
             }
           }
           page.drawText(line.text, {
             x: mmToPt(line.x),
             y: height - mmToPt(line.y),
-            size: mmToPt(line.size),
+            size: line.size,
             font,
             color: rgb(0.08, 0.1, 0.14),
           });

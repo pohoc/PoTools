@@ -3594,7 +3594,7 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── 证书 1/1（叶证书） ──────────────────────────────────────\n\n  序列号             1C7A3EAE4B4AAD3E8050FD2DE40B9C01EADEB33B\n  序列号（十进制）   162577892768227699540499885780183853120261894971\n  公钥算法           rsa · 2048 bit\n  证书 DER 长度      923 字节\n  公钥 SPKI SHA-256  E5:47:22:7D:DE:46:BE:70:18:74:D3:D5:AE:40:94:F7:E2:F3:07:21:84:17:62:FD:32:87:78:AF:FF:3F:2B:B9\n  指纹 SHA-1         94:B6:25:71:EE:F7:A2:5F:69:BC:FF:05:90:D8:1C:E8:5A:3B:BC:9B\n  指纹 SHA-256       94:64:B1:1E:10:41:0E:11:31:B7:4B:6E:78:31:85:65:4E:0B:DB:C3:87:F0:1D:C3:05:AB:56:9B:FC:CD:1E:55\n  指纹 SHA-512       15:60:4E:BA:27:5B:1D:1A:BD:2F:63:87:C8:C6:1B:EC:C0:00:68:A3:C0:71:57:C2:11:0F:14:42:37:60:CD:8C:A3:39:8F:9F:AB:A2:99:A1:78:C8:6F:4A:4B:BA:DD:94:F2:20:5C:95:F2:A0:91:CD:44:2D:39:7E:3F:53:3E:24\n\n── 主体（subject） ─────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 颁发者（issuer） ────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 有效期 ──────────────────────────────────────────────────\n\n  notBefore  2026/9/21 22:04:35（本地 UTC+08:00） · 2026-09-21T14:04:35.000Z\n  notAfter   2036/9/18 22:04:35（本地 UTC+08:00） · 2036-09-18T14:04:35.000Z\n  剩余时间   还有 3643.46 天 · 9年后\n  总有效期   3650.00 天（超出浏览器信任上限 398 天）\n  当前状态   有效期内\n\n── 使用者备用名（SAN） ─────────────────────────────────────\n\n    结果  证书未包含 subjectAltName 扩展\n\n── 扩展与用途 ──────────────────────────────────────────────\n\n  版本                           X.509 v3\n  签名算法                       sha256WithRSAEncryption\n  签名算法 OID                   1.2.840.113549.1.1.11\n  basicConstraints               CA:TRUE · critical\n  CA 判定                        CA 证书（可签发下级） · node ca 属性 = true\n  keyUsage                       证书未包含该扩展\n  extendedKeyUsage               证书未包含该扩展\n  subjectKeyIdentifier           AD637CB7C2F22651368975D171B1032EBE1D34F2\n  authorityKeyIdentifier         AD637CB7C2F22651368975D171B1032EBE1D34F2\n  critical 扩展 OID              2.5.29.19\n  SAN 条目数                     0\n  infoAccess（OCSP/CA Issuers）  无\n\n── 链与信任 ────────────────────────────────────────────────\n\n  自签名              是（颁发者 = 主体）\n  可否签发下级        是（basicConstraints CA:TRUE）\n  剩余天数            3643.46 天 · 9年后\n  同链上一张签发关系  —\n\n── 说明 ────────────────────────────────────────────────────\n\n· 主体、issuer、序列号、公钥及扩展从证书 DER 解析；指纹使用 SHA-1/SHA-256/SHA-512 计算。本工具不验证证书链是否受系统信任。\n· 有效期同时给出本地时区（含 UTC 偏移）、UTC ISO 与相对描述，剩余天数按 notAfter−now 计算。\n· 指纹为证书 DER 的摘要：SHA-1 用于兼容性比对，日常核验请用 SHA-256。\n· basicConstraints/keyUsage 等扩展在证书未携带时明确标注“未包含该扩展”，不会凭空补默认值。\n· chain=false：只展开第 1 张（共检测到 1 张），需要看链请打开 chain。\n· output=summary：只看摘要，可用 full-json 导出结构化数据。\n",
+      "text": "── 证书 1/1（叶证书） ──────────────────────────────────────\n\n  序列号             1C7A3EAE4B4AAD3E8050FD2DE40B9C01EADEB33B\n  序列号（十进制）   162577892768227699540499885780183853120261894971\n  公钥算法           rsa · 2048 bit\n  证书 DER 长度      923 字节\n  公钥 SPKI SHA-256  E5:47:22:7D:DE:46:BE:70:18:74:D3:D5:AE:40:94:F7:E2:F3:07:21:84:17:62:FD:32:87:78:AF:FF:3F:2B:B9\n  指纹 SHA-1         94:B6:25:71:EE:F7:A2:5F:69:BC:FF:05:90:D8:1C:E8:5A:3B:BC:9B\n  指纹 SHA-256       94:64:B1:1E:10:41:0E:11:31:B7:4B:6E:78:31:85:65:4E:0B:DB:C3:87:F0:1D:C3:05:AB:56:9B:FC:CD:1E:55\n  指纹 SHA-512       15:60:4E:BA:27:5B:1D:1A:BD:2F:63:87:C8:C6:1B:EC:C0:00:68:A3:C0:71:57:C2:11:0F:14:42:37:60:CD:8C:A3:39:8F:9F:AB:A2:99:A1:78:C8:6F:4A:4B:BA:DD:94:F2:20:5C:95:F2:A0:91:CD:44:2D:39:7E:3F:53:3E:24\n\n── 主体（subject） ─────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 颁发者（issuer） ────────────────────────────────────────\n\n    C  CN\nST=ZJ\nL=Hangzhou\nO=PoTools\nCN=alice.example.com\n\n── 有效期 ──────────────────────────────────────────────────\n\n  notBefore  2026/9/21 22:04:35（本地 UTC+08:00） · 2026-09-21T14:04:35.000Z\n  notAfter   2036/9/18 22:04:35（本地 UTC+08:00） · 2036-09-18T14:04:35.000Z\n  剩余时间   还有 3643.43 天 · 9年后\n  总有效期   3650.00 天（超出浏览器信任上限 398 天）\n  当前状态   有效期内\n\n── 使用者备用名（SAN） ─────────────────────────────────────\n\n    结果  证书未包含 subjectAltName 扩展\n\n── 扩展与用途 ──────────────────────────────────────────────\n\n  版本                           X.509 v3\n  签名算法                       sha256WithRSAEncryption\n  签名算法 OID                   1.2.840.113549.1.1.11\n  basicConstraints               CA:TRUE · critical\n  CA 判定                        CA 证书（可签发下级） · node ca 属性 = true\n  keyUsage                       证书未包含该扩展\n  extendedKeyUsage               证书未包含该扩展\n  subjectKeyIdentifier           AD637CB7C2F22651368975D171B1032EBE1D34F2\n  authorityKeyIdentifier         AD637CB7C2F22651368975D171B1032EBE1D34F2\n  critical 扩展 OID              2.5.29.19\n  SAN 条目数                     0\n  infoAccess（OCSP/CA Issuers）  无\n\n── 链与信任 ────────────────────────────────────────────────\n\n  自签名              是（颁发者 = 主体）\n  可否签发下级        是（basicConstraints CA:TRUE）\n  剩余天数            3643.43 天 · 9年后\n  同链上一张签发关系  —\n\n── 说明 ────────────────────────────────────────────────────\n\n· 主体、issuer、序列号、公钥及扩展从证书 DER 解析；指纹使用 SHA-1/SHA-256/SHA-512 计算。本工具不验证证书链是否受系统信任。\n· 有效期同时给出本地时区（含 UTC 偏移）、UTC ISO 与相对描述，剩余天数按 notAfter−now 计算。\n· 指纹为证书 DER 的摘要：SHA-1 用于兼容性比对，日常核验请用 SHA-256。\n· basicConstraints/keyUsage 等扩展在证书未携带时明确标注“未包含该扩展”，不会凭空补默认值。\n· chain=false：只展开第 1 张（共检测到 1 张），需要看链请打开 chain。\n· output=summary：只看摘要，可用 full-json 导出结构化数据。\n",
       "stable": true
     },
     "tool.run/password-gen/684576e7e286": {
@@ -3670,12 +3670,12 @@
       "warnings": [],
       "stable": false
     },
-    "tool.run/aes/b9d52c8a5671": {
+    "tool.run/aes/9154a36effde": {
       "kind": "text",
       "tool": "aes",
       "inputs": {
         "options": {
-          "input": "AQEBAAJJ8BC118uXlFEMJ+fFjHbBgKsLDFaDQUOB8APkwfuLfxDMF/3Uoa9EKuazUErc7YkZAlQ0K9isOsoi+6NCZBfTVh0=",
+          "input": "AQEBAAJJ8BDEX/Nx1On3fuigb9h/CgZlDI27TtWQL01OZRtPOhBE5Bcbt7S4O5znKuINuxSdE+vBcsaglINHbxa4ipk9CnM=",
           "mode": "decrypt",
           "passphrase": "pw123"
         },
@@ -3683,16 +3683,16 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── AES 解密 · aes-256-gcm · scrypt · 成功 ──────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\n机密 round-trip\n\n  容器长度    71 字节\n  密文长度    17 字节\n  明文长度    17 字节\n  容器自描述  aes-256-gcm · scrypt · iterations=150000\n  authTag     cc17fdd4a1af442ae6b3504adced8919（校验通过）\n  UTF-8 往返  一致（标准 UTF-8）\n\n── 说明 ────────────────────────────────────────────────────\n\n· 算法/KDF/迭代/salt/IV/authTag 全部来自容器头部，与 mode=encrypt 输出一一对应。\n· 表单 cipher、kdf、iterations 在解密时被忽略（容器优先），因此换设备只改 format 也能解开。\n· 只有 authTag 校验通过才会走到这里；篡改容器或口令错误都会在上一步终止。\n",
+      "text": "── AES 解密 · aes-256-gcm · scrypt · 成功 ──────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\n机密 round-trip\n\n  容器长度    71 字节\n  密文长度    17 字节\n  明文长度    17 字节\n  容器自描述  aes-256-gcm · scrypt · iterations=150000\n  authTag     44e4171bb7b4b83b9ce72ae20dbb149d（校验通过）\n  UTF-8 往返  一致（标准 UTF-8）\n\n── 说明 ────────────────────────────────────────────────────\n\n· 算法/KDF/迭代/salt/IV/authTag 全部来自容器头部，与 mode=encrypt 输出一一对应。\n· 表单 cipher、kdf、iterations 在解密时被忽略（容器优先），因此换设备只改 format 也能解开。\n· 只有 authTag 校验通过才会走到这里；篡改容器或口令错误都会在上一步终止。\n",
       "stable": false,
       "inputRandom": true
     },
-    "tool.run/aes/04b0940a2169": {
+    "tool.run/aes/947c0b4e765f": {
       "kind": "text",
       "tool": "aes",
       "inputs": {
         "options": {
-          "input": "AQEBAAJJ8BC118uXlFEMJ+fFjHbBgKsLDFaDQUOB8APkwfuLfxDMF/3Uoa9EKuazUErc7YkZAlQ0K9isOsoi+6NCZBfTVhAA",
+          "input": "AQEBAAJJ8BDEX/Nx1On3fuigb9h/CgZlDI27TtWQL01OZRtPOhBE5Bcbt7S4O5znKuINuxSdE+vBcsaglINHbxa4ipk9CnAA",
           "mode": "decrypt",
           "passphrase": "pw123"
         },
@@ -3700,7 +3700,7 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── AES 解密 · aes-256-gcm · scrypt · 失败 ──────────────────\n\n  容器长度      72 字节\n  容器算法编号  1（aes-256-gcm）\n  salt/IV/tag   b5d7cb9794510c27e7c58c76c180ab0b / 5683414381f003e4c1fb8b7f / cc17fdd4a1af442ae6b3504adced8919\n  密文长度      18 字节\n  底层信息      Unsupported state or unable to authenticate data\n\n── 结论 ────────────────────────────────────────────────────\n\n✗ GCM 认证标签校验失败：容器被篡改或口令错误，密文一个字节都不可信\n\n── 说明 ────────────────────────────────────────────────────\n\n· 未输出任何部分明文：解密只在完整性校验通过时才产出，避免把乱码当结果继续传播。\n",
+      "text": "── AES 解密 · aes-256-gcm · scrypt · 失败 ──────────────────\n\n  容器长度      72 字节\n  容器算法编号  1（aes-256-gcm）\n  salt/IV/tag   c45ff371d4e9f77ee8a06fd87f0a0665 / 8dbb4ed5902f4d4e651b4f3a / 44e4171bb7b4b83b9ce72ae20dbb149d\n  密文长度      18 字节\n  底层信息      Unsupported state or unable to authenticate data\n\n── 结论 ────────────────────────────────────────────────────\n\n✗ GCM 认证标签校验失败：容器被篡改或口令错误，密文一个字节都不可信\n\n── 说明 ────────────────────────────────────────────────────\n\n· 未输出任何部分明文：解密只在完整性校验通过时才产出，避免把乱码当结果继续传播。\n",
       "stable": false,
       "inputRandom": true
     },
@@ -3717,31 +3717,31 @@
       "warnings": [],
       "stable": false
     },
-    "tool.run/rsa/137c767b3e44": {
+    "tool.run/rsa/dfda68c2ab0c": {
       "kind": "text",
       "tool": "rsa",
       "inputs": {
         "options": {
           "mode": "sign",
-          "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCyRM6rduLP1Dbt\nOG4nIxQN24NOdBeAmLpWiXS9oZq9pMdhCRJXIW6AkVpUiSx2k188JkAOvRxmdKnk\nAUwFIwmcg3Zz1TzIU0VAc37k70Aj+VmkaKLYfIAmqp2sBY2yuooFUfgG8LBKjiyc\n2nqUGR5fK8dV0qjwGPsUIX/Z6pwdFNeo2L4fDAPCcF+ph+C2zVtxeTDIewXkygLt\nu1iTJM0oGm1Wg9QN5OWoHsrC1yikxHc8JdKDivZmK3u+pBoDUvyoHi2lScRgru5L\n+gN52+tz1KVO8q6h7QqdT6C7+TcVoBlyjlnIh+JFcyc2EVrbY2n7TpwOz6xch3wg\n5c4rp5Z/AgMBAAECggEACp0qKO9VJcae1pTrigz+nqyZLsyesZtmTMy2VKwQiIYN\nEOv3WZS1/ZWp6SqZqR2xJ+WnHrmHvVno25hwLEYfxl/VZ6QkkFDU6Ld3sK3GBd5M\nxgss1vLitmqmJJ3YB/IvUY3F1LPz6xx374bakYLFWilDHwsB3/m8yUANWq4rSVfg\ns6CC0ZoLIt1l53xbY6nUmAoPjfnPRP//goAxHKXGwkHQBfH2IJ7gh07perJovGbO\nNVCD8Hexun/f+0TqYPiBQwimmfhwoQdq3EKprrcRjJnEisxjBN19g1rkeGZBSfbF\n7iddPi8/eqoxBSd7C9ovAx3+durlXpa/YStsusrFoQKBgQDyLj8wsxviQTP93+Ng\nxFGPufKDGjp8Xzss/9myt0Y5skD8XhYL5ueK239asHU20d67/V3aMn0bqjV+8nmE\nJcn9zdEXct2rLFuUkXLfkfDy+uwNGmgMQvUBDJNpeKYjdOwvbCtye5X+n8hagYzV\ns+V1SUmFRVO9u8VoCUibT2kHiQKBgQC8cPELHjPKDmNNZDJJGRyl74MH9Ds0916D\n4yQy/aohCfQPOzfZCnM9yedsSs/wlvZbDpPtOuciGjL4hgnvn6zNSKiRPFOFn2TP\nL917ursPU0t0m+C5HsV+r0gaLgUn0gkUWLRL1zaJYIniqTNI+G+6WccNR5+ajZfU\nU8nzE2MjxwKBgAWcCJ6qJ2UwOXIR84RUR8daeUGMI/qpggdizboUAK5pcJPn4f7Y\nlFhlCSgimjRw3AXisn/RV5CCesa7+xCSh4E3eTZf1L6YQm7Ih66iBMC8Cyeqiupt\nypsBnZB92OtNVAMtMDxwnGLPdKaUBZ0Vk6UJ04gguPXWGZZ1UJc4WahxAoGBAIIW\nyiDtwbz8v8r+n8Rc5K0dMuz7yx/eoc4UsbnN6nQShf052W0pTLNcPjpBT1n9Ladg\n4fhE0Kl3QrbU+ekF52p0fYJ+Df7SMeriVVmEaHzE+PNQZQwHVToG0ZTZLk/2LLRy\nJE2zDgA6uBXUzwXSFHemYMcnKeStWSKIkYMQYEGjAoGBAKtTxMCbeHzIQl6gHb66\nCihO4WgQTIdWrtDHMsBOuyvwhR6/c62v9Z4CnDdBjp4eLU4jB93cGNpe7knaw9BY\nVugQeBAbRWXre9ktrpORBjmYIiP8SAJlfkBuoNTnbO1qs/L17xPK8uIFBKHcsdpd\nbghz6pnzThLmSD1KJUBFiT0A\n-----END PRIVATE KEY-----",
+          "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCTd6oBAgSe9kqQ\n5VZkasppQaxmxmdwyozl20AvSQhPb4XkB91ubB3R5lQNDH4VoSyMG6IqRkSsgwLq\nUNzdG2bGXYdeHGkMFGFSuBJBp76vxDkB9Wxvf7F5yi7uZM5NcngSmz7QWsb7v3gG\nLfARGYv0LculeTxKONNpn4r1gUOWLmgBSubwxoW87Aq9tOM34QUaDnsk8aCK57qs\nHe1gjxpPICSyoUD0y8Tj7Zul8vYbXMbAbXXBuxGoP/jp3Vy5V8xmfA3KkjYu6ASa\nnItDKWb3eXmeJ+rwI2/wNkbcAQMdM7AgT6fFUrhp5/bP2qRXENFrL6LnU2dR82sc\nKTj2sJ1vAgMBAAECggEADfEFuakAWSuYBWvRHOw7Akl1rD+8nsgKGwmn30XhyxS+\n4pMwcX83hdUR2YFMAu0lDNfonw4xRuKZ6h9xSgFhrYZBGnoddPQQ9ro1QPoZXSee\nwMXRlcGg5zk18k7Fxuz4AhZQPBrLmML+F2N3az5wN0pZvY/2eF6NSifjAhkm6RyJ\noDTYLbOmQ48x5zqtNhpxZFmadHW7Plu91CwjEw1pPhFLMT9R+hZhTjeQx9MHgWe3\n6bc26QnAwO/rlwyLKr2pIhUvYlnlvPJe5Ok9Ha+qOjzeYBX++Vovo8wRmhU4hMnT\nR75HKehjru+nDme2uot34X54k+CURBN2BU6u7uavDQKBgQDFUxkt4xSEzL5TQwBc\ne3PQLGZcstr7Qjr7UVLXpgs0s4Ifk8MLA09VI7lQzNE5MAM8lBNUjEv2thZQiXwe\n7vKRrj9jsewXJVC80OLepTapM5hH30Z/z3/b7ZiAgqrtAdkzb4PLlEiQPebsiQxq\nykoXA6k2V44Lgu9rUEICJdz+6wKBgQC/UUxyV7I9PX5J3ZU8uUlz+XsTlVF13h95\nI1wPUsXiLCdBEkk/7qzrvEjMzhSF8QIK3HVRlrJqBVrMLgyEPzHspV52yNvi23Kq\nVzTrC3pNd3N0p79rB8zZLy0XPJROpLVH3paQShjOq5ulV0tKBKxZgFJzKHnincTT\npNee0RcijQKBgGEUgBfOV8L6RE0McroNVq49meLTb98b9467tOk53NuB0Wwds2DQ\nsRAvMjYpfmoHUCBWraf0Gk93yES5T2KcpqS7uJ4g5AmDJ1St5GArolfedXYuyC2L\nddlK7LOVFeji9uxSWeInwweMHPeUeZJ0kbz+5RpCOzU4pvgCFWefHzofAoGAAoWv\n3FILp4MIBzFEpmhK75x6Yue1CzjCcXZl4E3XDgRHADSdgppC7ViuHQUagCmNPVdq\ntIioEX3AlLCGubebkOMdO7OqMnNyL4y2xeKA2kSY4RDVFTQlHzfgAE5sJh1FxozI\nr15KtW7NvoBIHdGx8/wdGieOc85gqemibhWTmIECgYBRRmE7MP3GxBJXvnWAB38M\ncfuH17Ba9R5HbaS1OrabbWLW3ox+TRKFHtSZwaphQsIEi3baLfsLy+rvng2U1CVQ\nfqilzJ4LaRAnR7DRdFnHCE3EQujcIVzcuBmKspFJvJnNMx3yQIX3qP1Oe9j6t7wA\nP0jssAUBaJWiJ/qNLQfd6w==\n-----END PRIVATE KEY-----",
           "message": "待签名内容"
         },
         "locale": "zh-CN"
       },
       "error": null,
       "warnings": [],
-      "text": "── RSA 签名 · SHA256 ───────────────────────────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\nio4+O34alk1gkaebaAYmNwyLEvuxwG3Nard1HKjliL8gviZXHlSrApYQhDSDLbKltpniGRstAfKzI1liXJA9ScNSzfomQXNSDeYVHNkahhG8/4IW4VZ9QUGSigEL1pvIeTQW7KUGzgvL+lpoH5j0ivUdkFY8kXx5jUk1IUZ85dRHvvVfbje6vKSGtLAbS2cXRLBWtdcLNzBuyN5CTlnO5gSIop7Qmw+MlcTzONT4q6OWdeoApDmRt3HuIc7F4+hdCrQW/Cf8IL0EyxOMW4TzxvzdYpRgqQWV2LDx22QqdrVXodnzAoE0HmD3IsgGohtqKMVK6qYuMYSIpdSd3k6ywQ==\n\n  密钥      PKCS#8 private key\n  消息长度  15 字节\n  签名长度  256 字节\n  填充      PKCS#1 v1.5（RSASSA-PKCS1-v1_5）\n\n── 签名（hex） ─────────────────────────────────────────────\n\n8a8e3e3b7e1a964d6091a79b680626370c8b12fbb1c06dcd6ab7751ca8e588bf20be26571e54ab0296108434832db2a5b699e2191b2d01f2b32359625c903d49c352cdfa264173520de6151cd91a8611bcff8216e1567d4141928a010bd69bc8793416eca506ce0bcbfa5a681f98f48af51d90563c917c798d493521467ce5d447bef55f6e37babca486b4b01b4b671744b056b5d70b37306ec8de424e59cee60488a29ed09b0f8c95c4f338d4f8aba39675ea00a43991b771ee21cec5e3e85d0ab416fc27fc20bd04cb138c5b84f3c6fcdd629460a90595d8b0f1db642a76b557a1d9f30281341e60f722c806a21b6a28c54aeaa62e318488a5d49dde4eb2c1\n\n── 验签输入（整块复制粘贴到 mode=verify 的 message） ───────\n\nsignature: io4+O34alk1gkaebaAYmNwyLEvuxwG3Nard1HKjliL8gviZXHlSrApYQhDSDLbKltpniGRstAfKzI1liXJA9ScNSzfomQXNSDeYVHNkahhG8/4IW4VZ9QUGSigEL1pvIeTQW7KUGzgvL+lpoH5j0ivUdkFY8kXx5jUk1IUZ85dRHvvVfbje6vKSGtLAbS2cXRLBWtdcLNzBuyN5CTlnO5gSIop7Qmw+MlcTzONT4q6OWdeoApDmRt3HuIc7F4+hdCrQW/Cf8IL0EyxOMW4TzxvzdYpRgqQWV2LDx22QqdrVXodnzAoE0HmD3IsgGohtqKMVK6qYuMYSIpdSd3k6ywQ==\n待签名内容\n\n── 说明 ────────────────────────────────────────────────────\n\n· 签名 = RSA 私钥对 DigestInfo(SHA-256/512 ‖ 消息) 的幂运算，确定性输出。\n· 上面的“验签输入”块把签名与原文绑在一起，避免验签端漏填其一。\n· 长消息可直接签名（签名长度恒为模数长度，与消息长度无关）。\n",
+      "text": "── RSA 签名 · SHA256 ───────────────────────────────────────\n\n── 结果 ────────────────────────────────────────────────────\n\na0W/i0ssIdzCz7KjQPAdeX5E6GvO9Y+VpLksb8lQu62vWtd/ZCZRr+MbsLPJJ1RlR83QZteOpRW3kqIRVyoA1CxArwHhIBnA0+3YcRy/y5LPXzMp4Jec28yzchNQXBFOxKHNyPxoc/Z2XkbsHxD/3nm/OJP63VizD+d5a6uKKjx4+tQMP6P+EQjP/aYNrvekCMR7pXVkcsqI6KIen7bdzpU70dQaNMiEgJ3w6jvJXpwBlrfzByB2skY7vXR4v4Ge2I7cdibRnIW1gGs/5LQYVFF5uyX1ZEkLYgYWyIVlSfzrVObtTzG2Kd0N0fEC9oyEUa0bLt3n7boKfXoA58dKxQ==\n\n  密钥      PKCS#8 private key\n  消息长度  15 字节\n  签名长度  256 字节\n  填充      PKCS#1 v1.5（RSASSA-PKCS1-v1_5）\n\n── 签名（hex） ─────────────────────────────────────────────\n\n6b45bf8b4b2c21dcc2cfb2a340f01d797e44e86bcef58f95a4b92c6fc950bbadaf5ad77f642651afe31bb0b3c927546547cdd066d78ea515b792a211572a00d42c40af01e12019c0d3edd8711cbfcb92cf5f3329e0979cdbccb37213505c114ec4a1cdc8fc6873f6765e46ec1f10ffde79bf3893fadd58b30fe7796bab8a2a3c78fad40c3fa3fe1108cffda60daef7a408c47ba5756472ca88e8a21e9fb6ddce953bd1d41a34c884809df0ea3bc95e9c0196b7f3072076b2463bbd7478bf819ed88edc7626d19c85b5806b3fe4b418545179bb25f564490b620616c8856549fceb54e6ed4f31b629dd0dd1f102f68c8451ad1b2edde7edba0a7d7a00e7c74ac5\n\n── 验签输入（整块复制粘贴到 mode=verify 的 message） ───────\n\nsignature: a0W/i0ssIdzCz7KjQPAdeX5E6GvO9Y+VpLksb8lQu62vWtd/ZCZRr+MbsLPJJ1RlR83QZteOpRW3kqIRVyoA1CxArwHhIBnA0+3YcRy/y5LPXzMp4Jec28yzchNQXBFOxKHNyPxoc/Z2XkbsHxD/3nm/OJP63VizD+d5a6uKKjx4+tQMP6P+EQjP/aYNrvekCMR7pXVkcsqI6KIen7bdzpU70dQaNMiEgJ3w6jvJXpwBlrfzByB2skY7vXR4v4Ge2I7cdibRnIW1gGs/5LQYVFF5uyX1ZEkLYgYWyIVlSfzrVObtTzG2Kd0N0fEC9oyEUa0bLt3n7boKfXoA58dKxQ==\n待签名内容\n\n── 说明 ────────────────────────────────────────────────────\n\n· 签名 = RSA 私钥对 DigestInfo(SHA-256/512 ‖ 消息) 的幂运算，确定性输出。\n· 上面的“验签输入”块把签名与原文绑在一起，避免验签端漏填其一。\n· 长消息可直接签名（签名长度恒为模数长度，与消息长度无关）。\n",
       "stable": false,
       "inputRandom": true
     },
-    "tool.run/rsa/0653c94f48a7": {
+    "tool.run/rsa/fd17705ebbf0": {
       "kind": "text",
       "tool": "rsa",
       "inputs": {
         "options": {
           "mode": "verify",
-          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAskTOq3biz9Q27ThuJyMU\nDduDTnQXgJi6Vol0vaGavaTHYQkSVyFugJFaVIksdpNfPCZADr0cZnSp5AFMBSMJ\nnIN2c9U8yFNFQHN+5O9AI/lZpGii2HyAJqqdrAWNsrqKBVH4BvCwSo4snNp6lBke\nXyvHVdKo8Bj7FCF/2eqcHRTXqNi+HwwDwnBfqYfgts1bcXkwyHsF5MoC7btYkyTN\nKBptVoPUDeTlqB7KwtcopMR3PCXSg4r2Zit7vqQaA1L8qB4tpUnEYK7uS/oDedvr\nc9SlTvKuoe0KnU+gu/k3FaAZco5ZyIfiRXMnNhFa22Np+06cDs+sXId8IOXOK6eW\nfwIDAQAB\n-----END PUBLIC KEY-----",
-          "message": "signature: io4+O34alk1gkaebaAYmNwyLEvuxwG3Nard1HKjliL8gviZXHlSrApYQhDSDLbKltpniGRstAfKzI1liXJA9ScNSzfomQXNSDeYVHNkahhG8/4IW4VZ9QUGSigEL1pvIeTQW7KUGzgvL+lpoH5j0ivUdkFY8kXx5jUk1IUZ85dRHvvVfbje6vKSGtLAbS2cXRLBWtdcLNzBuyN5CTlnO5gSIop7Qmw+MlcTzONT4q6OWdeoApDmRt3HuIc7F4+hdCrQW/Cf8IL0EyxOMW4TzxvzdYpRgqQWV2LDx22QqdrVXodnzAoE0HmD3IsgGohtqKMVK6qYuMYSIpdSd3k6ywQ==\n待签名内容"
+          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAk3eqAQIEnvZKkOVWZGrK\naUGsZsZncMqM5dtAL0kIT2+F5Afdbmwd0eZUDQx+FaEsjBuiKkZErIMC6lDc3Rtm\nxl2HXhxpDBRhUrgSQae+r8Q5AfVsb3+xecou7mTOTXJ4Eps+0FrG+794Bi3wERmL\n9C3LpXk8SjjTaZ+K9YFDli5oAUrm8MaFvOwKvbTjN+EFGg57JPGgiue6rB3tYI8a\nTyAksqFA9MvE4+2bpfL2G1zGwG11wbsRqD/46d1cuVfMZnwNypI2LugEmpyLQylm\n93l5nifq8CNv8DZG3AEDHTOwIE+nxVK4aef2z9qkVxDRay+i51NnUfNrHCk49rCd\nbwIDAQAB\n-----END PUBLIC KEY-----",
+          "message": "signature: a0W/i0ssIdzCz7KjQPAdeX5E6GvO9Y+VpLksb8lQu62vWtd/ZCZRr+MbsLPJJ1RlR83QZteOpRW3kqIRVyoA1CxArwHhIBnA0+3YcRy/y5LPXzMp4Jec28yzchNQXBFOxKHNyPxoc/Z2XkbsHxD/3nm/OJP63VizD+d5a6uKKjx4+tQMP6P+EQjP/aYNrvekCMR7pXVkcsqI6KIen7bdzpU70dQaNMiEgJ3w6jvJXpwBlrfzByB2skY7vXR4v4Ge2I7cdibRnIW1gGs/5LQYVFF5uyX1ZEkLYgYWyIVlSfzrVObtTzG2Kd0N0fEC9oyEUa0bLt3n7boKfXoA58dKxQ==\n待签名内容"
         },
         "locale": "zh-CN"
       },
@@ -3751,14 +3751,14 @@
       "stable": false,
       "inputRandom": true
     },
-    "tool.run/rsa/34aa4afb754d": {
+    "tool.run/rsa/591fbc83244f": {
       "kind": "text",
       "tool": "rsa",
       "inputs": {
         "options": {
           "mode": "verify",
-          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAskTOq3biz9Q27ThuJyMU\nDduDTnQXgJi6Vol0vaGavaTHYQkSVyFugJFaVIksdpNfPCZADr0cZnSp5AFMBSMJ\nnIN2c9U8yFNFQHN+5O9AI/lZpGii2HyAJqqdrAWNsrqKBVH4BvCwSo4snNp6lBke\nXyvHVdKo8Bj7FCF/2eqcHRTXqNi+HwwDwnBfqYfgts1bcXkwyHsF5MoC7btYkyTN\nKBptVoPUDeTlqB7KwtcopMR3PCXSg4r2Zit7vqQaA1L8qB4tpUnEYK7uS/oDedvr\nc9SlTvKuoe0KnU+gu/k3FaAZco5ZyIfiRXMnNhFa22Np+06cDs+sXId8IOXOK6eW\nfwIDAQAB\n-----END PUBLIC KEY-----",
-          "message": "signature: io4+O34alk1gkaebaAYmNwyLEvuxwG3Nard1HKjliL8gviZXHlSrApYQhDSDLbKltpniGRstAfKzI1liXJA9ScNSzfomQXNSDeYVHNkahhG8/4IW4VZ9QUGSigEL1pvIeTQW7KUGzgvL+lpoH5j0ivUdkFY8kXx5jUk1IUZ85dRHvvVfbje6vKSGtLAbS2cXRLBWtdcLNzBuyN5CTlnO5gSIop7Qmw+MlcTzONT4q6OWdeoApDmRt3HuIc7F4+hdCrQW/Cf8IL0EyxOMW4TzxvzdYpRgqQWV2LDx22QqdrVXodnzAoE0HmD3IsgGohtqKMVK6qYuMYSIpdSd3k6ywQ==\n被改动的原文"
+          "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAk3eqAQIEnvZKkOVWZGrK\naUGsZsZncMqM5dtAL0kIT2+F5Afdbmwd0eZUDQx+FaEsjBuiKkZErIMC6lDc3Rtm\nxl2HXhxpDBRhUrgSQae+r8Q5AfVsb3+xecou7mTOTXJ4Eps+0FrG+794Bi3wERmL\n9C3LpXk8SjjTaZ+K9YFDli5oAUrm8MaFvOwKvbTjN+EFGg57JPGgiue6rB3tYI8a\nTyAksqFA9MvE4+2bpfL2G1zGwG11wbsRqD/46d1cuVfMZnwNypI2LugEmpyLQylm\n93l5nifq8CNv8DZG3AEDHTOwIE+nxVK4aef2z9qkVxDRay+i51NnUfNrHCk49rCd\nbwIDAQAB\n-----END PUBLIC KEY-----",
+          "message": "signature: a0W/i0ssIdzCz7KjQPAdeX5E6GvO9Y+VpLksb8lQu62vWtd/ZCZRr+MbsLPJJ1RlR83QZteOpRW3kqIRVyoA1CxArwHhIBnA0+3YcRy/y5LPXzMp4Jec28yzchNQXBFOxKHNyPxoc/Z2XkbsHxD/3nm/OJP63VizD+d5a6uKKjx4+tQMP6P+EQjP/aYNrvekCMR7pXVkcsqI6KIen7bdzpU70dQaNMiEgJ3w6jvJXpwBlrfzByB2skY7vXR4v4Ge2I7cdibRnIW1gGs/5LQYVFF5uyX1ZEkLYgYWyIVlSfzrVObtTzG2Kd0N0fEC9oyEUa0bLt3n7boKfXoA58dKxQ==\n被改动的原文"
         },
         "locale": "zh-CN"
       },
@@ -3862,12 +3862,12 @@
       "warnings": [],
       "stable": false
     },
-    "tool.run/aes/308ce86bce46": {
+    "tool.run/aes/784f593964a7": {
       "kind": "text",
       "tool": "aes",
       "inputs": {
         "options": {
-          "input": "AQEBAAJJ8BBWDiXmv0USxFOYxnMtjlr/DACosSLc/AhdRKVCbRD/i2Y6PuY1UhhGsmoczCsenT4z2kZVcETNzgFTqOhiXi9K",
+          "input": "AQEBAAJJ8BDtaWj+6ZFWalGvU128qb2YDJThljkxu97/DbOwChAU7yynzxXHKfX/vxqwoK65VzqKmobI4k5jPAidt+hcGHbz",
           "mode": "decrypt",
           "passphrase": "pw123"
         },
@@ -3875,7 +3875,7 @@
       },
       "error": null,
       "warnings": [],
-      "text": "── AES decrypt - aes-256-gcm - scrypt - succeeded ──────────\n\n── Result ──────────────────────────────────────────────────\n\nround-trip payload\n\n  Container length            72 bytes\n  Ciphertext length           18 bytes\n  Plaintext length            18 bytes\n  Container self-description  aes-256-gcm · scrypt · iterations=150000\n  authTag                     ff8b663a3ee635521846b26a1ccc2b1e (verified)\n  UTF-8 round trip            identical (standard UTF-8)\n\n── Notes ───────────────────────────────────────────────────\n\n- algorithm/KDF/iterations/salt/IV/authTag all come from the container header and match the mode=encrypt output one for one.\n- The form fields cipher, kdf and iterations are ignored on decrypt (the container wins), so switching devices only needs a format change.\n- Only a passing authTag reaches this point; a tampered container or a wrong passphrase stopped one step earlier.\n",
+      "text": "── AES decrypt - aes-256-gcm - scrypt - succeeded ──────────\n\n── Result ──────────────────────────────────────────────────\n\nround-trip payload\n\n  Container length            72 bytes\n  Ciphertext length           18 bytes\n  Plaintext length            18 bytes\n  Container self-description  aes-256-gcm · scrypt · iterations=150000\n  authTag                     14ef2ca7cf15c729f5ffbf1ab0a0aeb9 (verified)\n  UTF-8 round trip            identical (standard UTF-8)\n\n── Notes ───────────────────────────────────────────────────\n\n- algorithm/KDF/iterations/salt/IV/authTag all come from the container header and match the mode=encrypt output one for one.\n- The form fields cipher, kdf and iterations are ignored on decrypt (the container wins), so switching devices only needs a format change.\n- Only a passing authTag reaches this point; a tampered container or a wrong passphrase stopped one step earlier.\n",
       "stable": false,
       "inputRandom": true
     },
@@ -4085,7 +4085,7 @@
       },
       "artifacts": [
         {
-          "name": "sample-photo-1-watermark-cleaned.png",
+          "name": "sample-photo-1-watermark-cleaned (2).png",
           "kind": "image",
           "sha256": "79545700abf1ac0fc9e0ecec54bd9879dac4dcff8eaa2d19e0d4118ab79b4ea7"
         }
@@ -5857,39 +5857,6 @@
       ],
       "stable": true
     },
-    "job/image-watermark-clean/99ea63b11eff": {
-      "kind": "job",
-      "tool": "image-watermark-clean",
-      "inputs": {
-        "files": [
-          "sample-photo-1.jpg"
-        ],
-        "options": {
-          "repairPng": "PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg=="
-        }
-      },
-      "state": "succeeded",
-      "error": null,
-      "warnings": [],
-      "summary": {
-        "inputBytes": 2344160,
-        "pageCountIn": 0,
-        "pageCountOut": 1,
-        "extra": {
-          "width": 1600,
-          "height": 1000,
-          "method": "local-neighbor-fill"
-        }
-      },
-      "artifacts": [
-        {
-          "name": "sample-photo-1-watermark-cleaned (2).png",
-          "kind": "image",
-          "sha256": "79545700abf1ac0fc9e0ecec54bd9879dac4dcff8eaa2d19e0d4118ab79b4ea7"
-        }
-      ],
-      "stable": true
-    },
     "job/file-checksum/639ffd16ab54": {
       "kind": "job",
       "tool": "file-checksum",
@@ -6336,12 +6303,12 @@
     {
       "name": "temp.stat",
       "ok": true,
-      "detail": "162 job dirs, 79704 KB"
+      "detail": "164 job dirs, 79758 KB"
     },
     {
       "name": "temp.clean keeps newest",
       "ok": true,
-      "detail": "removed 160, kept 2, freed 79681 KB"
+      "detail": "removed 162, kept 2, freed 79735 KB"
     },
     {
       "name": "saving a cleaned artifact",
@@ -6496,47 +6463,47 @@
     {
       "name": "text timestamp",
       "ok": true,
-      "detail": "2 处断言命中，65 字符，1 artifact，10.95ms"
+      "detail": "2 处断言命中，65 字符，1 artifact，7.54ms"
     },
     {
       "name": "text date-diff",
       "ok": true,
-      "detail": "2 处断言命中，949 字符，1 artifact，18.92ms"
+      "detail": "2 处断言命中，949 字符，1 artifact，11.79ms"
     },
     {
       "name": "text date-math",
       "ok": true,
-      "detail": "1 处断言命中，607 字符，1 artifact，6.64ms"
+      "detail": "1 处断言命中，607 字符，1 artifact，4.61ms"
     },
     {
       "name": "text workdays",
       "ok": true,
-      "detail": "2 处断言命中，800 字符，1 artifact，2.69ms"
+      "detail": "2 处断言命中，800 字符，1 artifact，1.91ms"
     },
     {
       "name": "text timezone-board",
       "ok": true,
-      "detail": "4 处断言命中，814 字符，1 artifact，5ms"
+      "detail": "4 处断言命中，814 字符，1 artifact，3.86ms"
     },
     {
       "name": "text duration",
       "ok": true,
-      "detail": "2 处断言命中，1002 字符，1 artifact，1.42ms"
+      "detail": "2 处断言命中，1002 字符，1 artifact，1.05ms"
     },
     {
       "name": "text cron",
       "ok": true,
-      "detail": "2 处断言命中，1243 字符，1 artifact，8.15ms"
+      "detail": "2 处断言命中，1243 字符，1 artifact，5.98ms"
     },
     {
       "name": "text date-format",
       "ok": true,
-      "detail": "1 处断言命中，1464 字符，1 artifact，3.57ms"
+      "detail": "1 处断言命中，1464 字符，1 artifact，3.53ms"
     },
     {
       "name": "text relative-time",
       "ok": true,
-      "detail": "1 处断言命中，560 字符，1 artifact，4.84ms"
+      "detail": "1 处断言命中，560 字符，1 artifact，4.88ms"
     },
     {
       "name": "timezone-board default style",
@@ -6566,7 +6533,7 @@
     {
       "name": "timestamp showNow live stamp",
       "ok": true,
-      "detail": "Unix 秒=1790564307"
+      "detail": "Unix 秒=1790567107"
     },
     {
       "name": "timestamp showRange/showNow off",
@@ -6751,17 +6718,17 @@
     {
       "name": "text hash",
       "ok": true,
-      "detail": "2 处断言命中，860 字符，1 artifact，1.04ms"
+      "detail": "2 处断言命中，860 字符，1 artifact，0.81ms"
     },
     {
       "name": "text hmac",
       "ok": true,
-      "detail": "1 处断言命中，534 字符，1 artifact，1.4ms"
+      "detail": "1 处断言命中，534 字符，1 artifact，1.16ms"
     },
     {
       "name": "text base64",
       "ok": true,
-      "detail": "1 处断言命中，308 字符，1 artifact，0.26ms"
+      "detail": "1 处断言命中，308 字符，1 artifact，0.25ms"
     },
     {
       "name": "text radix",
@@ -6771,32 +6738,32 @@
     {
       "name": "text hex",
       "ok": true,
-      "detail": "1 处断言命中，312 字符，1 artifact，0.22ms"
+      "detail": "1 处断言命中，312 字符，1 artifact，0.18ms"
     },
     {
       "name": "text url-codec",
       "ok": true,
-      "detail": "1 处断言命中，310 字符，1 artifact，0.3ms"
+      "detail": "1 处断言命中，310 字符，1 artifact，0.31ms"
     },
     {
       "name": "text unicode-escape",
       "ok": true,
-      "detail": "1 处断言命中，314 字符，1 artifact，0.26ms"
+      "detail": "1 处断言命中，314 字符，1 artifact，0.25ms"
     },
     {
       "name": "text totp",
       "ok": true,
-      "detail": "1 处断言命中，849 字符，1 artifact，1.79ms"
+      "detail": "1 处断言命中，849 字符，1 artifact，1.81ms"
     },
     {
       "name": "text x509",
       "ok": true,
-      "detail": "3 处断言命中，2596 字符，1 artifact，5.19ms"
+      "detail": "3 处断言命中，2596 字符，1 artifact，4.29ms"
     },
     {
       "name": "text password-gen",
       "ok": true,
-      "detail": "0 处断言命中，63 字符，1 artifact，1.03ms"
+      "detail": "0 处断言命中，63 字符，1 artifact，0.95ms"
     },
     {
       "name": "text password-gen",
@@ -6806,12 +6773,12 @@
     {
       "name": "text uuid-gen v4",
       "ok": true,
-      "detail": "2 处断言命中，600 字符，1 artifact，0.42ms"
+      "detail": "2 处断言命中，598 字符，1 artifact，0.4ms"
     },
     {
       "name": "text uuid-gen",
       "ok": true,
-      "detail": "v4 匹配 3/3，文本 600 字符"
+      "detail": "v4 匹配 3/3，文本 598 字符"
     },
     {
       "name": "text jwt verify",
@@ -6826,7 +6793,7 @@
     {
       "name": "text rsa keygen",
       "ok": true,
-      "detail": "2 处断言命中，2901 字符，1 artifact，53.18ms"
+      "detail": "2 处断言命中，2901 字符，1 artifact，24.49ms"
     },
     {
       "name": "text rsa sign/verify",
@@ -6911,7 +6878,7 @@
     {
       "name": "parser +3d",
       "ok": true,
-      "detail": "+3d → 2026-10-01 10:58:28（期望 2026-10-01 10:58:28）"
+      "detail": "+3d → 2026-10-01 11:45:08（期望 2026-10-01 11:45:08）"
     },
     {
       "name": "parser yesterday 14:30",
@@ -6921,7 +6888,7 @@
     {
       "name": "text date-format yesterday 14:30",
       "ok": true,
-      "detail": "1 处断言命中，1496 字符，1 artifact，2.2ms"
+      "detail": "1 处断言命中，1496 字符，1 artifact，2.06ms"
     },
     {
       "name": "image cutout exports transparent PNG",

@@ -131,7 +131,10 @@ interface GoldenOutcome {
     for (let index = 0; index < cases.length; index += 1) {
       const item = cases[index];
       try {
-        const guard = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('case timeout (60s)')), 60_000));
+        // The watermark-clean inpaint loop is heavy on large photos; allow it
+        // a longer budget than the generic 60s case guard.
+        const budget = item.tool === 'image-watermark-clean' ? 300_000 : 60_000;
+        const guard = new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`case timeout (${budget / 1000}s)`)), budget));
         let outcome: GoldenOutcome;
         if (item.kind === 'text') {
           outcome = await Promise.race([

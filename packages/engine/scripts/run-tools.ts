@@ -1625,7 +1625,7 @@ async function runAllChecks(engine: Engine): Promise<void> {
     },
     metadata: { title: '覆盖测试', author: 'pohoc' },
     'pdf-to-excel': { sheetPerPage: false },
-    'image-watermark-clean': { repairPng: Buffer.from('<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="32" fill="white"/></svg>').toString('base64') },
+    'image-watermark-clean': { repairPng: mark.toString('base64') },
   };
 
   for (const tool of TOOL_LIST) {
