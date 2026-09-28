@@ -28,8 +28,8 @@
     "licenses:inventory": "node scripts/generate-license-inventory.mjs",
     "samples": "pnpm --filter @potools/engine samples",
     "icons": "node scripts/make-icons.mjs && pnpm --filter @potools/desktop exec tauri icon \"$PWD/apps/desktop/src-tauri/app-icon.png\"",
-    "test:tools": "pnpm --filter @potools/engine test:tools",
-    "engine:call": "pnpm --filter @potools/engine call"
+    "test:tools": "pnpm --filter @potools/desktop test:golden:browser",
+    "test:golden": "pnpm --filter @potools/desktop test:golden:browser"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

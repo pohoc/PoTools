@@ -93,10 +93,6 @@ async function buildDocx(input: DocxInput): Promise<Document> {
 }
 
 /** Builds a .docx using Node's Buffer-backed packer. */
-export async function writeDocx(input: DocxInput): Promise<Uint8Array> {
-  return new Uint8Array(await Packer.toBuffer(await buildDocx(input)));
-}
-
 /** Builds the same .docx using the browser Blob packer for Worker execution. */
 export async function writeBrowserDocx(input: DocxInput): Promise<Uint8Array> {
   const blob = await Packer.toBlob(await buildDocx(input));
@@ -106,27 +102,4 @@ export async function writeBrowserDocx(input: DocxInput): Promise<Uint8Array> {
 export interface SheetInput {
   name: string;
   rows: string[][];
-}
-
-/** Builds an .xlsx; one sheet per page by default. */
-export async function writeXlsx(sheets: SheetInput[]): Promise<Uint8Array> {
-  const ExcelJS = (await import('exceljs')).default;
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'PoTools';
-  sheets.forEach((sheet, index) => {
-    const ws = workbook.addWorksheet(sheet.name.slice(0, 31) || `Sheet${index + 1}`);
-    const widths: number[] = [];
-    for (const row of sheet.rows) {
-      row.forEach((cell, column) => {
-        widths[column] = Math.max(widths[column] ?? 8, Math.min(60, Math.round(cell.length * 1.15) + 2));
-      });
-      ws.addRow(row);
-    }
-    widths.forEach((width, column) => {
-      ws.getColumn(column + 1).width = width;
-    });
-    ws.getRow(1).font = { bold: true };
-  });
-  const buffer = await workbook.xlsx.writeBuffer();
-  return buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : new Uint8Array(buffer as Uint8Array);
 }

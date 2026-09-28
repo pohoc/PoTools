@@ -10,12 +10,6 @@ The local engine bundles MuPDF.js for PDF parsing, rasterization, and document i
 
 PoTools may be distributed with this component through an AGPL-compliant open-source route, under an applicable commercial license, or after replacing MuPDF. A combined installer containing it must not be described as MIT-only. See `docs/LICENSING.md` in the source tree.
 
-## Node.js runtime
-
-Windows x64 and macOS builds bundle Node.js 22.20.0. Windows x86 bundles Node.js 20.20.2 to retain 32-bit Sharp support. The matching Node.js license and third-party notices are in `Node.js-22.20.0.txt` and `Node.js-20.20.2.txt`; each build stages the matching text beside its runtime as `engine/node-runtime-LICENSE.txt`.
-
-- Sources: https://github.com/nodejs/node/tree/v22.20.0 and https://github.com/nodejs/node/tree/v20.20.2
-
 ## sharp and libvips
 
 Image processing uses sharp under Apache-2.0 and platform-specific libvips binaries under LGPL-3.0-or-later. Runtime staging preserves the upstream package license files. Check the actual platform package versions and notices when producing each release target.

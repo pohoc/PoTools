@@ -21,11 +21,9 @@ The table row applies to the current packaged app. An AGPL-compliant open-source
 
 - `apps/desktop/public/licenses/THIRD_PARTY_NOTICES.md` is included in the app and lists the direct runtime components and known exceptions.
 - `MuPDF-AGPL-3.0.txt` contains the license text for the bundled MuPDF.js package.
-- `Node.js-22.20.0.txt` and `Node.js-20.20.2.txt` contain the upstream Node runtime licenses and third-party notices for the supported desktop targets. Runtime preparation copies the target-specific text beside the bundled Node executable.
 - `Apache-2.0.txt` is retained for MediaPipe Tasks Vision and the bundled segmentation model.
 - `Hickory-DNS-MIT.txt` and `Hickory-DNS-Apache-2.0.txt` retain the licenses for the native DNS resolver and protocol crates.
-- sharp and platform-specific libvips package license files are retained when the runtime modules are staged. Recheck target-specific binaries and versions for every platform build.
-- JavaScript and Rust dependency trees include several additional permissive and notice-based licenses. Staged Node module trees retain their package license files; the inventory must still be refreshed for each release.
+- JavaScript and Rust dependency trees include several additional permissive and notice-based licenses. The inventory must be refreshed for each release.
 
 ## Release checklist
 

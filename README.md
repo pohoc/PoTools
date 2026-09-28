@@ -2,7 +2,7 @@
 
 PoTools 是本机文件处理工作台，提供文档、图片与格式转换工具。PDF 是当前最完整的工具组，此外已支持 Office、OFD、Markdown 与常见图片格式。**所有处理都在这台电脑上的 Node 子进程里完成，文件不会离开本机。**
 
-技术栈：**Vite 8 + React 19 + TypeScript**（界面） · **Node.js sidecar**（PDF 引擎） · **Tauri 2 + Rust**（桌面壳）
+技术栈：**Vite 8 + React 19 + TypeScript**（界面与 Worker 工具引擎） · **Tauri 2 + Rust**（桌面壳与特权操作）
 
 ---
 
@@ -17,7 +17,7 @@ PoTools 是本机文件处理工作台，提供文档、图片与格式转换工
                 │  spawn `tsx packages/engine/src/index.ts serve --stdio`
                 │  ndjson JSON-RPC (stdin/stdout) + engine://line 事件
 ┌───────────────▼──────────────────────────────────────────────┐
-│  Node 引擎 (packages/engine)                                  │
+│  Worker 工具引擎 (packages/engine，WebView 内运行)             │
 │  pdf-lib  结构操作   ·  MuPDF-WASM  页面光栅化                 │
 │  sharp    图片重编码 ·  fontkit     中文字形子集嵌入            │
 │  JobManager：队列 / 并发 / 进度事件 / 取消 / 产物落盘           │
@@ -89,7 +89,7 @@ pnpm install
 # 只跑浏览器版（引擎 HTTP 模式，用于快速调试 UI）
 pnpm dev              # http://127.0.0.1:5199
 
-# 桌面版（Rust 自动拉起 Node sidecar，走 stdio）
+# 桌面版（工具全部内建于应用；Rust 处理文件与系统特权操作）
 pnpm tauri dev
 
 # 生成样例 PDF（供自测与手动验证）
@@ -99,12 +99,8 @@ pnpm samples
 桌面发行包使用两个平台目录，避免把 Rust target、缓存和构建中间文件当成最终软件包：
 
 - macOS：`pnpm package:macos`，发行文件输出到 `release/macOS/`。
-- Windows：`pnpm package:windows`，目标输出位于 `release/Windows/`，包含 x64、x86 安装版和绿色 ZIP。绿色 ZIP 的打包规则只收录一个 `PoTools.exe`；静态 Node SDK、实际链接与目标机运行仍需完成验证。
-- Linux：在目标架构的 Linux 主机运行 `pnpm package:linux`，输出到固定的 `release/Linux/`。x64、ARM64 配置 AppImage、DEB、RPM；ARMv7、PowerPC64 LE、IBM Z（s390x）配置 DEB、RPM。各架构须在对应的原生 Linux 环境分别构建；ARMv7 还要求 ARMv7 hard-float 主机，PowerPC 必须为小端。x64、ARM64 可从 Ubuntu 22.04 或 Debian 12 起构建；ARMv7、PowerPC64 LE、s390x 的 Sharp 运行库要求 glibc 2.36 或更新版本。构建成功不代表信创发行版已兼容，仍需在具体目标系统验证 WebKitGTK 4.1 等运行依赖。
-- 仅打包单一架构时使用 `pnpm package:windows:x64` 或 `pnpm package:windows:x86`；产物仍归入同一个 `release/Windows/`，不会散落到架构 target 目录作为最终交付路径。带 `:build` 后缀的命令只用于底层构建验证。
-
-Windows 打包前需准备 Node 静态嵌入 SDK，并设置 `POTOOLS_NODE_EMBED_SDK_ROOT` 指向 SDK 根目录。目录必须包含 `x86_64-pc-windows-msvc/` 和/或 `i686-pc-windows-msvc/`；SDK 用 `scripts/build-node-embed-sdk.ps1` 从对应版本、干净检出的 Node 源码构建，也可从「Build Node embed SDK」workflow（`po/node-embed-sdk-build` 分支）的 artifact 直接下载。没有目标架构 SDK 时，打包会停止，不会生成依赖 sidecar 的绿色包。
-
+- Windows：`pnpm package:windows:x64` / `pnpm package:windows:x86`，NSIS 安装包输出到 `release/Windows/`。
+- Linux：在目标架构的 Linux 主机运行 `pnpm package:linux`，输出到固定的 `release/Linux/`。x64、ARM64 配置 AppImage、DEB、RPM；ARMv7、PowerPC64 LE、IBM Z（s390x）配置 DEB、RPM。各架构须在对应的原生 Linux 环境分别构建；ARMv7 还要求 ARMv7 hard-float 主机，PowerPC 必须为小端。x64、ARM64 可从 Ubuntu 22.04 或 Debian 12 起构建。构建成功不代表信创发行版已兼容，仍需在具体目标系统验证 WebKitGTK 4.1 等运行依赖。
 Rust/Tauri 的构建缓存仍位于 `apps/desktop/src-tauri/target/`，日常交付请从 `release/` 目录取包。Windows 安装版和绿色版启动时都会检查 WebView2；系统缺少时会自动从微软下载并静默安装，需要网络连接。应用不会把用户文档发送到网络。
 
 ## 4. 验证
@@ -113,7 +109,7 @@ Rust/Tauri 的构建缓存仍位于 `apps/desktop/src-tauri/target/`，日常交
 pnpm test:tools        # 端到端检查：工具全覆盖 + 内容断言 + 格式往返 + 错误路径 + 临时清理
 pnpm --filter @potools/engine typecheck
 pnpm --filter @potools/desktop typecheck
-pnpm tauri dev         # 桌面版：Rust 启动即拉起 Node sidecar
+pnpm tauri dev         # 桌面版：工具在 WebView Worker 内运行
 ```
 
 `scripts/run-tools.ts` 会真实调用引擎跑完每个工具，分四层：
@@ -139,8 +135,8 @@ Debian/Ubuntu 构建机需安装 Tauri 的 Linux 开发依赖（包括 `libwebki
 ## 5. 打包说明
 
 - `src-tauri/.cargo/config.toml` 把 crates.io 换成了 `rsproxy.cn` 镜像（本机网络直连 crates.io 会卡死）。删掉该文件即回到官方源。
-- macOS/Linux 发行包仍使用旁置 Node runtime 和引擎资源；Linux 配置 x64、ARM64、ARMv7、PowerPC64 LE、IBM Z（s390x），运行时使用系统 WebKitGTK。Windows 绿色包采用单 EXE 嵌入路径，不应从这些平台的 sidecar 布局推断其运行方式。
-- Windows 单 EXE 构建路径将 Node 静态库、CommonJS engine bundle、MuPDF WASM、Sharp WASM、OCR 模型和 ONNX Runtime Web WASM 编入应用。嵌入式引擎已在隔离目录通过图片信息、JPEG 压缩和 OCR 文本检查；目标 Windows EXE 的链接、启动与完整工具回归仍未验证，不能宣称单 EXE 发行已保持全部工具行为。
+- 全平台发行包均不包含 Node 运行时、`engine/` 目录或任何旁置引擎文件：工具引擎内建于应用二进制，在 WebView Worker 中运行。
+- MuPDF WASM、ONNX Runtime Web WASM、OCR 模型等运行资产随前端构建编入应用二进制，并在 `docs/worker-only-migration-plan.md` 记录了与原 Node 引擎的逐字节/契约对照基线（浏览器 golden 回放 225/226）。
 
 ## 6. 设置项
 

@@ -61,13 +61,6 @@ for (const pkg of cargo.packages) {
 
 components.push(
   {
-    ecosystem: 'external-runtime',
-    name: 'Node.js',
-    version: '22.20.0',
-    license: 'MIT and bundled third-party notices',
-    author: 'OpenJS Foundation and Node.js contributors',
-    repository: 'https://github.com/nodejs/node/tree/v22.20.0',
-  },
   {
     ecosystem: 'model',
     name: 'MediaPipe Selfie Segmentation',

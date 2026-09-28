@@ -3,20 +3,27 @@
  * testing: text PDFs, a photo-heavy PDF, and loose images.
  */
 import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
 import fontkitAdaptor from '@pdf-lib/fontkit';
 import sharp from 'sharp';
-import { resolveFontPath } from '../src/lib/fonts.ts';
 import type { FlowBlock } from '../src/lib/docmodel.ts';
-import { writeDocx, writePptx, writeXlsx } from '../src/lib/office.ts';
+
 import { ptToMm, writeOfd } from '../src/lib/ofd.ts';
 import { openRaster } from '../src/lib/render.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../../../samples');
-const FONT_PATH = resolveFontPath(null);
+// Mirrors the native engine's macOS CJK font preference order.
+const FONT_PATH = [
+  '/Library/Fonts/Arial Unicode.ttf',
+  '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+  '/System/Library/Fonts/STHeiti Light.ttc',
+  '/System/Library/Fonts/Hiragino Sans GB.ttc',
+  '/System/Library/Fonts/Supplemental/Songti.ttc',
+].find((candidate) => existsSync(candidate)) ?? null;
 
 function prng(seed: number) {
   let state = seed;
@@ -163,7 +170,7 @@ async function invoiceSamples(): Promise<void> {
 
 /** OFD/Markdown fixtures, written by the same code paths the tools use. */
 async function officeSamples(): Promise<void> {
-  const fontPath = resolveFontPath(null);
+  const fontPath = FONT_PATH;
   await write(
     'sample-office.ofd',
     await writeOfd({

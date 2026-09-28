@@ -147,69 +147,13 @@ export async function openRaster(bytes: Uint8Array, globals: JobGlobals = {}): P
         return null;
       }
     },
-    async inkRatio(page: number): Promise<number> {
-      const { getSharp } = await import('./images.ts');
-      const sharp = await getSharp();
-      const png = renderPng({ page, dpi: 36 });
-      if (!sharp) return png.byteLength > 2048 ? 1 : 0;
-      const { data } = await sharp(Buffer.from(png), { failOn: 'none' })
-        .grayscale()
-        .raw()
-        .toBuffer({ resolveWithObject: true });
-      let inked = 0;
-      for (let index = 0; index < data.length; index += 1) {
-        if (data[index]! < 246) inked += 1;
-      }
-      return data.length ? inked / data.length : 0;
+    async inkRatio(_page: number): Promise<number> {
+      // The sharp-based grayscale analysis was removed with the Node runtime;
+      // worker callers implement ink detection via MuPDF WASM instead.
+      throw new EngineError('unsupported', 'inkRatio requires the removed Node image runtime');
     },
-    async inkBounds(page: number) {
-      const box = handle.pageBox(page);
-      const dpi = 72;
-      const png = renderPng({ page, dpi });
-      const { getSharp } = await import('./images.ts');
-      const sharp = await getSharp();
-      if (!sharp) return null;
-      const { data, info } = await sharp(Buffer.from(png), { failOn: 'none' })
-        .grayscale()
-        .raw()
-        .toBuffer({ resolveWithObject: true });
-      // Derive the scale from the actual pixmap: clampFactor may have lowered the DPI.
-      const sx = box.width / info.width;
-      const sy = box.height / info.height;
-      let minX = info.width;
-      let maxX = -1;
-      let minY = info.height;
-      let maxY = -1;
-      for (let y = 0; y < info.height; y += 1) {
-        const row = y * info.width;
-        let left = -1;
-        for (let x = 0; x < info.width; x += 1) {
-          if (data[row + x]! < 246) {
-            left = x;
-            break;
-          }
-        }
-        if (left < 0) continue;
-        let right = left;
-        for (let x = info.width - 1; x > left; x -= 1) {
-          if (data[row + x]! < 246) {
-            right = x;
-            break;
-          }
-        }
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-        if (left < minX) minX = left;
-        if (right > maxX) maxX = right;
-      }
-      if (maxX < 0) return null;
-      // One pixel of slack absorbs anti-aliasing at this resolution.
-      const x = Math.max(0, (minX - 1) * sx);
-      const top = Math.max(0, (minY - 1) * sy);
-      const width = Math.min(box.width - x, (maxX + 2) * sx - x);
-      const height = Math.min(box.height - top, (maxY + 2) * sy - top);
-      // PDF's origin is bottom-left, the raster's is top-left.
-      return { x, y: box.height - top - height, width, height };
+    async inkBounds(_page: number) {
+      throw new EngineError('unsupported', 'inkBounds requires the removed Node image runtime');
     },
     close: () => {
       // Drop references held by the document wrapper; MuPDF owns its WASM

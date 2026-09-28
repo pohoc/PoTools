@@ -1,6 +1,5 @@
 import type { PDFDocument } from 'pdf-lib';
 import type { JobGlobals } from '@potools/core';
-import { getSharp } from './images.ts';
 import { pageBoxOf, pageImageRects, toVisualRect, type Rect } from './pagedata.ts';
 import { normalizeAngle } from './pdf.ts';
 import { openRaster, type RasterHandle } from './render.ts';
@@ -255,33 +254,6 @@ export function toRows(page: StPage, columnGap: number): string[][] {
       cells.push(buffer.trim());
       return cells;
     });
-}
-
-/** Crops a visual-space box out of the rendered page. */
-export async function cropRegion(
-  raster: RasterHandle,
-  page: number,
-  box: Rect,
-  dpi: number,
-): Promise<Uint8Array | null> {
-  const sharp = await getSharp();
-  const pageBox = raster.pageBox(page);
-  const png = raster.renderPng({ page, dpi });
-  if (!png.length || !pageBox.width) return null;
-  if (!sharp) return null;
-  const meta = await sharp(Buffer.from(png)).metadata();
-  const scale = (meta.width || pageBox.width) / pageBox.width;
-  const left = clamp(box.x * scale, 0, (meta.width ?? 1) - 1);
-  const top = clamp(box.y * scale, 0, (meta.height ?? 1) - 1);
-  const width = clamp(box.w * scale, 1, (meta.width ?? 1) - left);
-  const height = clamp(box.h * scale, 1, (meta.height ?? 1) - top);
-  try {
-    return new Uint8Array(
-      await sharp(Buffer.from(png)).extract({ left, top, width, height }).png().toBuffer(),
-    );
-  } catch {
-    return null;
-  }
 }
 
 function clamp(value: number, min: number, max: number): number {
