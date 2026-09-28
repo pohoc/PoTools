@@ -3,12 +3,13 @@
  * asserts the artifacts on disk. Run after `make-samples`.
  */
 import { mkdtemp, mkdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import JSZip from 'jszip';
 import { PDFArray, PDFDocument, PDFName, PDFNumber } from 'pdf-lib';
-import type { FileRef, JobError, JobSnapshot, TempUsage, TextRunResult, ToolId } from '@potools/core';
+import type { FileRef, JobError, JobSnapshot, JobSummary, TempUsage, TextRunResult, ToolId } from '@potools/core';
 import { defaultOptions, TOOL_LIST } from '@potools/core';
 
 function formatKb(bytes: number): string {
@@ -17,6 +18,7 @@ function formatKb(bytes: number): string {
 import { createEngine, type Engine } from '../src/rpc.ts';
 import { DAY_MS, formatInZone, parseFlex, zonedParts } from '../src/tools/time-core.ts';
 import { openRaster } from '../src/lib/render.ts';
+import { canonicalArtifactDigest } from '../src/testing/canonical-artifact.ts';
 
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -26,6 +28,76 @@ const OUT_DIR = resolve(SAMPLES, 'out');
 const TERMINAL = new Set(['succeeded', 'failed', 'cancelled']);
 let counter = 0;
 const results: Array<{ name: string; ok: boolean; skipped?: boolean; detail: string }> = [];
+
+/**
+ * Golden capture (worker-only migration phase 0): records every tool.run reply
+ * and job artifact digest so the browser harness can diff against the Node
+ * oracle. Entries are keyed by tool + resolved inputs + options; the harness
+ * runs the whole suite twice and only keeps digests that reproduce.
+ */
+interface GoldenEntry {
+  kind: 'text' | 'job';
+  tool: string;
+  /** Replay inputs: text = { options, locale }; job = { files: [names], options }. */
+  inputs: Record<string, unknown>;
+  state?: string;
+  error?: { code: string; message: string } | null;
+  warnings: string[];
+  text?: string;
+  /** Captured minus outputBytes/sizeDeltaPercent: raw sizes vary with embedded timestamps. */
+  summary?: Omit<JobSummary, 'outputBytes' | 'sizeDeltaPercent'>;
+  artifacts?: Array<{ name: string; kind: string; sha256?: string }>;
+}
+const GOLDEN = new Map<string, GoldenEntry>();
+
+function goldenKey(prefix: string, tool: string, parts: unknown[]): string {
+  const digest = createHash('sha256').update(JSON.stringify(parts)).digest('hex').slice(0, 12);
+  return `${prefix}/${tool}/${digest}`;
+}
+
+function captureTextGolden(tool: string, options: Record<string, unknown>, locale: string, run: TextRun): void {
+  GOLDEN.set(goldenKey('tool.run', tool, [options, locale]), {
+    kind: 'text',
+    tool,
+    inputs: { options, locale },
+    error: run.error,
+    warnings: run.result?.warnings ?? [],
+    ...(run.result ? { text: run.result.text } : {}),
+  });
+}
+
+async function captureJobGolden(
+  tool: string,
+  files: FileRef[],
+  options: Record<string, unknown>,
+  job: JobSnapshot,
+): Promise<void> {
+  const artifacts: NonNullable<GoldenEntry['artifacts']> = [];
+  for (const artifact of job.artifacts) {
+    if (!artifact.path) continue;
+    const bytes = await readFileBuffer(artifact.path);
+    artifacts.push({
+      name: artifact.name,
+      kind: artifact.kind,
+      sha256: await canonicalArtifactDigest(bytes),
+    });
+  }
+  let stableSummary: GoldenEntry['summary'];
+  if (job.summary) {
+    const { outputBytes: _outputBytes, sizeDeltaPercent: _sizeDeltaPercent, ...rest } = job.summary;
+    stableSummary = rest;
+  }
+  GOLDEN.set(goldenKey('job', tool, [files.map((item) => item.name), options]), {
+    kind: 'job',
+    tool,
+    inputs: { files: files.map((item) => item.name), options },
+    state: job.progress.state,
+    error: job.error ? { code: job.error.code, message: job.error.message } : null,
+    warnings: job.warnings,
+    ...(job.summary ? { summary: stableSummary } : {}),
+    artifacts,
+  });
+}
 
 function file(name: string): FileRef {
   return { id: `${name}-${counter}`, name, path: resolve(SAMPLES, name) };
@@ -55,7 +127,9 @@ async function run(
     output: { dir: OUT_DIR },
   });
   void snapshot;
-  return settled;
+  const job = await settled;
+  await captureJobGolden(tool, files, options, job);
+  return job;
 }
 
 async function textOf(job: JobSnapshot): Promise<string> {
@@ -187,9 +261,12 @@ async function callText(
       options,
       globals: { locale },
     })) as TextRunResult;
+    captureTextGolden(tool, options, locale, { result, error: null });
     return { result, error: null };
   } catch (error) {
-    return { result: null, error: asJobError(error) };
+    const errorReply = asJobError(error);
+    captureTextGolden(tool, options, locale, { result: null, error: errorReply });
+    return { result: null, error: errorReply };
   }
 }
 
@@ -270,12 +347,10 @@ async function readFileBuffer(path: string): Promise<Uint8Array> {
   return new Uint8Array(await readFile(path));
 }
 
-async function main(): Promise<void> {
-  const engine = await createEngine({ concurrency: 1 });
-  const info = engine.info();
-  process.stdout.write(
-    `engine ${info.version} node=${info.nodeVersion} raster=${info.features.rasterizer} codec=${info.features.imageCodec} font=${info.features.cjkFont ? 'ok' : 'none'}\n\n`,
-  );
+async function runAllChecks(engine: Engine): Promise<void> {
+  counter = 0;
+  results.length = 0;
+  GOLDEN.clear();
 
   const a = file('sample-a.pdf');
   const b = file('sample-b.pdf');
@@ -1579,6 +1654,21 @@ async function main(): Promise<void> {
     record(`coverage ${byId.get(id)?.id ?? id}`.slice(0, 40), ok, detail);
   }
 
+}
+
+function snapshotGolden(): Record<string, GoldenEntry> {
+  return Object.fromEntries(GOLDEN);
+}
+
+async function main(): Promise<void> {
+  const engine = await createEngine({ concurrency: 1 });
+  const info = engine.info();
+  process.stdout.write(
+    `engine ${info.version} node=${info.nodeVersion} raster=${info.features.rasterizer} codec=${info.features.imageCodec} font=${info.features.cjkFont ? 'ok' : 'none'}\n\n`,
+  );
+
+  await runAllChecks(engine);
+
   const failed = results.filter((item) => !item.ok && !item.skipped);
   const skipped = results.filter((item) => item.skipped).length;
   process.stdout.write(`\n${results.length - failed.length - skipped}/${results.length} checks passed${skipped ? `, ${skipped} skipped` : ''}\n`);
@@ -1586,6 +1676,22 @@ async function main(): Promise<void> {
     process.stdout.write(`failures:\n${failed.map((item) => `  - ${item.name}: ${item.detail}`).join('\n')}\n`);
     process.exitCode = 1;
   }
+
+  const goldenIndex = process.argv.indexOf('--golden-out');
+  const goldenPath = goldenIndex >= 0 ? process.argv[goldenIndex + 1] : undefined;
+  if (goldenPath) {
+    const target = resolve(goldenPath);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, `${JSON.stringify({
+      capturedAt: new Date().toISOString().slice(0, 10),
+      node: process.version,
+      engine: info.version,
+      entries: snapshotGolden(),
+      manifest: results,
+    }, null, 2)}\n`);
+    process.stdout.write(`golden capture: ${GOLDEN.size} entries -> ${target}\n`);
+  }
+
   await rm(OUT_DIR, { recursive: true, force: true });
   await Promise.all(['corrupt.pdf', 'truncated.pdf'].map((name) => rm(resolve(SAMPLES, name), { force: true })));
   process.stdout.write('temporary test output and damage fixtures cleaned\n');

@@ -23,6 +23,7 @@
     "selfcheck": "tsx src/index.ts selfcheck",
     "samples": "tsx scripts/make-samples.ts",
     "test:tools": "tsx scripts/run-tools.ts",
+    "test:golden": "tsx scripts/run-tools.ts --golden-out testdata/golden-pass1.json && tsx scripts/run-tools.ts --golden-out testdata/golden-pass2.json && node scripts/merge-golden.mjs testdata/golden-pass1.json testdata/golden-pass2.json testdata/golden-node.json",
     "check:catalog": "tsx scripts/catalog-health.ts"
   },
   "dependencies": {
