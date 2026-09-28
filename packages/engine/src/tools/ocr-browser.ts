@@ -1,7 +1,7 @@
 import { PaddleOcrService } from 'paddleocr';
 import * as ort from 'onnxruntime-web/wasm';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import detectionModelUrl from '../../ocr-models/PP-OCRv6_small_det_infer.onnx?url';
 import recognitionModelUrl from '../../ocr-models/PP-OCRv6_small_rec_infer.onnx?url';
 import wasmUrl from '../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm?url';

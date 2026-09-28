@@ -1,7 +1,6 @@
 import { PROTOCOL_VERSION, TOOL_LIST, type DirListing, type EngineEvent, type EngineInfo, type FileRef, type InvoiceScanEntry, type InvoiceScanResult, type JobRequest, type JobSnapshot, type RpcMethodName } from 'core';
 import type { ResolvedInput } from '@potools/engine/browser';
-import { canRunEmbeddedRpc } from '@potools/engine/browser-capabilities';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { engineBridge, isTauri } from './tauri.ts';
 import { callEmbeddedRpc, cancelEmbeddedFileJob } from './embedded-engine.ts';
 
@@ -331,7 +330,7 @@ class TauriTransport extends BaseTransport {
   }
 
   private async tryEmbeddedFileRpc<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<{ handled: boolean; result?: T }> {
-    if (!canRunEmbeddedRpc({ method, params }) || !params.file || typeof params.file !== 'object') return { handled: false };
+    if (!params.file || typeof params.file !== 'object') return { handled: false };
     try {
       const input = await this.resolveInput(params.file as FileRef);
       const workerParams = method === 'page.thumbs' ? { ...params, workerSrc: pdfWorkerUrl } : params;
@@ -581,7 +580,7 @@ class TauriTransport extends BaseTransport {
       });
     }
     if (method === 'job.list' && !this.sidecarReady) return [...this.embeddedJobs.values()] as T;
-    if (method === 'tool.run' && canRunEmbeddedRpc({ method, params })) {
+    if (method === 'tool.run') {
       const tool = String(params.tool ?? '');
       let runtimeData: Record<string, unknown> | undefined;
       if (tool === 'dns-lookup') {
@@ -623,7 +622,7 @@ class TauriTransport extends BaseTransport {
       if (embedded.handled) return embedded.result as T;
     }
     if (method === 'job.submit' && params.job && typeof params.job === 'object') {
-      if (canRunEmbeddedRpc({ method, params })) return this.submitEmbeddedJob<T>(params.job as JobRequest);
+      return this.submitEmbeddedJob<T>(params.job as JobRequest);
     }
     if (method === 'job.cancel') {
       const jobId = String(params.jobId ?? '');

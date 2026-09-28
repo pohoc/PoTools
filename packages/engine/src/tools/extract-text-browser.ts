@@ -1,6 +1,6 @@
 import { parsePageRanges } from '@potools/core';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { EngineError } from '../errors.ts';
 import { InMemoryFallback } from '../lib/memory-job.ts';
 import { baseName } from '../lib/naming.ts';

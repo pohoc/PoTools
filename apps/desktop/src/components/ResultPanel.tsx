@@ -3,7 +3,7 @@ import type { JobSnapshot, OutputFile, TextRunResult } from 'core';
 import { FileViewer } from '@open-file-viewer/react';
 import { imagePlugin, officePlugin, pdfPlugin, textPlugin } from '@open-file-viewer/core';
 import '@open-file-viewer/core/style.css';
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { TOOLS } from 'core';
 import type { FileRef, PageThumb } from 'core';
 import {
