@@ -18,6 +18,10 @@
     ]
   },
   "bundle": {
-    "licenseFile": null
+    "licenseFile": null,
+    "resources": {
+      "./resources/localization/en.lproj/Localizable.strings": "en.lproj/",
+      "./resources/localization/zh-Hans.lproj/Localizable.strings": "zh-Hans.lproj/"
+    }
   }
 }

@@ -1,0 +1,4 @@
+/*
+  PoTools declares this localization so macOS renders system panels
+  (open/save dialogs) in the matching language.
+*/
