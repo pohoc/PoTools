@@ -1,6 +1,8 @@
 import type { JobRequest } from 'core';
 import type { ResolvedInput } from './engine-types.ts';
 import { engineBridge } from './tauri.ts';
+import { isTauri } from './tauri.ts';
+import { bundledSystemFonts } from './font-access.ts';
 import { relativeAssetPath } from './transport-shared.ts';
 
 let fontCandidates: Promise<string[]> | null = null;
@@ -13,6 +15,10 @@ async function readFileBinary(bridge: Awaited<ReturnType<typeof engineBridge>>, 
 }
 
 export async function systemFontRuntimeData(explicitPath?: string | null): Promise<Record<string, unknown>> {
+  if (!isTauri()) {
+    // Browser mode: the bundled Noto Sans SC covers CJK embedding.
+    return { systemFonts: await bundledSystemFonts() };
+  }
   try {
     const bridge = await engineBridge();
     fontCandidates ??= bridge.invoke<string[]>('system_font_candidates').catch(() => []);
@@ -50,8 +56,13 @@ export function markupNeedsUnicodeFont(request: JobRequest, inputs: ResolvedInpu
 }
 
 export async function markdownRuntimeData(request: JobRequest, inputs: ResolvedInput[]): Promise<Record<string, unknown>> {
-  const bridge = await engineBridge();
   const runtimeData: Record<string, unknown> = {};
+  if (!isTauri()) {
+    const fonts = await bundledSystemFonts();
+    if (fonts.length) runtimeData.systemFonts = fonts;
+    return runtimeData;
+  }
+  const bridge = await engineBridge();
   const fontPath = request.globals?.fontPath;
   if (fontPath) {
     try {

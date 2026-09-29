@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, Link } from 'react-router-dom';
 import type { JobSnapshot, ToolDescriptor, ToolId } from 'core';
 import { TOOLS } from '../lib/core-bindings.ts';
+import { browserRunBlocker } from '../lib/browser-limits.ts';
 import { Button, Section, Badge, Card, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@potools/ui';
 import { DropZone } from '../components/DropZone.tsx';
 import { ColorPickerPanel } from '../components/ColorPickerPanel.tsx';
@@ -107,10 +108,13 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   }, [descriptor.layout, draft.options, total]);
 
   const optionsValid = areOptionsValid(descriptor.fields, draft.options);
-  const canRun = !draft.running && (!needsFiles || draft.files.length > 0) && status === 'ready' && optionsValid && (!organizer || slots.length > 0) && (!imageStudio || preparedPortrait !== null);
+  const browserBlocker = useMemo(() => browserRunBlocker(descriptor.id), [descriptor.id]);
+  const canRun = !draft.running && !browserBlocker && (!needsFiles || draft.files.length > 0) && status === 'ready' && optionsValid && (!organizer || slots.length > 0) && (!imageStudio || preparedPortrait !== null);
   const runDisabledReason = draft.running
     ? null
-    : status !== 'ready'
+    : browserBlocker
+      ? t(browserBlocker)
+      : status !== 'ready'
       ? t('run.disabled.engine')
       : needsFiles && draft.files.length === 0
         ? t('run.needsFiles')

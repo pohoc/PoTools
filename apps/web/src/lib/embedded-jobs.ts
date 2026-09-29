@@ -357,10 +357,13 @@ export class EmbeddedJobRunner {
       if (!result?.snapshot) return;
       const final = result.snapshot;
       if (final.progress.state === 'succeeded') {
+        // Browser mode keeps artifacts in memory (download/另存为 fall back
+        // to bytes); staging to the temp dir needs the Tauri bridge.
+        const artifacts = result.artifacts ?? [];
+        if (isTauri()) {
         const bridge = await engineBridge();
         const runtime = await this.host.ensureRuntime();
         const tempRoot = this.host.tempDir() ?? runtime.defaultTempDir;
-        const artifacts = result.artifacts ?? [];
         for (let index = 0; index < artifacts.length; index += 1) {
           const artifact = artifacts[index];
           const snapshotArtifact = final.artifacts[index];
@@ -382,6 +385,16 @@ export class EmbeddedJobRunner {
           snapshotArtifact.path = staged.outputPath ?? staged.stagedPath;
           this.artifactPaths.set(`${request.id}:${snapshotArtifact.id}`, staged.stagedPath);
           this.artifactRoots.set(`${request.id}:${snapshotArtifact.id}`, tempRoot);
+        }
+        } else {
+          // Browser mode: keep bytes with the snapshot so 下载 and previews
+          // work without the Tauri bridge.
+          for (let index = 0; index < artifacts.length; index += 1) {
+            const snapshotArtifact = final.artifacts[index];
+            const artifact = artifacts[index];
+            if (!artifact || !snapshotArtifact) continue;
+            snapshotArtifact.dataBase64 = encodeBase64(artifact.bytes);
+          }
         }
       }
       this.publish(final);

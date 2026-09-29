@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Input as HeroInput } from '@potools/ui';
 import type { ToolCategory, ToolDescriptor, ToolFormat } from 'core';
 import { TOOL_LIST } from '../lib/core-bindings.ts';
+import { isDesktopOnlyTool } from '../lib/browser-limits.ts';
 import { Card, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { useEngine } from '../stores/engine.ts';
@@ -186,23 +187,37 @@ function classifyTool(tool: ToolDescriptor): ToolLibraryCategory {
 
 function ToolCard({ tool }: { tool: ToolDescriptor }) {
   const { t } = useI18n();
+  const desktopOnly = isDesktopOnlyTool(tool.id);
+  const cardInner = (
+    <>
+      <span className="flex w-full min-w-0 items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-line bg-canvas text-muted transition group-hover:border-accent/25 group-hover:text-accent"><Icon name={tool.icon} size={17} /></span>
+        <span className="min-w-0 flex-1 pt-0.5">
+          <span className="block whitespace-normal break-words text-[13px] font-semibold leading-5 text-ink">{t(tool.nameKey)}</span>
+          {desktopOnly ? <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-faint/40 bg-surface px-1.5 py-0.5 text-[9.5px] leading-3 text-muted">{t('home.badge.desktopOnly')}</span> : null}
+          {tool.networkAccess ? <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-warn/35 bg-warn/10 px-1.5 py-0.5 text-[9.5px] leading-3 text-warn"><Icon name="globe" size={10} />{t(`network.access.${tool.networkAccess}`)}</span> : null}
+          <span className="mt-1 block whitespace-normal break-words text-[11.5px] leading-[1.55] text-muted">{t(tool.descKey)}</span>
+        </span>
+        <Icon name="chevronRight" size={15} className="mt-1 shrink-0 text-faint transition group-hover:translate-x-0.5 group-hover:text-accent" />
+      </span>
+      <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-line/70 pt-2.5">
+        <FormatBadges label={t('home.input')} formats={tool.inputFormats} />
+        <Icon name="chevronRight" size={11} className="shrink-0 text-faint" />
+        <FormatBadges label={t('home.output')} formats={tool.outputFormats} />
+      </div>
+    </>
+  );
+  if (desktopOnly) {
+    return (
+      <Card className="group min-w-0 overflow-hidden opacity-60" title={t('home.badge.desktopOnlyTitle')}>
+        <div aria-disabled className="flex h-full min-w-0 cursor-not-allowed flex-col p-3.5">{cardInner}</div>
+      </Card>
+    );
+  }
   return (
     <Card className="group min-w-0 overflow-hidden transition hover:border-accent/35 hover:shadow-pop">
       <Link to={`/tool/${tool.id}`} className="flex h-full min-w-0 flex-col bg-transparent p-3.5 text-left outline-none transition active:bg-transparent focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
-        <span className="flex w-full min-w-0 items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-line bg-canvas text-muted transition group-hover:border-accent/25 group-hover:text-accent"><Icon name={tool.icon} size={17} /></span>
-          <span className="min-w-0 flex-1 pt-0.5">
-            <span className="block whitespace-normal break-words text-[13px] font-semibold leading-5 text-ink">{t(tool.nameKey)}</span>
-            {tool.networkAccess ? <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-warn/35 bg-warn/10 px-1.5 py-0.5 text-[9.5px] leading-3 text-warn"><Icon name="globe" size={10} />{t(`network.access.${tool.networkAccess}`)}</span> : null}
-            <span className="mt-1 block whitespace-normal break-words text-[11.5px] leading-[1.55] text-muted">{t(tool.descKey)}</span>
-          </span>
-          <Icon name="chevronRight" size={15} className="mt-1 shrink-0 text-faint transition group-hover:translate-x-0.5 group-hover:text-accent" />
-        </span>
-        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 border-t border-line/70 pt-2.5">
-          <FormatBadges label={t('home.input')} formats={tool.inputFormats} />
-          <Icon name="chevronRight" size={11} className="shrink-0 text-faint" />
-          <FormatBadges label={t('home.output')} formats={tool.outputFormats} />
-        </div>
+        {cardInner}
       </Link>
     </Card>
   );

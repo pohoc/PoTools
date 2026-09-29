@@ -128,6 +128,11 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
               {t('result.saveAllTo')}
             </Button>
           ) : null}
+          {onRetry ? (
+            <Button size="sm" variant="ghost" icon="reset" onClick={onRetry}>
+              {t('result.rerun')}
+            </Button>
+          ) : null}
           {job.finishedAt ? (
             <span className="text-[11.5px] text-faint">{formatDuration(job.finishedAt - job.createdAt)}</span>
           ) : null}
@@ -197,7 +202,7 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
               key={artifact.id}
               className="group flex items-center gap-2.5 rounded-control border border-line bg-surface px-2.5 py-2"
             >
-              {artifact.kind === 'image' ? <OutputImagePreview jobId={job.id} artifact={artifact} /> : null}
+              {artifact.kind === 'image' || artifact.kind === 'pdf' ? <OutputArtifactPreview jobId={job.id} artifact={artifact} /> : null}
               <Icon name={kindIcon(artifact)} size={15} className="shrink-0 text-faint" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[12.5px] leading-5 text-ink" title={artifact.path ?? artifact.name}>
@@ -535,7 +540,7 @@ function PasswordValueRow({ index, value }: { index: number; value: string }) {
   );
 }
 
-function OutputImagePreview({
+function OutputArtifactPreview({
   jobId,
   artifact,
 }: {

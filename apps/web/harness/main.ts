@@ -4,7 +4,7 @@
  * `run-browser-golden.mts` drives it through Playwright and diffs replies
  * against the Node-captured golden file.
  */
-import { defaultOptions } from 'core';
+import { defaultOptions } from '../src/lib/core-bindings.ts';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { canonicalArtifactDigest } from './canonical-artifact.ts';
 import { ensureRustCore } from '../src/lib/rust-core.ts';
