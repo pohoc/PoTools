@@ -4,6 +4,7 @@ import { ensureRustCore } from './rust-core.ts';
 import { renderPageThumbs } from './page-thumbs.ts';
 import { runPageImagesJob } from './page-images.ts';
 import { runOcrJob } from './ocr-recognition.ts';
+import { buildConvertRuntimeData, CONVERSION_TOOLS } from './pdf-convert-runtime.ts';
 import type { EmbeddedRpcRequest, InMemoryJobResult, ResolvedInput } from './engine-types.ts';
 
 interface RequestMessage {
@@ -100,7 +101,7 @@ async function runRustTextTool(id: number, request: EmbeddedRpcRequest, runtimeD
   return true;
 }
 
-async function runRustFileJob(id: number, job: JobRequest, inputs: ResolvedInput[], runtimeData?: Record<string, unknown>): Promise<boolean> {
+async function runRustFileJob(id: number, job: JobRequest, inputs: ResolvedInput[], runtimeData?: Record<string, unknown>, preparePercent = 1): Promise<boolean> {
   await ensureRustWasm();
   const createdAt = job.createdAt ?? Date.now();
   worker.postMessage({
@@ -111,7 +112,7 @@ async function runRustFileJob(id: number, job: JobRequest, inputs: ResolvedInput
       label: job.label,
       fileNames: inputs.map((input) => input.name),
       createdAt,
-      progress: { state: 'running', percent: 1, phase: 'prepare' },
+      progress: { state: 'running', percent: preparePercent, phase: 'prepare' },
       artifacts: [],
       warnings: [],
     } satisfies JobSnapshot,
@@ -192,6 +193,50 @@ async function runRustFileJob(id: number, job: JobRequest, inputs: ResolvedInput
   return true;
 }
 
+/**
+ * Browser adapter for conversion tools: builds the PDF.js runtimeData the
+ * Rust runners consume (text runs, region crops, full-page renders, OCR
+ * fallback text) through PDF.js + the shared PaddleOCR model, merges it over
+ * the host-provided runtimeData (fonts/assets), then dispatches to Rust.
+ * Preparation failures (encrypted/unreadable documents) fail the job with
+ * the same codes the established adapters use.
+ */
+async function runConversionJob(id: number, job: JobRequest, inputs: ResolvedInput[], hostData: Record<string, unknown> | undefined): Promise<boolean> {
+  if (!CONVERSION_TOOLS.has(job.tool)) return false;
+  const base = {
+    id: job.id,
+    tool: job.tool,
+    label: job.label,
+    fileNames: inputs.map((input) => input.name),
+    createdAt: job.createdAt ?? Date.now(),
+  };
+  let runtimeData = hostData;
+  let lastPercent = 1;
+  try {
+    const built = await buildConvertRuntimeData(job, inputs, (percent, phase) => {
+      lastPercent = Math.max(lastPercent, percent);
+      worker.postMessage({
+        id,
+        progress: { ...base, artifacts: [], warnings: [], progress: { state: 'running', percent, phase } } satisfies JobSnapshot,
+      });
+    });
+    if (built) runtimeData = { ...(hostData ?? {}), ...built };
+  } catch (error) {
+    const issue = error as Error & { code?: string };
+    const snapshot: JobSnapshot = {
+      ...base,
+      artifacts: [],
+      warnings: [],
+      finishedAt: Date.now(),
+      progress: { state: 'failed', percent: 1 },
+      error: { code: issue.code ?? 'unreadable_file', message: issue.message || String(error) },
+    };
+    worker.postMessage({ id, handled: true, jobResult: { handled: true, snapshot, artifacts: [] } });
+    return true;
+  }
+  return runRustFileJob(id, job, inputs, runtimeData, lastPercent);
+}
+
 /** Browser adapter fallback for tools the Rust engine does not handle (e.g. `pdf-to-images`). */
 async function runPageImagesJobRpc(id: number, job: JobRequest, inputs: ResolvedInput[]): Promise<boolean> {
   if (job.tool !== 'pdf-to-images') return false;
@@ -260,6 +305,7 @@ worker.onmessage = async ({ data }) => {
     if (data.rpc.method === 'job.submit') {
       const request = data.rpc.params.job as JobRequest | undefined;
       if (request && data.inputs) {
+        if (await runConversionJob(data.id, request, data.inputs, data.runtimeData)) return;
         if (await runRustFileJob(data.id, request, data.inputs, data.runtimeData)) return;
         if (await runPageImagesJobRpc(data.id, request, data.inputs)) return;
         if (await runOcrJobRpc(data.id, request, data.inputs)) return;

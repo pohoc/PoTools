@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Icon, Input, Section } from '@potools/ui';
-import { assessPasswordStrength } from 'core';
+import { assessPasswordStrength } from '../lib/core-bindings.ts';
 import type { PasswordStrengthTip } from 'core';
 import { useI18n } from '../i18n/index.tsx';
 

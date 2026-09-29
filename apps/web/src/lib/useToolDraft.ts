@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FieldValue, ProbedPdf, TextRunResult, ToolDescriptor } from 'core';
-import { defaultOptions } from 'core';
+import { defaultOptions } from './core-bindings.ts';
 import { useEngine, rpcErrorMessage } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { releasePickedFileBytes, toFileRef, type PickedFile } from '../lib/files.ts';

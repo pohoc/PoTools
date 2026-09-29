@@ -1,5 +1,5 @@
 import type { JobSnapshot } from 'core';
-import { TOOLS } from 'core';
+import { TOOLS } from '../lib/core-bindings.ts';
 import { Button, Card, EmptyState, Icon, ProgressBar, StateBadge } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { formatBytes, formatTime } from '../lib/format.ts';

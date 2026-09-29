@@ -10,7 +10,8 @@ import { transportMode, useEngine } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { useMediaQuery } from '../lib/useMediaQuery.ts';
 import { rowClass } from '../lib/rows.ts';
-import { TOOLS, type ToolId } from 'core';
+import type { ToolId } from 'core';
+import { TOOLS } from '../lib/core-bindings.ts';
 import { APP_VERSION } from '../lib/version.ts';
 
 const NAV = [

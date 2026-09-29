@@ -1,4 +1,5 @@
-import { PROTOCOL_VERSION, TOOL_LIST, type DirListing, type EngineInfo, type FileRef, type JobRequest, type JobSnapshot, type RpcMethodName } from 'core';
+import type { DirListing, EngineInfo, FileRef, JobRequest, JobSnapshot, RpcMethodName } from 'core';
+import { PROTOCOL_VERSION, TOOL_LIST } from './core-bindings.ts';
 import type { ResolvedInput } from './engine-types.ts';
 import { callEmbeddedRpc, configureEmbeddedWorkerPool, embeddedWorkerCount, shutdownEmbeddedWorkerPool } from './embedded-engine.ts';
 import { EmbeddedJobRunner, textToolRuntimeData } from './embedded-jobs.ts';
@@ -53,8 +54,9 @@ class TauriTransport extends BaseTransport {
       : { platform, defaultOutputDir: '', defaultTempDir: '' };
     this.jobs.configure(concurrency);
     configureEmbeddedWorkerPool(this.jobs.size);
-    // Real self-check values: the embedded Worker bundles MuPDF WASM (rasterizer),
-    // canvas codecs serve image transcoding, and host-discovered fonts cover CJK.
+    // Self-check values: page rendering is provided by the host adapter
+    // (PDF.js in the worker), canvas codecs serve image transcoding, and
+    // host-discovered fonts cover CJK.
     const fontCandidates = bridge
       ? await bridge.invoke<string[]>('system_font_candidates').catch(() => [] as string[])
       : [];
@@ -69,7 +71,7 @@ class TauriTransport extends BaseTransport {
       tempDir: this.tempDir ?? host.defaultTempDir,
       defaultTempDir: host.defaultTempDir,
       features: {
-        rasterizer: 'mupdf',
+        rasterizer: 'host',
         imageCodec: typeof OffscreenCanvas !== 'undefined' && typeof createImageBitmap === 'function',
         cjkFont: fontCandidates[0]?.split(/[\\/]/).pop() ?? null,
         busy: false,

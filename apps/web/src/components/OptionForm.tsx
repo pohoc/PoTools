@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { Icon, Input as HeroInput, Textarea as HeroTextarea } from '@potools/ui';
 import type { FieldValue, ToolField } from 'core';
-import { isValidPageRanges, visibleFields } from 'core';
+import { isValidPageRanges, visibleFields } from '../lib/core-bindings.ts';
 import { Button, Toggle } from '@potools/ui';
 import { CONTROL_CLASS } from '@potools/ui';
 import { Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Slider, Collapsible, CollapsibleContent, CollapsibleTrigger } from '@potools/ui';

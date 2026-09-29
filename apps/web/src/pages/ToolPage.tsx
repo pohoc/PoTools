@@ -2,7 +2,7 @@ import { Icon } from '@potools/ui';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, Link } from 'react-router-dom';
 import type { JobSnapshot, ToolDescriptor, ToolId } from 'core';
-import { TOOLS } from 'core';
+import { TOOLS } from '../lib/core-bindings.ts';
 import { Button, Section, Badge, Card, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@potools/ui';
 import { DropZone } from '../components/DropZone.tsx';
 import { ColorPickerPanel } from '../components/ColorPickerPanel.tsx';
@@ -555,7 +555,7 @@ function shorten(path: string): string {
 }
 
 function describeError(raw: string, t: (key: string) => string): string {
-  const known = ['error.encrypted', 'error.unreadable', 'error.noFont', 'error.noRasterizer', 'error.noImageCodec', 'error.ocrModelMissing', 'error.ocrInit'];
+  const known = ['error.encrypted', 'error.unreadable', 'error.noRasterizer', 'error.notMarkdown', 'error.notOfd', 'error.badRange', 'error.noTable', 'error.emptySelection', 'error.ocrInit'];
   if (known.includes(raw)) return t(raw);
   return raw;
 }

@@ -4,7 +4,7 @@ import { FileViewer } from '@open-file-viewer/react';
 import { imagePlugin, officePlugin, pdfPlugin, textPlugin } from '@open-file-viewer/core';
 import '@open-file-viewer/core/style.css';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
-import { TOOLS } from 'core';
+import { TOOLS } from '../lib/core-bindings.ts';
 import type { FileRef, PageThumb } from 'core';
 import {
   Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,

@@ -7,7 +7,7 @@
     "types": ["vite/client", "node"],
     "allowImportingTsExtensions": true,
     "paths": {
-      "core": ["../../packages/core/src/index.ts"]
+      "core": ["./src/lib/core-contract.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

@@ -1,6 +1,4 @@
-/** Wire protocol shared by the UI, the Node sidecar and the Tauri host. */
-
-export const PROTOCOL_VERSION = 1;
+/** TypeScript wire shapes shared by the Web UI and Tauri host; Rust Core owns protocol behavior. */
 
 export type ToolId =
   | 'merge'
@@ -270,7 +268,7 @@ export interface EngineInfo {
   defaultTempDir: string;
   /** Feature flags the UI uses to enable or degrade tools. */
   features: {
-    rasterizer: 'mupdf' | 'none';
+    rasterizer: 'host' | 'none';
     imageCodec: boolean;
     cjkFont: string | null;
     busy: boolean;

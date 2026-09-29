@@ -2,12 +2,8 @@ import { Icon } from '@potools/ui';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Input as HeroInput } from '@potools/ui';
-import {
-  TOOL_LIST,
-  type ToolCategory,
-  type ToolDescriptor,
-  type ToolFormat,
-} from 'core';
+import type { ToolCategory, ToolDescriptor, ToolFormat } from 'core';
+import { TOOL_LIST } from '../lib/core-bindings.ts';
 import { Card, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Button } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { useEngine } from '../stores/engine.ts';

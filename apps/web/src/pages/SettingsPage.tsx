@@ -520,7 +520,7 @@ function EngineTab() {
   const reconnect = useEngine((state) => state.reconnect);
 
   const fontPath = info?.features.cjkFont ?? null;
-  const rasterOk = info?.features.rasterizer === 'mupdf';
+  const rasterOk = info?.features.rasterizer === 'host';
   const codecOk = Boolean(info?.features.imageCodec);
   const platform =
     info?.platform === 'darwin' ? 'macOS' : info?.platform === 'win32' ? 'Windows' : info?.platform ?? '—';
@@ -565,10 +565,10 @@ function EngineTab() {
       <Group title={t('settings.engineCapabilities')}>
         <dl className="flex min-w-0 flex-col">
           <DefinitionRow term={t('settings.rasterizer')} tone={rasterOk ? 'ok' : 'warn'}>
-            {rasterOk ? t('settings.engineRaster.mupdf') : t('settings.engineRaster.none')}
+            {rasterOk ? t('settings.engineRaster.host') : t('settings.engineRaster.none')}
           </DefinitionRow>
           <DefinitionRow term={t('settings.imageCodec')} tone={codecOk ? 'ok' : 'warn'}>
-            {codecOk ? t('settings.engineCodec.sharp') : t('settings.engineCodec.none')}
+            {codecOk ? t('settings.engineCodec.ok') : t('settings.engineCodec.none')}
           </DefinitionRow>
           <DefinitionRow term={t('settings.detectedFont')} tone={fontPath ? 'ok' : 'warn'}>
             {fontPath ? t('settings.engineFont.ok') : t('settings.engineFont.none')}

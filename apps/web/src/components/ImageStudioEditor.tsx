@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getIdPhotoPrintSize, getIdPhotoSize, type FieldValue, type ToolId } from 'core';
+import type { FieldValue, ToolId } from 'core';
+import { getIdPhotoPrintSize, getIdPhotoSize } from '../lib/core-bindings.ts';
 import { useI18n } from '../i18n/index.tsx';
 import { toFileRef, type PickedFile } from '../lib/files.ts';
 import { useEngine } from '../stores/engine.ts';

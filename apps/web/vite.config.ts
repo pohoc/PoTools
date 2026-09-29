@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      core: fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
+      core: fileURLToPath(new URL('./src/lib/core-contract.ts', import.meta.url)),
       '@napi-rs/canvas': fileURLToPath(new URL('./src/shims/optional-canvas.ts', import.meta.url)),
       '@napi-rs/canvas-darwin-x64': fileURLToPath(new URL('./src/shims/optional-canvas.ts', import.meta.url)),
     },
