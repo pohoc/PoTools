@@ -1,0 +1,533 @@
+[
+  {
+    "id": "json-format",
+    "nameKey": "tool.jsonFormat.name",
+    "descKey": "tool.jsonFormat.desc",
+    "category": "extract",
+    "icon": "braces",
+    "order": 700,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "json",
+    "keywords": [
+      "JSON",
+      "格式化",
+      "压缩",
+      "pretty",
+      "minify"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "{\n  \"hello\": \"world\"\n}",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.dev.mode",
+        "default": "pretty",
+        "options": [
+          {
+            "value": "pretty",
+            "labelKey": "opt.dev.mode.pretty"
+          },
+          {
+            "value": "minify",
+            "labelKey": "opt.dev.mode.minify"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "indent",
+        "labelKey": "opt.dev.indent",
+        "default": 2,
+        "min": 1,
+        "max": 8,
+        "step": 1,
+        "suffixKey": "opt.dev.spaces"
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "json"
+    ]
+  },
+  {
+    "id": "xml-format",
+    "nameKey": "tool.xmlFormat.name",
+    "descKey": "tool.xmlFormat.desc",
+    "category": "extract",
+    "icon": "code",
+    "order": 710,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "XML",
+      "格式化",
+      "压缩",
+      "pretty",
+      "minify"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "<root><item>value</item></root>",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.dev.mode",
+        "default": "pretty",
+        "options": [
+          {
+            "value": "pretty",
+            "labelKey": "opt.dev.mode.pretty"
+          },
+          {
+            "value": "minify",
+            "labelKey": "opt.dev.mode.minify"
+          }
+        ]
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "xml-json",
+    "nameKey": "tool.xmlJson.name",
+    "descKey": "tool.xmlJson.desc",
+    "category": "extract",
+    "icon": "code",
+    "order": 720,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "XML",
+      "JSON",
+      "互转",
+      "convert"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "<root><item>value</item></root>",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "direction",
+        "labelKey": "opt.dev.direction",
+        "default": "xml-json",
+        "options": [
+          {
+            "value": "xml-json",
+            "labelKey": "opt.dev.direction.xml-json"
+          },
+          {
+            "value": "json-xml",
+            "labelKey": "opt.dev.direction.json-xml"
+          }
+        ]
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "yaml-json",
+    "nameKey": "tool.yamlJson.name",
+    "descKey": "tool.yamlJson.desc",
+    "category": "extract",
+    "icon": "code",
+    "order": 725,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "YAML",
+      "JSON",
+      "互转",
+      "convert"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "name: PoTools\nversion: 1",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "direction",
+        "labelKey": "opt.dev.direction",
+        "default": "yaml-json",
+        "options": [
+          {
+            "value": "yaml-json",
+            "labelKey": "opt.dev.direction.yaml-json"
+          },
+          {
+            "value": "json-yaml",
+            "labelKey": "opt.dev.direction.json-yaml"
+          }
+        ]
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "regex-test",
+    "nameKey": "tool.regexTest.name",
+    "descKey": "tool.regexTest.desc",
+    "category": "extract",
+    "icon": "search",
+    "order": 728,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "正则",
+      "Regex",
+      "RegExp",
+      "匹配",
+      "替换"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "pattern",
+        "labelKey": "opt.dev.pattern",
+        "default": "\\b\\w+\\b",
+        "mono": true,
+        "required": true
+      },
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "Test a regular expression against this text.",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "text",
+        "key": "flags",
+        "labelKey": "opt.dev.flags",
+        "default": "g",
+        "mono": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.dev.mode",
+        "default": "test",
+        "options": [
+          {
+            "value": "test",
+            "labelKey": "opt.dev.mode.test"
+          },
+          {
+            "value": "replace",
+            "labelKey": "opt.dev.mode.replace"
+          }
+        ]
+      },
+      {
+        "type": "textarea",
+        "key": "replacement",
+        "labelKey": "opt.dev.replacement",
+        "default": "",
+        "rows": 3,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "replace"
+          ]
+        }
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "binary-codec",
+    "nameKey": "tool.binaryCodec.name",
+    "descKey": "tool.binaryCodec.desc",
+    "category": "extract",
+    "icon": "binary",
+    "order": 730,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "二进制",
+      "文本",
+      "binary",
+      "convert"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "Hello",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "direction",
+        "labelKey": "opt.dev.direction",
+        "default": "text-binary",
+        "options": [
+          {
+            "value": "text-binary",
+            "labelKey": "opt.dev.direction.text-binary"
+          },
+          {
+            "value": "binary-text",
+            "labelKey": "opt.dev.direction.binary-text"
+          }
+        ]
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "case-convert",
+    "nameKey": "tool.caseConvert.name",
+    "descKey": "tool.caseConvert.desc",
+    "category": "extract",
+    "icon": "case-sensitive",
+    "order": 740,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "大小写",
+      "命名转换",
+      "camelCase",
+      "snake_case",
+      "kebab-case"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "Hello world",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "style",
+        "labelKey": "opt.dev.style",
+        "default": "camel",
+        "options": [
+          {
+            "value": "upper",
+            "labelKey": "opt.dev.style.upper"
+          },
+          {
+            "value": "lower",
+            "labelKey": "opt.dev.style.lower"
+          },
+          {
+            "value": "title",
+            "labelKey": "opt.dev.style.title"
+          },
+          {
+            "value": "camel",
+            "labelKey": "opt.dev.style.camel"
+          },
+          {
+            "value": "pascal",
+            "labelKey": "opt.dev.style.pascal"
+          },
+          {
+            "value": "snake",
+            "labelKey": "opt.dev.style.snake"
+          },
+          {
+            "value": "kebab",
+            "labelKey": "opt.dev.style.kebab"
+          }
+        ]
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "color-convert",
+    "nameKey": "tool.colorConvert.name",
+    "descKey": "tool.colorConvert.desc",
+    "category": "extract",
+    "icon": "palette",
+    "order": 780,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "颜色",
+      "HEX",
+      "RGB",
+      "HSL",
+      "HWB",
+      "LCH",
+      "CMYK",
+      "色值"
+    ],
+    "fields": [
+      {
+        "type": "color",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "#111827"
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "robots-txt",
+    "nameKey": "tool.robotsTxt.name",
+    "descKey": "tool.robotsTxt.desc",
+    "category": "extract",
+    "icon": "file-text",
+    "order": 790,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "robots.txt",
+      "爬虫",
+      "搜索引擎",
+      "站长"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "userAgent",
+        "labelKey": "opt.dev.userAgent",
+        "default": "*",
+        "required": true
+      },
+      {
+        "type": "textarea",
+        "key": "allow",
+        "labelKey": "opt.dev.allow",
+        "default": "/",
+        "mono": true,
+        "rows": 2,
+        "required": true
+      },
+      {
+        "type": "textarea",
+        "key": "disallow",
+        "labelKey": "opt.dev.disallow",
+        "default": "/admin/\n/private/",
+        "mono": true,
+        "rows": 3,
+        "required": true
+      },
+      {
+        "type": "text",
+        "key": "sitemap",
+        "labelKey": "opt.dev.sitemap",
+        "default": "",
+        "placeholderKey": "opt.dev.sitemap.hint"
+      }
+    ],
+    "workflow": "developer",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  }
+]

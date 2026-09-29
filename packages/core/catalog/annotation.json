@@ -1,0 +1,487 @@
+[
+  {
+    "id": "watermark",
+    "nameKey": "tool.watermark.name",
+    "descKey": "tool.watermark.desc",
+    "category": "edit",
+    "icon": "droplets",
+    "order": 70,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "水印",
+      "watermark"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "text",
+        "labelKey": "opt.watermark.text",
+        "descriptionKey": "opt.watermark.text.hint",
+        "default": "机密文件",
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "position",
+        "labelKey": "opt.position",
+        "default": "center",
+        "options": [
+          {
+            "value": "top-left",
+            "labelKey": "layout.topLeft"
+          },
+          {
+            "value": "top-center",
+            "labelKey": "layout.topCenter"
+          },
+          {
+            "value": "top-right",
+            "labelKey": "layout.topRight"
+          },
+          {
+            "value": "middle-left",
+            "labelKey": "layout.middleLeft"
+          },
+          {
+            "value": "center",
+            "labelKey": "layout.center"
+          },
+          {
+            "value": "middle-right",
+            "labelKey": "layout.middleRight"
+          },
+          {
+            "value": "bottom-left",
+            "labelKey": "layout.bottomLeft"
+          },
+          {
+            "value": "bottom-center",
+            "labelKey": "layout.bottomCenter"
+          },
+          {
+            "value": "bottom-right",
+            "labelKey": "layout.bottomRight"
+          }
+        ],
+        "presentation": "position-grid",
+        "section": "layout"
+      },
+      {
+        "type": "slider",
+        "key": "fontSize",
+        "labelKey": "opt.fontSize",
+        "default": 48,
+        "min": 8,
+        "max": 200,
+        "step": 1,
+        "unit": "pt",
+        "presets": [
+          {
+            "value": 24,
+            "labelKey": "opt.fontSize.small"
+          },
+          {
+            "value": 48,
+            "labelKey": "opt.fontSize.standard"
+          },
+          {
+            "value": 72,
+            "labelKey": "opt.fontSize.large"
+          }
+        ],
+        "row": "c"
+      },
+      {
+        "type": "slider",
+        "key": "opacity",
+        "labelKey": "opt.opacity",
+        "default": 22,
+        "min": 3,
+        "max": 100,
+        "step": 1,
+        "unit": "percent",
+        "presets": [
+          {
+            "value": 12,
+            "labelKey": "opt.opacity.light"
+          },
+          {
+            "value": 22,
+            "labelKey": "opt.opacity.standard"
+          },
+          {
+            "value": 40,
+            "labelKey": "opt.opacity.strong"
+          }
+        ],
+        "row": "c"
+      },
+      {
+        "type": "slider",
+        "key": "rotation",
+        "labelKey": "opt.rotation",
+        "default": 45,
+        "min": -90,
+        "max": 90,
+        "step": 5,
+        "unit": "deg",
+        "row": "d"
+      },
+      {
+        "type": "color",
+        "key": "color",
+        "labelKey": "opt.color",
+        "default": "#6b7280",
+        "row": "d"
+      },
+      {
+        "type": "slider",
+        "key": "tileGap",
+        "labelKey": "opt.watermark.tileGap",
+        "descriptionKey": "opt.watermark.tileGap.hint",
+        "default": 60,
+        "min": 10,
+        "max": 300,
+        "step": 5,
+        "unit": "pt",
+        "showIf": {
+          "field": "position",
+          "in": [
+            "center"
+          ]
+        },
+        "section": "advanced"
+      },
+      {
+        "type": "boolean",
+        "key": "tiled",
+        "labelKey": "opt.watermark.tiled",
+        "default": false,
+        "section": "advanced"
+      },
+      {
+        "type": "select",
+        "key": "layer",
+        "labelKey": "opt.watermark.layer",
+        "default": "above",
+        "section": "advanced",
+        "options": [
+          {
+            "value": "above",
+            "labelKey": "opt.watermark.layerAbove"
+          },
+          {
+            "value": "below",
+            "labelKey": "opt.watermark.layerBelow"
+          }
+        ]
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "annotation",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "page-numbers",
+    "nameKey": "tool.pageNumbers.name",
+    "descKey": "tool.pageNumbers.desc",
+    "category": "edit",
+    "icon": "hash",
+    "order": 80,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "页码",
+      "number"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "position",
+        "labelKey": "opt.position",
+        "default": "bottom-center",
+        "options": [
+          {
+            "value": "top-left",
+            "labelKey": "layout.topLeft"
+          },
+          {
+            "value": "top-center",
+            "labelKey": "layout.topCenter"
+          },
+          {
+            "value": "top-right",
+            "labelKey": "layout.topRight"
+          },
+          {
+            "value": "middle-left",
+            "labelKey": "layout.middleLeft"
+          },
+          {
+            "value": "center",
+            "labelKey": "layout.center"
+          },
+          {
+            "value": "middle-right",
+            "labelKey": "layout.middleRight"
+          },
+          {
+            "value": "bottom-left",
+            "labelKey": "layout.bottomLeft"
+          },
+          {
+            "value": "bottom-center",
+            "labelKey": "layout.bottomCenter"
+          },
+          {
+            "value": "bottom-right",
+            "labelKey": "layout.bottomRight"
+          }
+        ],
+        "presentation": "position-grid",
+        "section": "layout",
+        "row": "a"
+      },
+      {
+        "type": "text",
+        "key": "format",
+        "labelKey": "opt.pageNumbers.format",
+        "descriptionKey": "opt.pageNumbers.format.hint",
+        "default": "{n} / {total}",
+        "maxLength": 40,
+        "row": "a"
+      },
+      {
+        "type": "number",
+        "key": "start",
+        "labelKey": "opt.pageNumbers.start",
+        "default": 1,
+        "min": 0,
+        "max": 9999,
+        "section": "layout",
+        "row": "b"
+      },
+      {
+        "type": "number",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 24,
+        "min": 4,
+        "max": 120,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "b"
+      },
+      {
+        "type": "slider",
+        "key": "fontSize",
+        "labelKey": "opt.fontSize",
+        "default": 11,
+        "min": 6,
+        "max": 48,
+        "step": 1,
+        "unit": "pt",
+        "presets": [
+          {
+            "value": 9,
+            "labelKey": "opt.fontSize.small"
+          },
+          {
+            "value": 11,
+            "labelKey": "opt.fontSize.standard"
+          },
+          {
+            "value": 14,
+            "labelKey": "opt.fontSize.large"
+          }
+        ],
+        "row": "c"
+      },
+      {
+        "type": "color",
+        "key": "color",
+        "labelKey": "opt.color",
+        "default": "#111827",
+        "row": "c"
+      },
+      {
+        "type": "boolean",
+        "key": "skipFirst",
+        "labelKey": "opt.pageNumbers.skipFirst",
+        "default": false,
+        "section": "advanced"
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "annotation",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "header-footer",
+    "nameKey": "tool.headerFooter.name",
+    "descKey": "tool.headerFooter.desc",
+    "category": "edit",
+    "icon": "type",
+    "order": 85,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "页眉",
+      "页脚",
+      "header",
+      "footer"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "header",
+        "labelKey": "opt.header.text",
+        "descriptionKey": "opt.header.text.hint",
+        "default": "",
+        "maxLength": 120,
+        "placeholderKey": "opt.text.optional"
+      },
+      {
+        "type": "text",
+        "key": "footer",
+        "labelKey": "opt.footer.text",
+        "descriptionKey": "opt.footer.text.hint",
+        "default": "{n} / {total}",
+        "maxLength": 120
+      },
+      {
+        "type": "select",
+        "key": "headerAlign",
+        "labelKey": "opt.header.align",
+        "default": "center",
+        "row": "h1",
+        "options": [
+          {
+            "value": "left",
+            "labelKey": "opt.align.left"
+          },
+          {
+            "value": "center",
+            "labelKey": "opt.align.center"
+          },
+          {
+            "value": "right",
+            "labelKey": "opt.align.right"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "footerAlign",
+        "labelKey": "opt.footer.align",
+        "default": "center",
+        "row": "h1",
+        "options": [
+          {
+            "value": "left",
+            "labelKey": "opt.align.left"
+          },
+          {
+            "value": "center",
+            "labelKey": "opt.align.center"
+          },
+          {
+            "value": "right",
+            "labelKey": "opt.align.right"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "fontSize",
+        "labelKey": "opt.fontSize",
+        "default": 10,
+        "min": 6,
+        "max": 28,
+        "step": 1,
+        "unit": "pt",
+        "presets": [
+          {
+            "value": 9,
+            "labelKey": "opt.fontSize.small"
+          },
+          {
+            "value": 10,
+            "labelKey": "opt.fontSize.standard"
+          },
+          {
+            "value": 12,
+            "labelKey": "opt.fontSize.large"
+          }
+        ],
+        "row": "h2"
+      },
+      {
+        "type": "number",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 24,
+        "min": 6,
+        "max": 90,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "row": "h2"
+      },
+      {
+        "type": "color",
+        "key": "color",
+        "labelKey": "opt.color",
+        "default": "#374151"
+      },
+      {
+        "type": "boolean",
+        "key": "skipFirst",
+        "labelKey": "opt.pageNumbers.skipFirst",
+        "default": false,
+        "section": "advanced"
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "annotation",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  }
+]

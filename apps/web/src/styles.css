@@ -1,0 +1,408 @@
+@import "@potools/ui/theme.css";
+
+/* App-layout extensions on top of the shared design tokens. */
+@theme {
+  --spacing-sidebar: 232px;
+  --spacing-titlebar: 42px;
+}
+
+/* The native app has one deliberate scroller (.app-main). Keep document
+   overflow clipped so a small layout rounding difference cannot add a second
+   scrollbar around the entire Tauri window. */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The desktop shell has three useful densities: a full navigation sidebar,
+   an icon rail for medium windows, and a labelled top bar for compact ones. */
+.app-titlebar {
+  min-height: var(--spacing-titlebar);
+}
+
+.app-sidebar {
+  min-width: 0;
+}
+
+.app-main {
+  min-width: 0;
+  background: rgb(var(--ui-canvas));
+}
+
+.page-frame {
+  padding-inline: 2px;
+}
+
+.page-header {
+  min-width: 0;
+}
+
+.tool-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tool-run-column {
+  min-width: 0;
+}
+
+.section-header {
+  min-width: 0;
+}
+
+.section-header > span {
+  min-width: 0;
+}
+
+.tool-input-section {
+  min-width: 0;
+}
+
+.tool-drop-zone:focus-visible {
+  outline: 2px solid rgb(var(--ui-accent) / 0.35);
+  outline-offset: 2px;
+}
+
+.tool-empty-result {
+  padding: var(--ui-space-8) var(--ui-space-4);
+}
+
+.tool-options-section {
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.tool-options-section > .flex.w-full {
+  width: 100%;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.tool-options-section > [data-slot="card-content"] {
+  width: 100%;
+  min-width: 0;
+}
+
+.tool-options-section .option-layout-stack > .grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Keep paired controls readable in the narrow options rail. Wide text-only
+   workspaces can still use a compact two-column row once there is room for
+   labels, controls and helper text without wrapping into a dense cluster. */
+@container (min-width: 520px) {
+  .tool-options-section .form-field-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .section-header {
+    flex-wrap: wrap;
+    row-gap: var(--ui-space-2);
+  }
+
+  .section-header > span {
+    margin-left: auto;
+  }
+
+  .tool-options-section > .flex.w-full {
+    flex-wrap: wrap;
+  }
+
+  .tool-options-section > .flex.w-full > span {
+    margin-left: auto;
+  }
+}
+
+/* On a stacked desktop window, keep the task's natural workflow visible:
+   choose files, configure, run, then inspect the result. The wide layout keeps
+   the input/result column and the sticky options rail side by side. */
+@media (max-width: 1199px) {
+  .tool-workspace-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tool-workspace-input-column,
+  .tool-run-column {
+    display: contents;
+  }
+
+  .tool-workspace-input-column > :not(.tool-result-panel) {
+    order: 1;
+  }
+
+  .tool-workspace-grid .tool-options-section {
+    width: 100%;
+    order: 2;
+  }
+
+  .tool-workspace-grid .tool-run-panel {
+    width: 100%;
+    order: 3;
+  }
+
+  .tool-workspace-grid .tool-result-panel {
+    width: 100%;
+    order: 4;
+  }
+
+  .tool-workspace-grid .tool-input-section {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .tool-workspace-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(420px, 0.78fr);
+  }
+
+  .tool-run-column {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell > .flex.min-h-0.flex-1 {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100% !important;
+    height: 53px;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid rgb(var(--ui-line));
+  }
+
+  .app-sidebar > nav {
+    min-width: 0;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 6px 8px;
+  }
+
+  .app-sidebar > nav > a {
+    width: auto;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    padding-inline: 12px;
+  }
+
+  .app-sidebar > nav > p,
+  .app-sidebar > div > p,
+  .app-sidebar .sidebar-copyright {
+    display: none;
+  }
+
+  .app-sidebar > div:last-child {
+    border-top: 0;
+    padding: 6px 8px;
+  }
+
+  .app-sidebar > div:last-child > div {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .app-sidebar > div:last-child a[title*="copyright"] {
+    display: none;
+  }
+
+  .app-main {
+    padding: 16px 12px;
+  }
+
+  .titlebar-status-label {
+    display: none;
+  }
+
+  .app-titlebar {
+    gap: 8px;
+  }
+
+  .home-header {
+    padding-bottom: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-titlebar {
+    padding-right: 4px;
+  }
+
+  .app-titlebar [data-tauri-drag-region] {
+    min-width: 0;
+  }
+
+  .app-titlebar .titlebar-status-label,
+  .app-titlebar .ui-badge {
+    display: none;
+  }
+
+  .page-frame {
+    padding-inline: 0;
+  }
+}
+
+/* Engine status pill in the title bar. */
+.status-dot {
+  position: relative;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--status-dot-color);
+  box-shadow: 0 0 0 2px rgb(var(--ui-surface));
+}
+
+.status-dot-active::before,
+.status-dot-active::after {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: var(--status-dot-color);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  animation: status-ripple 2s ease-out infinite;
+}
+
+.status-dot-active::after {
+  animation-delay: 1s;
+}
+
+@keyframes status-ripple {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  70%, 100% { transform: scale(1.35); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot-active::before,
+  .status-dot-active::after { animation: none; }
+}
+
+.settings-row-control {
+  min-width: 180px;
+}
+
+/* Home is a tool launcher, so density comes from a quiet grid and clear
+   format metadata rather than oversized promotional cards. */
+.home-page .home-header {
+  padding-top: 2px;
+}
+
+.home-page .home-search input {
+  box-shadow: var(--ui-shadow-control);
+}
+
+/* The format picker is one control: the wrapper owns its border and focus
+   ring, while the nested Select trigger stays visually borderless. */
+.home-page .home-format-control:focus-within { border-color: rgb(var(--ui-line)); box-shadow: none; }
+
+.home-page .home-format-control .home-format-trigger,
+.home-page .home-format-control .home-format-trigger:hover,
+.home-page .home-format-control .home-format-trigger:focus,
+.home-page .home-format-control .home-format-trigger:focus-visible {
+  border: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.home-page .home-format-control .home-format-trigger[data-focused],
+.home-page .home-format-control .home-format-trigger[data-focus-visible],
+.home-page .home-format-control .home-format-trigger[data-focus-visible="true"],
+.home-page .home-format-control .home-format-trigger[aria-expanded="true"] {
+  outline: 0 !important;
+  outline-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-page .home-format-control .home-format-trigger:is(:focus, :focus-visible),
+.home-page .home-format-control .home-format-trigger[data-focused],
+.home-page .home-format-control .home-format-trigger[data-focus-visible],
+.home-page .home-format-control .home-format-trigger[data-focus-visible="true"] {
+  outline: 0 !important;
+  outline-color: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.home-page .tool-card-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.home-page .tool-card-grid > * {
+  min-height: 142px;
+}
+
+.home-page .tool-card-grid a:active {
+  background: transparent;
+}
+
+.home-page .home-categories {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  scrollbar-width: none;
+}
+
+.home-page .home-categories::-webkit-scrollbar {
+  display: none;
+}
+
+/* The shared ghost button has an unlayered raised hover rule. Keep the
+   selected library category on its semantic surface in both themes. */
+.home-page .home-categories .ui-button-active,
+.home-page .home-categories .ui-button-active:hover {
+  border-color: rgb(var(--ui-line));
+  background: rgb(var(--ui-surface));
+  color: rgb(var(--ui-ink));
+  box-shadow: var(--ui-shadow-control);
+}
+
+.home-page .tool-card-grid .group:active,
+.home-page .tool-card-grid .group[data-pressed="true"],
+.home-page .tool-card-grid .group[data-hover="true"] {
+  background: rgb(var(--ui-surface));
+}
+
+@media (min-width: 860px) {
+  .home-page .tool-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1260px) {
+  .home-page .tool-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .home-page .home-categories {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-row-control {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+}

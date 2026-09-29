@@ -1,0 +1,825 @@
+[
+  {
+    "id": "image-compress",
+    "nameKey": "tool.imageCompress.name",
+    "descKey": "tool.imageCompress.desc",
+    "category": "convert",
+    "icon": "compress",
+    "order": 200,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "图片压缩",
+      "image compression",
+      "压缩图片"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.image.format",
+        "default": "original",
+        "options": [
+          {
+            "value": "original",
+            "labelKey": "opt.image.original"
+          },
+          {
+            "value": "jpeg",
+            "labelKey": "opt.image.jpeg"
+          },
+          {
+            "value": "png",
+            "labelKey": "opt.image.png"
+          },
+          {
+            "value": "webp",
+            "labelKey": "opt.image.webp"
+          },
+          {
+            "value": "tiff",
+            "labelKey": "opt.image.tiff"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "quality",
+        "labelKey": "opt.image.quality",
+        "descriptionKey": "opt.image.quality.hint",
+        "default": 82,
+        "min": 20,
+        "max": 100,
+        "step": 1,
+        "unit": "percent",
+        "presets": [
+          {
+            "value": 55,
+            "labelKey": "opt.image.quality.small"
+          },
+          {
+            "value": 80,
+            "labelKey": "opt.image.quality.standard"
+          },
+          {
+            "value": 95,
+            "labelKey": "opt.image.quality.high"
+          }
+        ],
+        "showIf": {
+          "field": "format",
+          "in": [
+            "jpeg",
+            "webp",
+            "tiff"
+          ]
+        }
+      },
+      {
+        "type": "number",
+        "key": "maxEdge",
+        "labelKey": "opt.image.maxEdge",
+        "descriptionKey": "opt.image.maxEdge.hint",
+        "default": 0,
+        "min": 0,
+        "max": 16000,
+        "step": 100,
+        "suffixKey": "unit.px"
+      },
+      {
+        "type": "color",
+        "key": "background",
+        "labelKey": "opt.image.background",
+        "default": "#ffffff",
+        "showIf": {
+          "field": "format",
+          "in": [
+            "jpeg"
+          ]
+        }
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ]
+  },
+  {
+    "id": "image-resize",
+    "nameKey": "tool.imageResize.name",
+    "descKey": "tool.imageResize.desc",
+    "category": "edit",
+    "icon": "maximize",
+    "order": 210,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "图片尺寸",
+      "缩放图片",
+      "resize image"
+    ],
+    "fields": [
+      {
+        "type": "number",
+        "key": "width",
+        "labelKey": "opt.image.width",
+        "default": 1600,
+        "min": 1,
+        "max": 16000,
+        "suffixKey": "unit.px",
+        "row": "size"
+      },
+      {
+        "type": "number",
+        "key": "height",
+        "labelKey": "opt.image.height",
+        "default": 1600,
+        "min": 1,
+        "max": 16000,
+        "suffixKey": "unit.px",
+        "row": "size"
+      },
+      {
+        "type": "select",
+        "key": "fit",
+        "labelKey": "opt.image.fit",
+        "descriptionKey": "opt.image.fit.hint",
+        "default": "inside",
+        "options": [
+          {
+            "value": "inside",
+            "labelKey": "opt.image.fitInside"
+          },
+          {
+            "value": "cover",
+            "labelKey": "opt.image.fitCover"
+          },
+          {
+            "value": "fill",
+            "labelKey": "opt.image.fitFill"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "withoutEnlargement",
+        "labelKey": "opt.image.withoutEnlargement",
+        "default": true
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ]
+  },
+  {
+    "id": "image-crop",
+    "nameKey": "tool.imageCrop.name",
+    "descKey": "tool.imageCrop.desc",
+    "category": "edit",
+    "icon": "crop",
+    "order": 220,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "裁剪图片",
+      "crop image",
+      "比例裁切"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "aspect",
+        "labelKey": "opt.image.aspect",
+        "default": "1:1",
+        "options": [
+          {
+            "value": "1:1",
+            "labelKey": "opt.image.aspect.square"
+          },
+          {
+            "value": "4:3",
+            "labelKey": "opt.image.aspect.landscape"
+          },
+          {
+            "value": "3:4",
+            "labelKey": "opt.image.aspect.portrait"
+          },
+          {
+            "value": "16:9",
+            "labelKey": "opt.image.aspect.wide"
+          },
+          {
+            "value": "original",
+            "labelKey": "opt.image.aspect.original"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "position",
+        "labelKey": "opt.image.position",
+        "default": "centre",
+        "options": [
+          {
+            "value": "centre",
+            "labelKey": "opt.image.position.centre"
+          },
+          {
+            "value": "north",
+            "labelKey": "opt.image.position.top"
+          },
+          {
+            "value": "south",
+            "labelKey": "opt.image.position.bottom"
+          },
+          {
+            "value": "west",
+            "labelKey": "opt.image.position.left"
+          },
+          {
+            "value": "east",
+            "labelKey": "opt.image.position.right"
+          }
+        ]
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ]
+  },
+  {
+    "id": "image-rotate",
+    "nameKey": "tool.imageRotate.name",
+    "descKey": "tool.imageRotate.desc",
+    "category": "edit",
+    "icon": "rotate-cw",
+    "order": 230,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "翻转图片",
+      "旋转图片",
+      "rotate image"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "angle",
+        "labelKey": "opt.image.angle",
+        "default": 90,
+        "options": [
+          {
+            "value": 90,
+            "labelKey": "opt.image.angle.90"
+          },
+          {
+            "value": 180,
+            "labelKey": "opt.image.angle.180"
+          },
+          {
+            "value": 270,
+            "labelKey": "opt.image.angle.270"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "flipHorizontal",
+        "labelKey": "opt.image.flipHorizontal",
+        "default": false
+      },
+      {
+        "type": "boolean",
+        "key": "flipVertical",
+        "labelKey": "opt.image.flipVertical",
+        "default": false
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ]
+  },
+  {
+    "id": "image-convert",
+    "nameKey": "tool.imageConvert.name",
+    "descKey": "tool.imageConvert.desc",
+    "category": "convert",
+    "icon": "images",
+    "order": 240,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "格式转换",
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.image.format",
+        "default": "webp",
+        "options": [
+          {
+            "value": "jpeg",
+            "labelKey": "opt.image.jpeg"
+          },
+          {
+            "value": "png",
+            "labelKey": "opt.image.png"
+          },
+          {
+            "value": "webp",
+            "labelKey": "opt.image.webp"
+          },
+          {
+            "value": "tiff",
+            "labelKey": "opt.image.tiff"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "quality",
+        "labelKey": "opt.image.quality",
+        "descriptionKey": "opt.image.quality.hint",
+        "default": 85,
+        "min": 20,
+        "max": 100,
+        "step": 1,
+        "unit": "percent",
+        "presets": [
+          {
+            "value": 55,
+            "labelKey": "opt.image.quality.small"
+          },
+          {
+            "value": 80,
+            "labelKey": "opt.image.quality.standard"
+          },
+          {
+            "value": 95,
+            "labelKey": "opt.image.quality.high"
+          }
+        ]
+      },
+      {
+        "type": "color",
+        "key": "background",
+        "labelKey": "opt.image.background",
+        "default": "#ffffff",
+        "showIf": {
+          "field": "format",
+          "in": [
+            "jpeg"
+          ]
+        }
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ]
+  },
+  {
+    "id": "image-cutout",
+    "nameKey": "tool.imageCutout.name",
+    "descKey": "tool.imageCutout.desc",
+    "category": "edit",
+    "icon": "eraser",
+    "order": 260,
+    "accept": "image/jpeg,image/png,image/webp",
+    "multiFile": false,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "抠图",
+      "去除背景",
+      "透明背景",
+      "background removal",
+      "cutout"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "transparent",
+        "labelKey": "opt.cutout.transparent",
+        "descriptionKey": "opt.cutout.transparent.hint",
+        "default": true
+      },
+      {
+        "type": "color",
+        "key": "background",
+        "labelKey": "opt.cutout.background",
+        "default": "#ffffff",
+        "showIf": {
+          "field": "transparent",
+          "in": [
+            false
+          ]
+        }
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp"
+    ],
+    "outputFormats": [
+      "png"
+    ]
+  },
+  {
+    "id": "image-id-photo",
+    "nameKey": "tool.idPhoto.name",
+    "descKey": "tool.idPhoto.desc",
+    "category": "edit",
+    "icon": "id-card",
+    "order": 270,
+    "accept": "image/jpeg,image/png,image/webp",
+    "multiFile": false,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "证件照",
+      "登记照",
+      "身份证",
+      "社保卡",
+      "驾驶证",
+      "港澳通行证",
+      "法考",
+      "签证",
+      "一寸",
+      "二寸",
+      "passport photo"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "size",
+        "labelKey": "opt.idPhoto.size",
+        "default": "one-inch",
+        "options": [
+          {
+            "value": "one-inch",
+            "labelKey": "opt.idPhoto.oneInch",
+            "descriptionKey": "opt.idPhoto.oneInch.hint"
+          },
+          {
+            "value": "small-one-inch",
+            "labelKey": "opt.idPhoto.smallOneInch",
+            "descriptionKey": "opt.idPhoto.smallOneInch.hint"
+          },
+          {
+            "value": "large-one-inch",
+            "labelKey": "opt.idPhoto.largeOneInch",
+            "descriptionKey": "opt.idPhoto.largeOneInch.hint"
+          },
+          {
+            "value": "small-two-inch",
+            "labelKey": "opt.idPhoto.smallTwoInch",
+            "descriptionKey": "opt.idPhoto.smallTwoInch.hint"
+          },
+          {
+            "value": "china-entry-exit",
+            "labelKey": "opt.idPhoto.chinaEntryExit",
+            "descriptionKey": "opt.idPhoto.chinaEntryExit.hint"
+          },
+          {
+            "value": "china-visa",
+            "labelKey": "opt.idPhoto.chinaVisa",
+            "descriptionKey": "opt.idPhoto.chinaVisa.hint"
+          },
+          {
+            "value": "china-id-card",
+            "labelKey": "opt.idPhoto.chinaIdCard",
+            "descriptionKey": "opt.idPhoto.chinaIdCard.hint"
+          },
+          {
+            "value": "china-driving-license",
+            "labelKey": "opt.idPhoto.chinaDrivingLicense",
+            "descriptionKey": "opt.idPhoto.chinaDrivingLicense.hint"
+          },
+          {
+            "value": "two-inch",
+            "labelKey": "opt.idPhoto.twoInch",
+            "descriptionKey": "opt.idPhoto.twoInch.hint"
+          },
+          {
+            "value": "large-two-inch",
+            "labelKey": "opt.idPhoto.largeTwoInch",
+            "descriptionKey": "opt.idPhoto.largeTwoInch.hint"
+          },
+          {
+            "value": "china-law-qualification",
+            "labelKey": "opt.idPhoto.chinaLawQualification",
+            "descriptionKey": "opt.idPhoto.chinaLawQualification.hint"
+          },
+          {
+            "value": "three-by-four",
+            "labelKey": "opt.idPhoto.threeByFour",
+            "descriptionKey": "opt.idPhoto.threeByFour.hint"
+          },
+          {
+            "value": "uk-passport",
+            "labelKey": "opt.idPhoto.ukPassport",
+            "descriptionKey": "opt.idPhoto.ukPassport.hint"
+          },
+          {
+            "value": "schengen-visa",
+            "labelKey": "opt.idPhoto.schengenVisa",
+            "descriptionKey": "opt.idPhoto.schengenVisa.hint"
+          },
+          {
+            "value": "japan-visa",
+            "labelKey": "opt.idPhoto.japanVisa",
+            "descriptionKey": "opt.idPhoto.japanVisa.hint"
+          },
+          {
+            "value": "india-passport",
+            "labelKey": "opt.idPhoto.indiaPassport",
+            "descriptionKey": "opt.idPhoto.indiaPassport.hint"
+          },
+          {
+            "value": "australia-passport",
+            "labelKey": "opt.idPhoto.australiaPassport",
+            "descriptionKey": "opt.idPhoto.australiaPassport.hint"
+          },
+          {
+            "value": "canada-passport",
+            "labelKey": "opt.idPhoto.canadaPassport",
+            "descriptionKey": "opt.idPhoto.canadaPassport.hint"
+          },
+          {
+            "value": "bangladesh-passport",
+            "labelKey": "opt.idPhoto.bangladeshPassport",
+            "descriptionKey": "opt.idPhoto.bangladeshPassport.hint"
+          },
+          {
+            "value": "bangladesh-visa",
+            "labelKey": "opt.idPhoto.bangladeshVisa",
+            "descriptionKey": "opt.idPhoto.bangladeshVisa.hint"
+          },
+          {
+            "value": "us-visa",
+            "labelKey": "opt.idPhoto.usVisa",
+            "descriptionKey": "opt.idPhoto.usVisa.hint"
+          }
+        ]
+      },
+      {
+        "type": "color",
+        "key": "background",
+        "labelKey": "opt.idPhoto.background",
+        "default": "#438edb"
+      },
+      {
+        "type": "slider",
+        "key": "maxFileKb",
+        "labelKey": "opt.idPhoto.maxFileKb",
+        "descriptionKey": "opt.idPhoto.maxFileKb.hint",
+        "default": 100,
+        "min": 10,
+        "max": 1000,
+        "step": 1,
+        "unit": "kb",
+        "presets": [
+          {
+            "value": 50,
+            "labelKey": "opt.idPhoto.limit50"
+          },
+          {
+            "value": 100,
+            "labelKey": "opt.idPhoto.limit100"
+          },
+          {
+            "value": 200,
+            "labelKey": "opt.idPhoto.limit200"
+          },
+          {
+            "value": 500,
+            "labelKey": "opt.idPhoto.limit500"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "scale",
+        "labelKey": "opt.idPhoto.scale",
+        "descriptionKey": "opt.idPhoto.scale.hint",
+        "default": 100,
+        "min": 70,
+        "max": 130,
+        "step": 1,
+        "unit": "percent"
+      },
+      {
+        "type": "slider",
+        "key": "verticalOffset",
+        "labelKey": "opt.idPhoto.verticalOffset",
+        "descriptionKey": "opt.idPhoto.verticalOffset.hint",
+        "default": 0,
+        "min": -20,
+        "max": 20,
+        "step": 1,
+        "unit": "percent"
+      },
+      {
+        "type": "boolean",
+        "key": "printSheet",
+        "labelKey": "opt.idPhoto.printSheet",
+        "descriptionKey": "opt.idPhoto.printSheet.hint",
+        "default": false
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp"
+    ],
+    "outputFormats": [
+      "jpg"
+    ]
+  },
+  {
+    "id": "image-print",
+    "nameKey": "tool.imagePrint.name",
+    "descKey": "tool.imagePrint.desc",
+    "category": "convert",
+    "icon": "printer",
+    "order": 290,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "打印",
+      "A4",
+      "纸张",
+      "print"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "paper",
+        "labelKey": "opt.imagePrint.paper",
+        "default": "a4",
+        "options": [
+          {
+            "value": "a4",
+            "labelKey": "opt.imagePrint.a4"
+          },
+          {
+            "value": "letter",
+            "labelKey": "opt.imagePrint.letter"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "orientation",
+        "labelKey": "opt.imagePrint.orientation",
+        "default": "auto",
+        "options": [
+          {
+            "value": "auto",
+            "labelKey": "opt.imagePrint.auto"
+          },
+          {
+            "value": "portrait",
+            "labelKey": "opt.imagePrint.portrait"
+          },
+          {
+            "value": "landscape",
+            "labelKey": "opt.imagePrint.landscape"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "marginMm",
+        "labelKey": "opt.imagePrint.margin",
+        "default": 10,
+        "min": 0,
+        "max": 40,
+        "step": 1,
+        "suffixKey": "unit.mm"
+      },
+      {
+        "type": "select",
+        "key": "fit",
+        "labelKey": "opt.imagePrint.fit",
+        "default": "contain",
+        "options": [
+          {
+            "value": "contain",
+            "labelKey": "opt.imagePrint.contain"
+          },
+          {
+            "value": "cover",
+            "labelKey": "opt.imagePrint.cover"
+          }
+        ]
+      }
+    ],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "jpg"
+    ]
+  },
+  {
+    "id": "image-watermark-clean",
+    "nameKey": "tool.imageWatermarkClean.name",
+    "descKey": "tool.imageWatermarkClean.desc",
+    "category": "edit",
+    "icon": "eraser",
+    "order": 300,
+    "accept": "image/jpeg,image/png,image/webp",
+    "multiFile": false,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "去水印",
+      "修复",
+      "watermark"
+    ],
+    "fields": [],
+    "workflow": "image-processing",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp"
+    ],
+    "outputFormats": [
+      "png"
+    ]
+  }
+]

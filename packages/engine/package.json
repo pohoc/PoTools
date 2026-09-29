@@ -4,40 +4,6 @@
   "license": "MIT",
   "private": true,
   "author": "pohoc <po.hoc4@gmail.com>",
-  "type": "module",
-  "main": "./src/browser.ts",
-  "exports": {
-    "./browser": "./src/browser.ts",
-    "./browser-capabilities": "./src/browser-capabilities.ts"
-  },
-  "scripts": {
-    "build": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "samples": "tsx scripts/make-samples.ts"
-  },
-  "dependencies": {
-    "@pdf-lib/fontkit": "^1.1.1",
-    "@potools/core": "workspace:*",
-    "bcryptjs": "^3.0.3",
-    "docx": "^9.7.1",
-    "fast-xml-parser": "^5.11.1",
-    "jpeg-js": "^0.4.4",
-    "jszip": "^3.10.2",
-    "mupdf": "^1.28.1",
-    "node-forge": "^1.4.0",
-    "onnxruntime-web": "1.23.2",
-    "paddleocr": "1.2.0",
-    "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^4.10.38",
-    "pptxgenjs": "^4.0.1",
-    "utif": "3.1.0",
-    "yaml": "^2.9.1"
-  },
-  "devDependencies": {
-    "@types/node": "^26.6.2",
-    "@types/node-forge": "^1.3.14",
-    "sharp": "^0.35.4",
-    "tsx": "4.23.14",
-    "typescript": "^7.0.2"
-  }
+  "description": "Rust tool engine; use Cargo manifests for native and WebAssembly builds",
+  "files": ["Cargo.toml", "Cargo.lock", "src", "wasm"]
 }

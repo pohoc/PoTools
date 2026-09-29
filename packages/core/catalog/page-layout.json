@@ -1,0 +1,638 @@
+[
+  {
+    "id": "resize",
+    "nameKey": "tool.resize.name",
+    "descKey": "tool.resize.desc",
+    "category": "organize",
+    "icon": "maximize",
+    "order": 65,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "尺寸",
+      "缩放",
+      "resize",
+      "a4"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "target",
+        "labelKey": "opt.resize.target",
+        "default": "a4",
+        "section": "layout",
+        "row": "a",
+        "options": [
+          {
+            "value": "a4",
+            "labelKey": "opt.pageSize.a4"
+          },
+          {
+            "value": "a5",
+            "labelKey": "opt.pageSize.a5"
+          },
+          {
+            "value": "letter",
+            "labelKey": "opt.pageSize.letter"
+          },
+          {
+            "value": "match-first",
+            "labelKey": "opt.pageSize.matchFirst"
+          },
+          {
+            "value": "scale",
+            "labelKey": "opt.resize.byScale"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "orientation",
+        "labelKey": "opt.orientation",
+        "default": "keep",
+        "section": "layout",
+        "row": "a",
+        "options": [
+          {
+            "value": "keep",
+            "labelKey": "opt.orientation.keep"
+          },
+          {
+            "value": "portrait",
+            "labelKey": "opt.orientation.portrait"
+          },
+          {
+            "value": "landscape",
+            "labelKey": "opt.orientation.landscape"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "scale",
+        "labelKey": "opt.resize.scale",
+        "default": 100,
+        "min": 25,
+        "max": 400,
+        "step": 5,
+        "unit": "percent",
+        "section": "layout",
+        "showIf": {
+          "field": "target",
+          "in": [
+            "scale"
+          ]
+        }
+      },
+      {
+        "type": "number",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 0,
+        "min": 0,
+        "max": 72,
+        "suffixKey": "unit.pt",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "b"
+      },
+      {
+        "type": "boolean",
+        "key": "keepRatio",
+        "labelKey": "opt.resize.keepRatio",
+        "descriptionKey": "opt.resize.keepRatio.hint",
+        "default": true,
+        "section": "advanced"
+      }
+    ],
+    "workflow": "page-layout",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "crop",
+    "nameKey": "tool.crop.name",
+    "descKey": "tool.crop.desc",
+    "category": "organize",
+    "icon": "crop",
+    "order": 66,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "裁剪",
+      "crop",
+      "切边"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "edgePreset",
+        "labelKey": "opt.edgePreset",
+        "default": "none",
+        "uiOnly": true,
+        "section": "layout",
+        "options": [
+          {
+            "value": "none",
+            "labelKey": "opt.edgePreset.none",
+            "applies": {
+              "top": 0,
+              "right": 0,
+              "bottom": 0,
+              "left": 0
+            }
+          },
+          {
+            "value": "tight",
+            "labelKey": "opt.edgePreset.tight",
+            "applies": {
+              "top": 10,
+              "right": 10,
+              "bottom": 10,
+              "left": 10
+            }
+          },
+          {
+            "value": "normal",
+            "labelKey": "opt.edgePreset.normal",
+            "applies": {
+              "top": 28,
+              "right": 24,
+              "bottom": 28,
+              "left": 24
+            }
+          },
+          {
+            "value": "wide",
+            "labelKey": "opt.edgePreset.wide",
+            "applies": {
+              "top": 50,
+              "right": 40,
+              "bottom": 50,
+              "left": 40
+            }
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "top",
+        "labelKey": "opt.edge.top",
+        "default": 0,
+        "min": 0,
+        "max": 400,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "e1"
+      },
+      {
+        "type": "number",
+        "key": "bottom",
+        "labelKey": "opt.edge.bottom",
+        "default": 0,
+        "min": 0,
+        "max": 400,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "e1"
+      },
+      {
+        "type": "number",
+        "key": "left",
+        "labelKey": "opt.edge.left",
+        "default": 0,
+        "min": 0,
+        "max": 400,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "e2"
+      },
+      {
+        "type": "number",
+        "key": "right",
+        "labelKey": "opt.edge.right",
+        "default": 0,
+        "min": 0,
+        "max": 400,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "e2"
+      },
+      {
+        "type": "boolean",
+        "key": "shrinkToContent",
+        "labelKey": "opt.crop.shrink",
+        "descriptionKey": "opt.crop.shrink.hint",
+        "default": false,
+        "section": "advanced"
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "page-layout",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "margins",
+    "nameKey": "tool.margins.name",
+    "descKey": "tool.margins.desc",
+    "category": "organize",
+    "icon": "frame",
+    "order": 67,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "页边距",
+      "白边",
+      "margin"
+    ],
+    "fields": [
+      {
+        "type": "slider",
+        "key": "edge",
+        "labelKey": "opt.margins.edge",
+        "default": 24,
+        "min": 0,
+        "max": 160,
+        "step": 2,
+        "unit": "pt",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "m1"
+      },
+      {
+        "type": "select",
+        "key": "sides",
+        "labelKey": "opt.margins.sides",
+        "default": "all",
+        "section": "layout",
+        "row": "m1",
+        "options": [
+          {
+            "value": "all",
+            "labelKey": "opt.margins.all"
+          },
+          {
+            "value": "vertical",
+            "labelKey": "opt.margins.vertical"
+          },
+          {
+            "value": "horizontal",
+            "labelKey": "opt.margins.horizontal"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "keepPageSize",
+        "labelKey": "opt.margins.keepSize",
+        "descriptionKey": "opt.margins.keepSize.hint",
+        "default": true
+      }
+    ],
+    "workflow": "page-layout",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "nup",
+    "nameKey": "tool.nup.name",
+    "descKey": "tool.nup.desc",
+    "category": "organize",
+    "icon": "layout-grid",
+    "order": 68,
+    "accept": "application/pdf",
+    "multiFile": false,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "拼版",
+      "n-up",
+      "多页合一",
+      "小册子"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "perSheet",
+        "labelKey": "opt.nup.perSheet",
+        "default": 2,
+        "section": "layout",
+        "row": "n1",
+        "options": [
+          {
+            "value": 2,
+            "labelKey": "opt.nup.two"
+          },
+          {
+            "value": 4,
+            "labelKey": "opt.nup.four"
+          },
+          {
+            "value": 6,
+            "labelKey": "opt.nup.six"
+          },
+          {
+            "value": 9,
+            "labelKey": "opt.nup.nine"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "pageSize",
+        "labelKey": "opt.pageSize",
+        "default": "a4",
+        "section": "layout",
+        "row": "n1",
+        "options": [
+          {
+            "value": "a4",
+            "labelKey": "opt.pageSize.a4"
+          },
+          {
+            "value": "letter",
+            "labelKey": "opt.pageSize.letter"
+          },
+          {
+            "value": "match-first",
+            "labelKey": "opt.pageSize.matchFirst"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "order",
+        "labelKey": "opt.nup.order",
+        "default": "horizontal",
+        "section": "layout",
+        "row": "n2",
+        "options": [
+          {
+            "value": "horizontal",
+            "labelKey": "opt.nup.orderHorizontal"
+          },
+          {
+            "value": "vertical",
+            "labelKey": "opt.nup.orderVertical"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "orientation",
+        "labelKey": "opt.orientation",
+        "default": "auto",
+        "section": "layout",
+        "row": "n2",
+        "options": [
+          {
+            "value": "auto",
+            "labelKey": "opt.orientation.auto"
+          },
+          {
+            "value": "portrait",
+            "labelKey": "opt.orientation.portrait"
+          },
+          {
+            "value": "landscape",
+            "labelKey": "opt.orientation.landscape"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "gap",
+        "labelKey": "opt.nup.gap",
+        "default": 8,
+        "min": 0,
+        "max": 60,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "n3"
+      },
+      {
+        "type": "number",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 12,
+        "min": 0,
+        "max": 60,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "n3"
+      },
+      {
+        "type": "boolean",
+        "key": "border",
+        "labelKey": "opt.nup.border",
+        "default": false,
+        "section": "advanced"
+      }
+    ],
+    "workflow": "page-layout",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "invoice-merge",
+    "nameKey": "tool.invoiceMerge.name",
+    "descKey": "tool.invoiceMerge.desc",
+    "category": "organize",
+    "icon": "receipt",
+    "order": 15,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "orderSensitive": true,
+    "keywords": [
+      "发票",
+      "报销",
+      "票据",
+      "invoice",
+      "拼A4"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "sheetSize",
+        "labelKey": "opt.invoice.sheet",
+        "default": "a4",
+        "row": "i1",
+        "options": [
+          {
+            "value": "a4",
+            "labelKey": "opt.pageSize.a4"
+          },
+          {
+            "value": "a3",
+            "labelKey": "opt.pageSize.a3"
+          },
+          {
+            "value": "letter",
+            "labelKey": "opt.pageSize.letter"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "perSheet",
+        "labelKey": "opt.invoice.perSheet",
+        "default": "auto",
+        "row": "i1",
+        "options": [
+          {
+            "value": "auto",
+            "labelKey": "opt.invoice.auto"
+          },
+          {
+            "value": 1,
+            "labelKey": "opt.invoice.one"
+          },
+          {
+            "value": 2,
+            "labelKey": "opt.invoice.two"
+          },
+          {
+            "value": 4,
+            "labelKey": "opt.invoice.four"
+          },
+          {
+            "value": 6,
+            "labelKey": "opt.invoice.six"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "autoCrop",
+        "labelKey": "opt.invoice.autoCrop",
+        "descriptionKey": "opt.invoice.autoCrop.hint",
+        "default": true
+      },
+      {
+        "type": "select",
+        "key": "orientation",
+        "labelKey": "opt.orientation",
+        "default": "auto",
+        "row": "i2",
+        "options": [
+          {
+            "value": "auto",
+            "labelKey": "opt.orientation.auto"
+          },
+          {
+            "value": "portrait",
+            "labelKey": "opt.orientation.portrait"
+          },
+          {
+            "value": "landscape",
+            "labelKey": "opt.orientation.landscape"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "order",
+        "labelKey": "opt.nup.order",
+        "default": "horizontal",
+        "row": "i2",
+        "options": [
+          {
+            "value": "horizontal",
+            "labelKey": "opt.nup.orderHorizontal"
+          },
+          {
+            "value": "vertical",
+            "labelKey": "opt.nup.orderVertical"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "gap",
+        "labelKey": "opt.nup.gap",
+        "default": 6,
+        "min": 0,
+        "max": 40,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "row": "i3"
+      },
+      {
+        "type": "number",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 12,
+        "min": 0,
+        "max": 60,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "row": "i3"
+      },
+      {
+        "type": "boolean",
+        "key": "border",
+        "labelKey": "opt.nup.border",
+        "default": false,
+        "section": "advanced"
+      },
+      {
+        "type": "boolean",
+        "key": "sortByName",
+        "labelKey": "opt.invoice.sort",
+        "default": true,
+        "section": "advanced"
+      },
+      {
+        "type": "boolean",
+        "key": "skipDuplicates",
+        "labelKey": "opt.invoice.dedupe",
+        "descriptionKey": "opt.invoice.dedupe.hint",
+        "default": true,
+        "section": "advanced"
+      }
+    ],
+    "workflow": "page-layout",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  }
+]

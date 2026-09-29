@@ -1,0 +1,1919 @@
+[
+  {
+    "id": "hash",
+    "nameKey": "tool.hash.name",
+    "descKey": "tool.hash.desc",
+    "category": "extract",
+    "icon": "hash",
+    "order": 500,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "哈希",
+      "摘要",
+      "MD5",
+      "SHA",
+      "BLAKE2",
+      "hash",
+      "digest",
+      "checksum"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.hash.input",
+        "descriptionKey": "opt.hash.input.hint",
+        "placeholderKey": "opt.hash.input.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "algorithm",
+        "labelKey": "opt.hash.algorithm",
+        "default": "sha256",
+        "options": [
+          {
+            "value": "all",
+            "labelKey": "opt.hash.algorithm.all",
+            "descriptionKey": "opt.hash.algorithm.all.hint"
+          },
+          {
+            "value": "md5",
+            "labelKey": "opt.hash.algorithm.md5"
+          },
+          {
+            "value": "sha1",
+            "labelKey": "opt.hash.algorithm.sha1"
+          },
+          {
+            "value": "sha256",
+            "labelKey": "opt.hash.algorithm.sha256"
+          },
+          {
+            "value": "sha384",
+            "labelKey": "opt.hash.algorithm.sha384"
+          },
+          {
+            "value": "sha512",
+            "labelKey": "opt.hash.algorithm.sha512"
+          },
+          {
+            "value": "blake2b512",
+            "labelKey": "opt.hash.algorithm.blake2b512",
+            "descriptionKey": "opt.hash.algorithm.blake2b512.hint"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "inputAs",
+        "labelKey": "opt.hash.inputAs",
+        "descriptionKey": "opt.hash.inputAs.hint",
+        "default": "text",
+        "options": [
+          {
+            "value": "text",
+            "labelKey": "opt.hash.inputAs.text",
+            "descriptionKey": "opt.hash.inputAs.text.hint"
+          },
+          {
+            "value": "hex",
+            "labelKey": "opt.hash.inputAs.hex",
+            "descriptionKey": "opt.hash.inputAs.hex.hint"
+          },
+          {
+            "value": "base64",
+            "labelKey": "opt.hash.inputAs.base64",
+            "descriptionKey": "opt.hash.inputAs.base64.hint"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "uppercase",
+        "section": "advanced",
+        "labelKey": "opt.hash.uppercase",
+        "descriptionKey": "opt.hash.uppercase.hint",
+        "default": false
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "hmac",
+    "nameKey": "tool.hmac.name",
+    "descKey": "tool.hmac.desc",
+    "category": "extract",
+    "icon": "file-key",
+    "order": 510,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "HMAC",
+      "签名",
+      "密钥",
+      "校验签名",
+      "mac",
+      "signature",
+      "sign"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "message",
+        "labelKey": "opt.hmac.message",
+        "descriptionKey": "opt.hmac.message.hint",
+        "placeholderKey": "opt.hmac.message.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "text",
+        "key": "secret",
+        "labelKey": "opt.hmac.secret",
+        "descriptionKey": "opt.hmac.secret.hint",
+        "placeholderKey": "opt.hmac.secret.placeholder",
+        "default": "",
+        "mono": true,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "algorithm",
+        "labelKey": "opt.hmac.algorithm",
+        "default": "sha256",
+        "row": "a",
+        "options": [
+          {
+            "value": "sha256",
+            "labelKey": "opt.hmac.algorithm.sha256"
+          },
+          {
+            "value": "sha1",
+            "labelKey": "opt.hmac.algorithm.sha1"
+          },
+          {
+            "value": "sha512",
+            "labelKey": "opt.hmac.algorithm.sha512"
+          },
+          {
+            "value": "md5",
+            "labelKey": "opt.hmac.algorithm.md5",
+            "descriptionKey": "opt.hmac.algorithm.md5.hint"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.hmac.format",
+        "default": "hex",
+        "row": "a",
+        "options": [
+          {
+            "value": "hex",
+            "labelKey": "opt.hmac.format.hex"
+          },
+          {
+            "value": "base64",
+            "labelKey": "opt.hmac.format.base64"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "uppercase",
+        "section": "advanced",
+        "labelKey": "opt.hmac.uppercase",
+        "descriptionKey": "opt.hmac.uppercase.hint",
+        "default": false
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "file-checksum",
+    "nameKey": "tool.fileChecksum.name",
+    "descKey": "tool.fileChecksum.desc",
+    "category": "extract",
+    "icon": "file-check",
+    "order": 520,
+    "accept": "*/*",
+    "multiFile": true,
+    "requiresInput": true,
+    "layout": "standard",
+    "artifactKind": "text",
+    "keywords": [
+      "文件校验",
+      "校验和",
+      "完整性",
+      "MD5",
+      "SHA256",
+      "file checksum",
+      "verify file"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "algorithm",
+        "labelKey": "opt.fileChecksum.algorithm",
+        "default": "all",
+        "options": [
+          {
+            "value": "all",
+            "labelKey": "opt.fileChecksum.algorithm.all",
+            "descriptionKey": "opt.fileChecksum.algorithm.all.hint"
+          },
+          {
+            "value": "md5",
+            "labelKey": "opt.fileChecksum.algorithm.md5"
+          },
+          {
+            "value": "sha1",
+            "labelKey": "opt.fileChecksum.algorithm.sha1"
+          },
+          {
+            "value": "sha256",
+            "labelKey": "opt.fileChecksum.algorithm.sha256"
+          },
+          {
+            "value": "sha512",
+            "labelKey": "opt.fileChecksum.algorithm.sha512"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.fileChecksum.format",
+        "default": "hex",
+        "options": [
+          {
+            "value": "hex",
+            "labelKey": "opt.fileChecksum.format.hex"
+          },
+          {
+            "value": "base64",
+            "labelKey": "opt.fileChecksum.format.base64"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "expected",
+        "section": "advanced",
+        "labelKey": "opt.fileChecksum.expected",
+        "descriptionKey": "opt.fileChecksum.expected.hint",
+        "placeholderKey": "opt.fileChecksum.expected.placeholder",
+        "default": "",
+        "mono": true
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "binary"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "base64",
+    "nameKey": "tool.base64.name",
+    "descKey": "tool.base64.desc",
+    "category": "extract",
+    "icon": "binary",
+    "order": 530,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "Base64",
+      "编码",
+      "解码",
+      "Data URI",
+      "base64 encode",
+      "base64 decode",
+      "datauri"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.base64.input",
+        "descriptionKey": "opt.base64.input.hint",
+        "placeholderKey": "opt.base64.input.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.base64.mode",
+        "default": "encode",
+        "row": "a",
+        "options": [
+          {
+            "value": "encode",
+            "labelKey": "opt.base64.mode.encode"
+          },
+          {
+            "value": "decode",
+            "labelKey": "opt.base64.mode.decode"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "variant",
+        "labelKey": "opt.base64.variant",
+        "default": "standard",
+        "row": "a",
+        "options": [
+          {
+            "value": "standard",
+            "labelKey": "opt.base64.variant.standard",
+            "descriptionKey": "opt.base64.variant.standard.hint"
+          },
+          {
+            "value": "urlsafe",
+            "labelKey": "opt.base64.variant.urlsafe",
+            "descriptionKey": "opt.base64.variant.urlsafe.hint"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "charset",
+        "labelKey": "opt.base64.charset",
+        "default": "utf8",
+        "options": [
+          {
+            "value": "utf8",
+            "labelKey": "opt.base64.charset.utf8"
+          },
+          {
+            "value": "latin1",
+            "labelKey": "opt.base64.charset.latin1",
+            "descriptionKey": "opt.base64.charset.latin1.hint"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "lineWrap",
+        "labelKey": "opt.base64.lineWrap",
+        "descriptionKey": "opt.base64.lineWrap.hint",
+        "default": 0,
+        "min": 0,
+        "max": 1000,
+        "step": 4
+      },
+      {
+        "type": "boolean",
+        "key": "dataUri",
+        "labelKey": "opt.base64.dataUri",
+        "descriptionKey": "opt.base64.dataUri.hint",
+        "default": false
+      },
+      {
+        "type": "select",
+        "key": "mime",
+        "labelKey": "opt.base64.mime",
+        "default": "text/plain",
+        "showIf": {
+          "field": "dataUri",
+          "in": [
+            true
+          ]
+        },
+        "options": [
+          {
+            "value": "text/plain",
+            "labelKey": "opt.base64.mime.textPlain"
+          },
+          {
+            "value": "application/json",
+            "labelKey": "opt.base64.mime.json"
+          },
+          {
+            "value": "application/pdf",
+            "labelKey": "opt.base64.mime.pdf"
+          },
+          {
+            "value": "image/png",
+            "labelKey": "opt.base64.mime.png"
+          },
+          {
+            "value": "image/jpeg",
+            "labelKey": "opt.base64.mime.jpeg"
+          }
+        ]
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "radix",
+    "nameKey": "tool.radix.name",
+    "descKey": "tool.radix.desc",
+    "category": "extract",
+    "icon": "superscript",
+    "order": 540,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "Base32",
+      "Base58",
+      "Crockford",
+      "进制",
+      "字母表",
+      "base32",
+      "base58",
+      "radix"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.radix.input",
+        "descriptionKey": "opt.radix.input.hint",
+        "placeholderKey": "opt.radix.input.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.radix.mode",
+        "default": "encode",
+        "row": "a",
+        "options": [
+          {
+            "value": "encode",
+            "labelKey": "opt.radix.mode.encode"
+          },
+          {
+            "value": "decode",
+            "labelKey": "opt.radix.mode.decode"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "alphabet",
+        "labelKey": "opt.radix.alphabet",
+        "default": "base32",
+        "options": [
+          {
+            "value": "base32",
+            "labelKey": "opt.radix.alphabet.base32",
+            "descriptionKey": "opt.radix.alphabet.base32.hint"
+          },
+          {
+            "value": "base32-crockford",
+            "labelKey": "opt.radix.alphabet.base32Crockford",
+            "descriptionKey": "opt.radix.alphabet.base32Crockford.hint"
+          },
+          {
+            "value": "base58-btc",
+            "labelKey": "opt.radix.alphabet.base58Btc",
+            "descriptionKey": "opt.radix.alphabet.base58Btc.hint"
+          },
+          {
+            "value": "base58-ripple",
+            "labelKey": "opt.radix.alphabet.base58Ripple",
+            "descriptionKey": "opt.radix.alphabet.base58Ripple.hint"
+          },
+          {
+            "value": "base36",
+            "labelKey": "opt.radix.alphabet.base36"
+          },
+          {
+            "value": "base16",
+            "labelKey": "opt.radix.alphabet.base16"
+          }
+        ]
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "hex",
+    "nameKey": "tool.hex.name",
+    "descKey": "tool.hex.desc",
+    "category": "extract",
+    "icon": "hexagon",
+    "order": 550,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "十六进制",
+      "HEX",
+      "字节",
+      "hex encode",
+      "hex decode",
+      "byte"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.hex.input",
+        "descriptionKey": "opt.hex.input.hint",
+        "placeholderKey": "opt.hex.input.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.hex.mode",
+        "default": "encode",
+        "row": "a",
+        "options": [
+          {
+            "value": "encode",
+            "labelKey": "opt.hex.mode.encode"
+          },
+          {
+            "value": "decode",
+            "labelKey": "opt.hex.mode.decode"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "charset",
+        "labelKey": "opt.hex.charset",
+        "default": "utf8",
+        "row": "a",
+        "options": [
+          {
+            "value": "utf8",
+            "labelKey": "opt.hex.charset.utf8"
+          },
+          {
+            "value": "latin1",
+            "labelKey": "opt.hex.charset.latin1",
+            "descriptionKey": "opt.hex.charset.latin1.hint"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "separator",
+        "labelKey": "opt.hex.separator",
+        "descriptionKey": "opt.hex.separator.hint",
+        "default": "none",
+        "options": [
+          {
+            "value": "none",
+            "labelKey": "opt.hex.separator.none"
+          },
+          {
+            "value": "space",
+            "labelKey": "opt.hex.separator.space"
+          },
+          {
+            "value": "backslash-x",
+            "labelKey": "opt.hex.separator.backslashX",
+            "descriptionKey": "opt.hex.separator.backslashX.hint"
+          },
+          {
+            "value": "prefix-0x",
+            "labelKey": "opt.hex.separator.prefix0x",
+            "descriptionKey": "opt.hex.separator.prefix0x.hint"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "uppercase",
+        "labelKey": "opt.hex.uppercase",
+        "descriptionKey": "opt.hex.uppercase.hint",
+        "default": false
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "url-codec",
+    "nameKey": "tool.urlCodec.name",
+    "descKey": "tool.urlCodec.desc",
+    "category": "extract",
+    "icon": "link",
+    "order": 560,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "URL",
+      "转义",
+      "percent 编码",
+      "查询参数",
+      "urlencode",
+      "query string",
+      "percent-encoding"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.urlCodec.input",
+        "descriptionKey": "opt.urlCodec.input.hint",
+        "placeholderKey": "opt.urlCodec.input.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.urlCodec.mode",
+        "default": "encode",
+        "options": [
+          {
+            "value": "encode",
+            "labelKey": "opt.urlCodec.mode.encode",
+            "descriptionKey": "opt.urlCodec.mode.encode.hint"
+          },
+          {
+            "value": "decode",
+            "labelKey": "opt.urlCodec.mode.decode",
+            "descriptionKey": "opt.urlCodec.mode.decode.hint"
+          },
+          {
+            "value": "parse",
+            "labelKey": "opt.urlCodec.mode.parse",
+            "descriptionKey": "opt.urlCodec.mode.parse.hint"
+          },
+          {
+            "value": "build",
+            "labelKey": "opt.urlCodec.mode.build",
+            "descriptionKey": "opt.urlCodec.mode.build.hint"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "component",
+        "labelKey": "opt.urlCodec.component",
+        "descriptionKey": "opt.urlCodec.component.hint",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "form",
+        "labelKey": "opt.urlCodec.form",
+        "descriptionKey": "opt.urlCodec.form.hint",
+        "default": false
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "unicode-escape",
+    "nameKey": "tool.unicodeEscape.name",
+    "descKey": "tool.unicodeEscape.desc",
+    "category": "extract",
+    "icon": "at-sign",
+    "order": 570,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "Unicode",
+      "转义",
+      "实体",
+      "中文乱码",
+      "unicode escape",
+      "html entity",
+      "\\u"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.unicodeEscape.input",
+        "descriptionKey": "opt.unicodeEscape.input.hint",
+        "placeholderKey": "opt.unicodeEscape.input.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.unicodeEscape.mode",
+        "default": "encode",
+        "row": "a",
+        "options": [
+          {
+            "value": "encode",
+            "labelKey": "opt.unicodeEscape.mode.encode"
+          },
+          {
+            "value": "decode",
+            "labelKey": "opt.unicodeEscape.mode.decode"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "style",
+        "labelKey": "opt.unicodeEscape.style",
+        "default": "unicode",
+        "options": [
+          {
+            "value": "unicode",
+            "labelKey": "opt.unicodeEscape.style.unicode",
+            "descriptionKey": "opt.unicodeEscape.style.unicode.hint"
+          },
+          {
+            "value": "html-entity",
+            "labelKey": "opt.unicodeEscape.style.htmlEntity",
+            "descriptionKey": "opt.unicodeEscape.style.htmlEntity.hint"
+          },
+          {
+            "value": "html-numeric",
+            "labelKey": "opt.unicodeEscape.style.htmlNumeric",
+            "descriptionKey": "opt.unicodeEscape.style.htmlNumeric.hint"
+          },
+          {
+            "value": "json",
+            "labelKey": "opt.unicodeEscape.style.json",
+            "descriptionKey": "opt.unicodeEscape.style.json.hint"
+          }
+        ]
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "jwt",
+    "nameKey": "tool.jwt.name",
+    "descKey": "tool.jwt.desc",
+    "category": "extract",
+    "icon": "ticket",
+    "order": 580,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "JWT",
+      "token",
+      "令牌",
+      "载荷",
+      "验签",
+      "json web token",
+      "decode"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "token",
+        "labelKey": "opt.jwt.token",
+        "descriptionKey": "opt.jwt.token.hint",
+        "placeholderKey": "opt.jwt.token.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 3,
+        "required": true
+      },
+      {
+        "type": "text",
+        "key": "secret",
+        "labelKey": "opt.jwt.secret",
+        "descriptionKey": "opt.jwt.secret.hint",
+        "placeholderKey": "opt.jwt.secret.placeholder",
+        "default": "",
+        "mono": true,
+        "showIf": {
+          "field": "verify",
+          "in": [
+            true
+          ]
+        }
+      },
+      {
+        "type": "boolean",
+        "key": "verify",
+        "labelKey": "opt.jwt.verify",
+        "descriptionKey": "opt.jwt.verify.hint",
+        "default": false
+      },
+      {
+        "type": "select",
+        "key": "algorithm",
+        "labelKey": "opt.jwt.algorithm",
+        "section": "advanced",
+        "default": "auto",
+        "row": "a",
+        "showIf": {
+          "field": "verify",
+          "in": [
+            true
+          ]
+        },
+        "options": [
+          {
+            "value": "auto",
+            "labelKey": "opt.jwt.algorithm.auto",
+            "descriptionKey": "opt.jwt.algorithm.auto.hint"
+          },
+          {
+            "value": "hs256",
+            "labelKey": "opt.jwt.algorithm.hs256"
+          },
+          {
+            "value": "hs384",
+            "labelKey": "opt.jwt.algorithm.hs384"
+          },
+          {
+            "value": "hs512",
+            "labelKey": "opt.jwt.algorithm.hs512"
+          },
+          {
+            "value": "rs256",
+            "labelKey": "opt.jwt.algorithm.rs256",
+            "descriptionKey": "opt.jwt.algorithm.rs256.hint"
+          },
+          {
+            "value": "es256",
+            "labelKey": "opt.jwt.algorithm.es256",
+            "descriptionKey": "opt.jwt.algorithm.es256.hint"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "leeway",
+        "labelKey": "opt.jwt.leeway",
+        "descriptionKey": "opt.jwt.leeway.hint",
+        "default": 0,
+        "section": "advanced",
+        "min": 0,
+        "max": 3600,
+        "step": 1,
+        "suffixKey": "opt.jwt.leeway.unit",
+        "row": "a",
+        "showIf": {
+          "field": "verify",
+          "in": [
+            true
+          ]
+        }
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "aes",
+    "nameKey": "tool.aes.name",
+    "descKey": "tool.aes.desc",
+    "category": "extract",
+    "icon": "lock",
+    "order": 590,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "AES",
+      "对称加密",
+      "口令",
+      "GCM",
+      "aes encrypt",
+      "decrypt",
+      "加密"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.aes.input",
+        "descriptionKey": "opt.aes.input.hint",
+        "placeholderKey": "opt.aes.input.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.aes.mode",
+        "default": "encrypt",
+        "row": "a",
+        "options": [
+          {
+            "value": "encrypt",
+            "labelKey": "opt.aes.mode.encrypt"
+          },
+          {
+            "value": "decrypt",
+            "labelKey": "opt.aes.mode.decrypt"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.aes.format",
+        "default": "base64",
+        "row": "a",
+        "options": [
+          {
+            "value": "base64",
+            "labelKey": "opt.aes.format.base64"
+          },
+          {
+            "value": "base64url",
+            "labelKey": "opt.aes.format.base64url",
+            "descriptionKey": "opt.aes.format.base64url.hint"
+          },
+          {
+            "value": "hex",
+            "labelKey": "opt.aes.format.hex"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "passphrase",
+        "labelKey": "opt.aes.passphrase",
+        "descriptionKey": "opt.aes.passphrase.hint",
+        "placeholderKey": "opt.aes.passphrase.placeholder",
+        "default": "",
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "cipher",
+        "labelKey": "opt.aes.cipher",
+        "section": "advanced",
+        "default": "aes-256-gcm",
+        "options": [
+          {
+            "value": "aes-256-gcm",
+            "labelKey": "opt.aes.cipher.aes256Gcm",
+            "descriptionKey": "opt.aes.cipher.aes256Gcm.hint"
+          },
+          {
+            "value": "aes-256-cbc",
+            "labelKey": "opt.aes.cipher.aes256Cbc",
+            "descriptionKey": "opt.aes.cipher.aes256Cbc.hint"
+          },
+          {
+            "value": "aes-128-cbc",
+            "labelKey": "opt.aes.cipher.aes128Cbc",
+            "descriptionKey": "opt.aes.cipher.aes128Cbc.hint"
+          },
+          {
+            "value": "aes-256-ctr",
+            "labelKey": "opt.aes.cipher.aes256Ctr",
+            "descriptionKey": "opt.aes.cipher.aes256Ctr.hint"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "kdf",
+        "labelKey": "opt.aes.kdf",
+        "section": "advanced",
+        "default": "scrypt",
+        "row": "a",
+        "options": [
+          {
+            "value": "scrypt",
+            "labelKey": "opt.aes.kdf.scrypt",
+            "descriptionKey": "opt.aes.kdf.scrypt.hint"
+          },
+          {
+            "value": "pbkdf2",
+            "labelKey": "opt.aes.kdf.pbkdf2",
+            "descriptionKey": "opt.aes.kdf.pbkdf2.hint"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "iterations",
+        "labelKey": "opt.aes.iterations",
+        "section": "advanced",
+        "descriptionKey": "opt.aes.iterations.hint",
+        "default": 150000,
+        "min": 1000,
+        "max": 2000000,
+        "step": 1000,
+        "row": "a"
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "rsa",
+    "nameKey": "tool.rsa.name",
+    "descKey": "tool.rsa.desc",
+    "category": "extract",
+    "icon": "key-round",
+    "order": 600,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "RSA",
+      "密钥对",
+      "公钥",
+      "私钥",
+      "签名",
+      "rsa keypair",
+      "public key",
+      "private key"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.rsa.mode",
+        "default": "generate",
+        "options": [
+          {
+            "value": "generate",
+            "labelKey": "opt.rsa.mode.generate",
+            "descriptionKey": "opt.rsa.mode.generate.hint"
+          },
+          {
+            "value": "encrypt",
+            "labelKey": "opt.rsa.mode.encrypt",
+            "descriptionKey": "opt.rsa.mode.encrypt.hint"
+          },
+          {
+            "value": "decrypt",
+            "labelKey": "opt.rsa.mode.decrypt",
+            "descriptionKey": "opt.rsa.mode.decrypt.hint"
+          },
+          {
+            "value": "sign",
+            "labelKey": "opt.rsa.mode.sign"
+          },
+          {
+            "value": "verify",
+            "labelKey": "opt.rsa.mode.verify"
+          },
+          {
+            "value": "pubkey",
+            "labelKey": "opt.rsa.mode.pubkey",
+            "descriptionKey": "opt.rsa.mode.pubkey.hint"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "bits",
+        "labelKey": "opt.rsa.bits",
+        "descriptionKey": "opt.rsa.bits.hint",
+        "section": "advanced",
+        "default": 2048,
+        "row": "a",
+        "options": [
+          {
+            "value": 2048,
+            "labelKey": "opt.rsa.bits.b2048"
+          },
+          {
+            "value": 3072,
+            "labelKey": "opt.rsa.bits.b3072"
+          },
+          {
+            "value": 4096,
+            "labelKey": "opt.rsa.bits.b4096"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.rsa.format",
+        "section": "advanced",
+        "default": "pem",
+        "row": "a",
+        "options": [
+          {
+            "value": "pem",
+            "labelKey": "opt.rsa.format.pem",
+            "descriptionKey": "opt.rsa.format.pem.hint"
+          },
+          {
+            "value": "jwk",
+            "labelKey": "opt.rsa.format.jwk",
+            "descriptionKey": "opt.rsa.format.jwk.hint"
+          }
+        ]
+      },
+      {
+        "type": "textarea",
+        "key": "privateKey",
+        "labelKey": "opt.rsa.privateKey",
+        "descriptionKey": "opt.rsa.privateKey.hint",
+        "placeholderKey": "opt.rsa.privateKey.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "decrypt",
+            "sign",
+            "pubkey"
+          ]
+        }
+      },
+      {
+        "type": "textarea",
+        "key": "publicKey",
+        "labelKey": "opt.rsa.publicKey",
+        "descriptionKey": "opt.rsa.publicKey.hint",
+        "placeholderKey": "opt.rsa.publicKey.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 4,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "encrypt",
+            "verify"
+          ]
+        }
+      },
+      {
+        "type": "textarea",
+        "key": "message",
+        "labelKey": "opt.rsa.message",
+        "descriptionKey": "opt.rsa.message.hint",
+        "placeholderKey": "opt.rsa.message.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 3,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "encrypt",
+            "decrypt",
+            "sign",
+            "verify"
+          ]
+        }
+      },
+      {
+        "type": "text",
+        "key": "passphrase",
+        "labelKey": "opt.rsa.passphrase",
+        "descriptionKey": "opt.rsa.passphrase.hint",
+        "placeholderKey": "opt.rsa.passphrase.placeholder",
+        "default": "",
+        "section": "advanced",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "decrypt",
+            "sign",
+            "pubkey"
+          ]
+        }
+      },
+      {
+        "type": "select",
+        "key": "padding",
+        "labelKey": "opt.rsa.padding",
+        "section": "advanced",
+        "default": "oaep",
+        "row": "b",
+        "options": [
+          {
+            "value": "oaep",
+            "labelKey": "opt.rsa.padding.oaep",
+            "descriptionKey": "opt.rsa.padding.oaep.hint"
+          },
+          {
+            "value": "pkcs1",
+            "labelKey": "opt.rsa.padding.pkcs1",
+            "descriptionKey": "opt.rsa.padding.pkcs1.hint"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "hash",
+        "labelKey": "opt.rsa.hash",
+        "section": "advanced",
+        "default": "sha256",
+        "row": "b",
+        "options": [
+          {
+            "value": "sha256",
+            "labelKey": "opt.rsa.hash.sha256"
+          },
+          {
+            "value": "sha512",
+            "labelKey": "opt.rsa.hash.sha512"
+          }
+        ]
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "totp",
+    "nameKey": "tool.totp.name",
+    "descKey": "tool.totp.desc",
+    "category": "extract",
+    "icon": "timer",
+    "order": 610,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "TOTP",
+      "动态口令",
+      "一次性验证码",
+      "两步验证",
+      "otpauth",
+      "authenticator",
+      "2FA"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.totp.mode",
+        "default": "generate",
+        "row": "a",
+        "options": [
+          {
+            "value": "generate",
+            "labelKey": "opt.totp.mode.generate"
+          },
+          {
+            "value": "verify",
+            "labelKey": "opt.totp.mode.verify"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "secret",
+        "labelKey": "opt.totp.secret",
+        "descriptionKey": "opt.totp.secret.hint",
+        "placeholderKey": "opt.totp.secret.placeholder",
+        "default": "",
+        "mono": true,
+        "required": true
+      },
+      {
+        "type": "text",
+        "key": "code",
+        "labelKey": "opt.totp.code",
+        "descriptionKey": "opt.totp.code.hint",
+        "placeholderKey": "opt.totp.code.placeholder",
+        "default": "",
+        "mono": true,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "verify"
+          ]
+        }
+      },
+      {
+        "type": "number",
+        "key": "digits",
+        "labelKey": "opt.totp.digits",
+        "default": 6,
+        "min": 6,
+        "max": 8,
+        "step": 1,
+        "row": "b"
+      },
+      {
+        "type": "number",
+        "key": "period",
+        "labelKey": "opt.totp.period",
+        "default": 30,
+        "min": 15,
+        "max": 300,
+        "step": 15,
+        "suffixKey": "opt.totp.period.unit",
+        "row": "b"
+      },
+      {
+        "type": "select",
+        "key": "algorithm",
+        "labelKey": "opt.totp.algorithm",
+        "default": "sha1",
+        "row": "b",
+        "options": [
+          {
+            "value": "sha1",
+            "labelKey": "opt.totp.algorithm.sha1",
+            "descriptionKey": "opt.totp.algorithm.sha1.hint"
+          },
+          {
+            "value": "sha256",
+            "labelKey": "opt.totp.algorithm.sha256"
+          },
+          {
+            "value": "sha512",
+            "labelKey": "opt.totp.algorithm.sha512"
+          }
+        ]
+      },
+      {
+        "type": "dateTime",
+        "key": "at",
+        "labelKey": "opt.totp.at",
+        "descriptionKey": "opt.totp.at.hint",
+        "placeholderKey": "opt.totp.at.placeholder",
+        "default": "now",
+        "mono": true,
+        "presets": [
+          "now",
+          "today",
+          "yesterday",
+          "tomorrow",
+          "week-start",
+          "month-start",
+          "quarter-start",
+          "year-start"
+        ],
+        "allowTime": true
+      },
+      {
+        "type": "number",
+        "key": "window",
+        "labelKey": "opt.totp.window",
+        "descriptionKey": "opt.totp.window.hint",
+        "default": 1,
+        "min": 0,
+        "max": 10,
+        "step": 1
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "x509",
+    "nameKey": "tool.x509.name",
+    "descKey": "tool.x509.desc",
+    "category": "extract",
+    "icon": "scroll-text",
+    "order": 620,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "X.509",
+      "证书",
+      "SSL",
+      "有效期",
+      "证书链",
+      "certificate",
+      "PEM",
+      "CSR"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "pem",
+        "labelKey": "opt.x509.pem",
+        "descriptionKey": "opt.x509.pem.hint",
+        "placeholderKey": "opt.x509.pem.placeholder",
+        "default": "",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "boolean",
+        "key": "chain",
+        "labelKey": "opt.x509.chain",
+        "descriptionKey": "opt.x509.chain.hint",
+        "default": false
+      },
+      {
+        "type": "select",
+        "key": "output",
+        "labelKey": "opt.x509.output",
+        "default": "summary",
+        "options": [
+          {
+            "value": "summary",
+            "labelKey": "opt.x509.output.summary"
+          },
+          {
+            "value": "full-json",
+            "labelKey": "opt.x509.output.fullJson",
+            "descriptionKey": "opt.x509.output.fullJson.hint"
+          }
+        ]
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "password-gen",
+    "nameKey": "tool.passwordGen.name",
+    "descKey": "tool.passwordGen.desc",
+    "category": "extract",
+    "icon": "dices",
+    "order": 630,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "密码",
+      "强密码",
+      "随机",
+      "口令生成",
+      "password",
+      "passphrase",
+      "generator"
+    ],
+    "fields": [
+      {
+        "type": "number",
+        "key": "length",
+        "labelKey": "opt.passwordGen.length",
+        "descriptionKey": "opt.passwordGen.length.hint",
+        "default": 20,
+        "min": 4,
+        "max": 128,
+        "step": 1,
+        "row": "a"
+      },
+      {
+        "type": "number",
+        "key": "count",
+        "labelKey": "opt.passwordGen.count",
+        "default": 5,
+        "min": 1,
+        "max": 50,
+        "step": 1,
+        "row": "a"
+      },
+      {
+        "type": "boolean",
+        "key": "upper",
+        "labelKey": "opt.passwordGen.upper",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "lower",
+        "labelKey": "opt.passwordGen.lower",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "digits",
+        "labelKey": "opt.passwordGen.digits",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "symbols",
+        "labelKey": "opt.passwordGen.symbols",
+        "descriptionKey": "opt.passwordGen.symbols.hint",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "ensureAll",
+        "labelKey": "opt.passwordGen.ensureAll",
+        "descriptionKey": "opt.passwordGen.ensureAll.hint",
+        "default": true
+      },
+      {
+        "type": "text",
+        "key": "exclude",
+        "labelKey": "opt.passwordGen.exclude",
+        "descriptionKey": "opt.passwordGen.exclude.hint",
+        "placeholderKey": "opt.passwordGen.exclude.placeholder",
+        "default": "",
+        "mono": true,
+        "presets": [
+          {
+            "value": "0O1lI",
+            "labelKey": "opt.passwordGen.exclude.lookalikes"
+          },
+          {
+            "value": "!@#$%^&*()-_=+[]{};:,.<>?/\\|~`",
+            "labelKey": "opt.passwordGen.exclude.symbols"
+          }
+        ]
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "password-strength",
+    "nameKey": "tool.passwordStrength.name",
+    "descKey": "tool.passwordStrength.desc",
+    "category": "extract",
+    "icon": "shield",
+    "order": 635,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "密码强度",
+      "密码检测",
+      "强度检测",
+      "password strength",
+      "password checker"
+    ],
+    "fields": [],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "uuid-gen",
+    "nameKey": "tool.uuidGen.name",
+    "descKey": "tool.uuidGen.desc",
+    "category": "extract",
+    "icon": "square-asterisk",
+    "order": 640,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "UUID",
+      "GUID",
+      "唯一标识",
+      "v7",
+      "uuid generate",
+      "identifier"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "version",
+        "labelKey": "opt.uuidGen.version",
+        "default": "v4",
+        "row": "a",
+        "options": [
+          {
+            "value": "v4",
+            "labelKey": "opt.uuidGen.version.v4",
+            "descriptionKey": "opt.uuidGen.version.v4.hint"
+          },
+          {
+            "value": "v7",
+            "labelKey": "opt.uuidGen.version.v7",
+            "descriptionKey": "opt.uuidGen.version.v7.hint"
+          },
+          {
+            "value": "nil",
+            "labelKey": "opt.uuidGen.version.nil",
+            "descriptionKey": "opt.uuidGen.version.nil.hint"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "count",
+        "labelKey": "opt.uuidGen.count",
+        "default": 5,
+        "min": 1,
+        "max": 100,
+        "step": 1,
+        "row": "a"
+      },
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.uuidGen.format",
+        "default": "default",
+        "options": [
+          {
+            "value": "default",
+            "labelKey": "opt.uuidGen.format.default"
+          },
+          {
+            "value": "braces",
+            "labelKey": "opt.uuidGen.format.braces",
+            "descriptionKey": "opt.uuidGen.format.braces.hint"
+          },
+          {
+            "value": "urn",
+            "labelKey": "opt.uuidGen.format.urn",
+            "descriptionKey": "opt.uuidGen.format.urn.hint"
+          },
+          {
+            "value": "upper",
+            "labelKey": "opt.uuidGen.format.upper"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "noHyphens",
+        "labelKey": "opt.uuidGen.noHyphens",
+        "descriptionKey": "opt.uuidGen.noHyphens.hint",
+        "default": false
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "file-base64",
+    "nameKey": "tool.fileBase64.name",
+    "descKey": "tool.fileBase64.desc",
+    "category": "extract",
+    "icon": "file",
+    "order": 695,
+    "accept": "*/*",
+    "multiFile": false,
+    "layout": "standard",
+    "artifactKind": "text",
+    "keywords": [
+      "文件",
+      "Base64",
+      "data URI",
+      "编码",
+      "file to base64"
+    ],
+    "fields": [],
+    "workflow": "crypto",
+    "inputFormats": [
+      "binary"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "base64-file",
+    "nameKey": "tool.base64File.name",
+    "descKey": "tool.base64File.desc",
+    "category": "extract",
+    "icon": "download",
+    "order": 696,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "binary",
+    "keywords": [
+      "Base64",
+      "文件",
+      "解码",
+      "base64 to file"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "SGVsbG8=",
+        "mono": true,
+        "rows": 5,
+        "required": true
+      },
+      {
+        "type": "text",
+        "key": "filename",
+        "labelKey": "opt.dev.filename",
+        "default": "decoded.bin"
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "binary"
+    ]
+  },
+  {
+    "id": "bcrypt",
+    "nameKey": "tool.bcrypt.name",
+    "descKey": "tool.bcrypt.desc",
+    "category": "extract",
+    "icon": "shield",
+    "order": 697,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "bcrypt",
+      "密码",
+      "哈希",
+      "校验",
+      "hash",
+      "verify"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.dev.mode",
+        "default": "hash",
+        "options": [
+          {
+            "value": "hash",
+            "labelKey": "opt.dev.mode.hash"
+          },
+          {
+            "value": "verify",
+            "labelKey": "opt.dev.mode.verify"
+          }
+        ]
+      },
+      {
+        "type": "password",
+        "key": "bcryptPassword",
+        "labelKey": "opt.dev.bcryptPassword",
+        "default": "",
+        "required": true,
+        "maxLength": 72,
+        "autoComplete": "new-password"
+      },
+      {
+        "type": "number",
+        "key": "rounds",
+        "labelKey": "opt.dev.rounds",
+        "default": 10,
+        "min": 4,
+        "max": 12,
+        "step": 1,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "hash"
+          ]
+        }
+      },
+      {
+        "type": "text",
+        "key": "bcryptHash",
+        "labelKey": "opt.dev.bcryptHash",
+        "default": "",
+        "mono": true,
+        "required": true,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "verify"
+          ]
+        }
+      }
+    ],
+    "workflow": "crypto",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  }
+]
