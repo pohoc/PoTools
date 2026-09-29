@@ -4,7 +4,7 @@ import { Navigate, useParams, Link } from 'react-router-dom';
 import type { JobSnapshot, ToolDescriptor, ToolId } from 'core';
 import { TOOLS } from '../lib/core-bindings.ts';
 import { browserRunBlocker } from '../lib/browser-limits.ts';
-import { Button, Section, Badge, Card, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@potools/ui';
+import { Button, Section, Badge, Card, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from '@potools/ui';
 import { DropZone } from '../components/DropZone.tsx';
 import { ColorPickerPanel } from '../components/ColorPickerPanel.tsx';
 import { PasswordStrengthPanel } from '../components/PasswordStrengthPanel.tsx';
@@ -127,6 +127,13 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
               : null;
 
   const onRun = async () => {
+    // Every "no-op" path (stale result panel after HMR, browser limits,
+    // missing files) must give visible feedback instead of failing silently.
+    if (draft.running) return;
+    if (!canRun) {
+      toast.error(runDisabledReason ?? t('run.needsFiles'));
+      return;
+    }
     if (organizer) {
       await draft.run({
         plan: slots.map((slot) => ({ fileId: slot.fileId, page: slot.page, rotation: slot.rotation })) as never,
