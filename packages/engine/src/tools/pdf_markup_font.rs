@@ -3,6 +3,7 @@ use base64::Engine as _;
 use lopdf::{dictionary, Document, Object, ObjectId, Stream};
 use serde_json::Value;
 use std::collections::HashMap;
+use subsetter::{subset, subset_with_variations, GlyphRemapper, Tag};
 use ttf_parser::{Face, GlyphId};
 
 /// One embedded font. CID (Identity-H) fonts carry [`Subset`] state so the
@@ -27,7 +28,9 @@ pub(crate) struct Font {
 pub(crate) struct Subset {
     file: Vec<u8>,
     face_index: u32,
+    remapper: GlyphRemapper,
     gids: Vec<u16>,
+    font_file_id: ObjectId,
     cid_font_id: ObjectId,
     cid_map_id: ObjectId,
     to_unicode_id: ObjectId,
@@ -128,14 +131,36 @@ impl Font {
             additions
         };
         let (cid_font_id, cid_map_id, unicode_id) = {
-            let subset = self.subset.as_mut().expect("subset exists");
+            let font_subset = self.subset.as_mut().expect("subset exists");
             for (character, glyph_id, width) in additions {
                 let cid = (self.glyphs.len() + 1) as u16;
                 self.glyphs.insert(character, cid);
                 self.widths.insert(character, width);
-                subset.gids.push(glyph_id);
+                let subset_gid = font_subset.remapper.remap(glyph_id);
+                font_subset.gids.push(subset_gid);
             }
-            (subset.cid_font_id, subset.cid_map_id, subset.to_unicode_id)
+            // The stored font program is a subset; re-subset it so the newly
+            // added glyphs have outlines in the embedded file.
+            let face = Face::parse(&font_subset.file, font_subset.face_index)
+                .map_err(|_| EngineError::new("unsupported", "系统字体文件格式无效"))?;
+            let has_variations = face.variation_axes().len() > 0;
+            let program = if has_variations {
+                subset_with_variations(
+                    &font_subset.file,
+                    font_subset.face_index,
+                    &[(Tag::new(b"wght"), 400.0)],
+                    &font_subset.remapper,
+                )
+            } else {
+                subset(&font_subset.file, font_subset.face_index, &font_subset.remapper)
+            };
+            let program = program.unwrap_or_else(|_| font_subset.file.clone());
+            let program_len = program.len();
+            if let Ok(Object::Stream(stream)) = document.get_object_mut(font_subset.font_file_id) {
+                stream.set_content(program);
+                stream.dict.set("Length1", program_len as i64);
+            }
+            (font_subset.cid_font_id, font_subset.cid_map_id, font_subset.to_unicode_id)
         };
         let mut cid_map = vec![0u8; (self.glyphs.len() + 1) * 2];
         {
@@ -313,6 +338,7 @@ pub(crate) fn embed_face(
         .map_err(|_| EngineError::new("unsupported", "系统字体文件格式无效"))?;
     let upm = face.units_per_em() as f64;
     let chars: Vec<char> = sample.chars().chain("0123456789-.".chars()).collect();
+    let mut remapper = GlyphRemapper::new();
     let mut glyphs = HashMap::new();
     let mut gids = Vec::new();
     let mut widths = HashMap::new();
@@ -325,14 +351,26 @@ pub(crate) fn embed_face(
             .ok_or_else(|| EngineError::new("unsupported", "系统字体缺少文本所需字形"))?;
         let cid = (glyphs.len() + 1) as u16;
         glyphs.insert(character, cid);
-        gids.push(glyph.0);
+        let subset_gid = remapper.remap(glyph.0);
+        gids.push(subset_gid);
         let advance = face.glyph_hor_advance(glyph).unwrap_or(face.units_per_em());
         widths.insert(character, advance as f64 * 1000.0 / upm);
     }
+    // Subset the font program to the glyphs actually used (and instantiate
+    // variable fonts to their default weight) so a 17 MB CJK font does not
+    // end up inside every output PDF. Falls back to the full program if the
+    // subsetter cannot handle the face.
+    let has_variations = face.variation_axes().len() > 0;
+    let font_program = if has_variations {
+        subset_with_variations(bytes, face_index, &[(Tag::new(b"wght"), 400.0)], &remapper)
+    } else {
+        subset(bytes, face_index, &remapper)
+    };
+    let font_bytes: Vec<u8> = font_program.unwrap_or_else(|_| bytes.to_vec());
     let base_name = pdf_name(name);
     let font_file = document.add_object(Stream::new(
-        dictionary! { "Length1" => bytes.len() as i64 },
-        bytes.to_vec(),
+        dictionary! { "Length1" => font_bytes.len() as i64 },
+        font_bytes,
     ));
     let bounds = face.global_bounding_box();
     let scale = |v: i16| (v as f64 * 1000.0 / upm).round() as i64;
@@ -379,7 +417,9 @@ pub(crate) fn embed_face(
         subset: Some(Subset {
             file: bytes.to_vec(),
             face_index,
+            remapper: remapper.clone(),
             gids,
+            font_file_id: font_file,
             cid_font_id: cid_font,
             cid_map_id: cid_map_ref,
             to_unicode_id: unicode_ref,
