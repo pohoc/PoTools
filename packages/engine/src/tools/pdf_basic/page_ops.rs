@@ -101,8 +101,8 @@ pub(super) fn run_split(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         )?;
         pages_out += group.len();
     }
-    result.extra.insert("pageCountIn".into(), json!(total));
-    result.extra.insert("pageCountOut".into(), json!(pages_out));
+    result.extra.insert("__pageCountIn".into(), json!(total));
+    result.extra.insert("__pageCountOut".into(), json!(pages_out));
     result.extra.insert("files".into(), json!(groups.len()));
     Ok(result)
 }
@@ -142,8 +142,8 @@ pub(super) fn run_rotate(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         total_in += pages.len();
         total_out += pages.len();
     }
-    result.extra.insert("pageCountIn".into(), json!(total_in));
-    result.extra.insert("pageCountOut".into(), json!(total_out));
+    result.extra.insert("__pageCountIn".into(), json!(total_in));
+    result.extra.insert("__pageCountOut".into(), json!(total_out));
     result.extra.insert("angle".into(), json!(angle));
     Ok(result)
 }
@@ -188,7 +188,7 @@ pub(super) fn run_extract(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
     }
     result
         .extra
-        .insert("pageCountOut".into(), json!(page_count_out));
+        .insert("__pageCountOut".into(), json!(page_count_out));
     Ok(result)
 }
 
@@ -282,9 +282,9 @@ pub(super) fn run_organize(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         None,
         &mut result,
     )?;
-    result.extra.insert("pageCountIn".into(), json!(plan.len()));
+    result.extra.insert("__pageCountIn".into(), json!(plan.len()));
     result.extra.insert(
-        "pageCountOut".into(),
+        "__pageCountOut".into(),
         json!(result
             .artifacts
             .first()

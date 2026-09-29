@@ -14,7 +14,6 @@ pub fn run(ctx: &RunContext<'_>) -> RunResult {
     let result = match ctx.tool {
         "hash" => hash_tool(ctx)?,
         "hmac" => hmac_tool(ctx)?,
-        "file-checksum" => file_checksum(ctx)?,
         _ => return Ok(None),
     };
     Ok(Some(result))
@@ -191,6 +190,9 @@ pub(super) fn digest(name: &str, bytes: &[u8]) -> Result<Vec<u8>, EngineError> {
 }
 
 fn hash_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
+    use super::enc::{self, fill, Tmpl};
+    use crate::tools::text::fmt::{align_rows, join_blocks, row, section};
+    let en = enc::is_en(ctx);
     let raw = required(ctx, "input")?;
     let form = string(ctx, "inputAs", "text");
     let bytes = match form {
@@ -207,20 +209,80 @@ fn hash_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let upper = boolean(ctx, "uppercase", false);
     let mut rows = Vec::new();
     for algo in algos {
-        rows.push(format!("{algo}: {}", hex(&digest(algo, &bytes)?, upper)));
+        rows.push(row(*algo, hex(&digest(algo, &bytes)?, upper)));
     }
-    let first = rows
-        .first()
-        .and_then(|r| r.split_once(": ").map(|(_, v)| v))
-        .unwrap_or("");
+    let first = rows.first().map(|(_, v)| v.clone()).unwrap_or_default();
     let mut extra = serde_json::Map::new();
     extra.insert("algorithms".into(), json!(rows.len()));
     extra.insert("algorithm".into(), json!(algos.join(",")));
     extra.insert("inputBytes".into(), json!(bytes.len()));
     extra.insert("digest".into(), json!(first));
-    let preview = raw.chars().take(72).collect::<String>();
-    let text=format!("Digest results\n{}\n\nInput form: {form}\nInput bytes: {}\nInput preview: {}\nHex case: {}",rows.join("\n"),bytes.len(),if preview.is_empty(){"(blank)".into()}else{preview},if upper{"upper"}else{"lower"});
-    Ok(artifact("hash.txt", text, extra))
+    let detail = if requested == "all" {
+        if en {
+            format!("{} algorithms", algos.len())
+        } else {
+            format!("{} 种算法", algos.len())
+        }
+    } else {
+        requested.to_string()
+    };
+    let form_label = match form {
+        "hex" => enc::t(en, "十六进制串（先解码为字节）", "Hex string (decoded to bytes first)"),
+        "base64" => enc::t(en, "Base64 串（先解码为字节）", "Base64 string (decoded to bytes first)"),
+        _ => enc::t(en, "普通文本（UTF-8 取字节）", "Plain text (UTF-8 bytes)"),
+    };
+    let mut blocks = vec![
+        section(enc::t(en, "摘要结果", "Digests")),
+        align_rows(&rows),
+        section(&format!(
+            "{}{detail}",
+            enc::t(en, "哈希摘要 · ", "Digest - ")
+        )),
+        align_rows(&[
+            row(enc::t(en, "输入形式", "Input form"), form_label),
+            row(
+                enc::t(en, "输入字节", "Input bytes"),
+                fill(en, Tmpl::Bytes, bytes.len()),
+            ),
+            row(enc::t(en, "输入预览", "Input preview"), enc::preview(en, raw, 72)),
+            row(
+                enc::t(en, "输出大小写", "Output case"),
+                enc::t(en, if upper { "大写" } else { "小写" }, if upper { "uppercase" } else { "lowercase" }),
+            ),
+        ]),
+    ];
+    let mut notes = vec![
+        enc::t(
+            en,
+            "· 输入按去除首尾空白后的内容计算；需要保留空格/换行时请改用文件校验类工具。",
+            "- The input is trimmed of leading and trailing whitespace; use the file checksum tool to keep spaces and line breaks.",
+        )
+        .to_string(),
+    ];
+    if form != "text" {
+        notes.push(
+            if en {
+                format!("- inputAs={form}: the input is decoded to {} bytes first, and those bytes are what gets digested.", bytes.len())
+            } else {
+                format!("· inputAs={form}：先把输入解码为 {} 字节，再对这些字节求摘要。", bytes.len())
+            },
+        );
+    }
+    let raw_bytes = raw.len();
+    if bytes.len() != raw_bytes {
+        notes.push(
+            if en {
+                format!("- The raw text is {raw_bytes} bytes; the decoded {} bytes are what took part in the calculation.", bytes.len())
+            } else {
+                format!("· 原始文本为 {raw_bytes} 字节，实际参与计算的是解码后的 {} 字节。", bytes.len())
+            },
+        );
+    }
+    blocks.push(section(enc::t(en, "说明", "Notes")));
+    blocks.push(notes.join("\n"));
+    // emitText convention: one trailing newline in both text and artifact.
+    let body = format!("{}\n", join_blocks(blocks.iter().map(String::as_str)).trim_end());
+    Ok(artifact("hash.txt", body, extra))
 }
 
 fn hmac_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
@@ -290,125 +352,127 @@ fn hmac_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     } else {
         b64_encode(&mac, false)
     };
-    let text = format!(
-        "{algo}: {primary}\nEquivalent: {alternative}\nMessage bytes: {}\nSecret: [masked]",
-        message.len()
-    );
+    let alt_label = if format == "hex" { "base64" } else { "hex" };
     let mut extra = serde_json::Map::new();
     extra.insert("algorithm".into(), json!(algo));
     extra.insert("format".into(), json!(format));
     extra.insert("algorithms".into(), json!(1));
     extra.insert("signature".into(), json!(primary));
+    let text = hmac_report(ctx, algo, &primary, &alternative, alt_label, format, secret, message);
     Ok(artifact("hmac.txt", text, extra))
 }
 
-fn file_checksum(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
-    if ctx.inputs.is_empty() {
-        return Err(
-            EngineError::new("empty_selection", "Select at least one file")
-                .with_hint("error.emptySelection"),
-        );
-    }
-    let requested = string(ctx, "algorithm", "all");
-    let algos: &[&str] = if requested == "all" {
-        &["md5", "sha1", "sha256", "sha512"]
-    } else {
-        &[requested]
-    };
-    let format = if string(ctx, "format", "hex") == "base64" {
-        "base64"
-    } else {
-        "hex"
-    };
-    let expected_raw = string(ctx, "expected", "").trim();
-    let mut expected = Vec::<(Option<String>, String)>::new();
-    for token in expected_raw
-        .split(|c: char| c == '\r' || c == '\n' || c == ',' || c == ';')
-        .flat_map(str::split_whitespace)
-    {
-        let (tag, value) = token
-            .find(|c| c == '=' || c == ':')
-            .map(|i| (Some(token[..i].to_ascii_lowercase()), token[i + 1..].trim()))
-            .unwrap_or((None, token));
-        let hex_like = value.len() >= 16 && value.bytes().all(|b| b.is_ascii_hexdigit());
-        let base64_body = value.trim_end_matches('=');
-        let padding = value.len() - base64_body.len();
-        let b64_like = value.len() >= 8
-            && padding <= 2
-            && base64_body
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b == b'+' || b == b'/');
-        let tag_valid = tag.as_deref().map_or(true, |t| {
-            ["md5", "sha1", "sha256", "sha384", "sha512", "blake2b512"].contains(&t)
-        });
-        if tag_valid && (hex_like || b64_like) {
-            expected.push((tag, value.to_string()))
-        }
-    }
-    let mut warnings = Vec::new();
-    if !expected_raw.is_empty() && expected.is_empty() {
-        warnings.push("No recognizable expected checksum was supplied".to_string())
-    }
-    if expected.len() > 0 && ctx.inputs.len() > 1 {
-        warnings.push(format!(
-            "{} expected checksum(s) supplied for multiple files",
-            expected.len()
-        ))
-    }
-    let mut lines = vec![
-        format!("Files: {}", ctx.inputs.len()),
-        format!(
-            "Total bytes: {}",
-            ctx.inputs.iter().map(|x| x.bytes.len()).sum::<usize>()
-        ),
-        format!("Expected digest entries: {}", expected.len()),
-    ];
-    let mut mismatches = 0usize;
-    let mut matched = 0usize;
-    for input in ctx.inputs {
-        lines.push(format!("{} ({} bytes)", input.name, input.bytes.len()));
-        for algo in algos {
-            let sum = digest(algo, &input.bytes)?;
-            let h = hex(&sum, false);
-            let b = b64_encode(&sum, false);
-            lines.push(format!(
-                "  {algo}: {}",
-                if format == "base64" { &b } else { &h }
-            ));
-            if !expected.is_empty() {
-                let hit = expected.iter().any(|(tag, value)| {
-                    tag.as_deref().map_or(true, |t| t == *algo)
-                        && (value.eq_ignore_ascii_case(&h) || *value == b)
-                });
-                if hit {
-                    matched += 1
+fn hmac_report(
+    ctx: &RunContext<'_>,
+    algo: &str,
+    primary: &str,
+    alternative: &str,
+    alt_label: &str,
+    format: &str,
+    secret: &str,
+    message: &str,
+) -> String {
+    use super::enc::{self, fill, Tmpl};
+    use crate::tools::text::fmt::{align_rows, join_blocks, row, section};
+    let en = enc::is_en(ctx);
+    let blocks = vec![
+        section(enc::t(en, "签名结果", "Signatures")),
+        align_rows(&[row(algo, primary)]),
+        section(&format!(
+            "{}{alt_label}",
+            enc::t(en, "等价表示 · ", "Equivalent form - ")
+        )),
+        align_rows(&[row(algo, alternative)]),
+        section(&format!(
+            "{}{algo} · {format}",
+            enc::t(en, "HMAC 签名 · ", "HMAC signature - ")
+        )),
+        align_rows(&[
+            row(
+                enc::t(en, "密钥", "Key"),
+                if en {
+                    format!("•••• ({} characters)", secret.chars().count())
                 } else {
-                    mismatches += 1
-                }
-                lines.push(format!(
-                    "  expected: {}",
-                    if hit { "matched" } else { "unmatched" }
-                ));
-            }
+                    format!("••••（{} 字符）", secret.chars().count())
+                },
+            ),
+            row(
+                enc::t(en, "密钥字节", "Key bytes"),
+                fill(en, Tmpl::Bytes, secret.len()),
+            ),
+            row(enc::t(en, "消息", "Message"), enc::preview(en, message, 72)),
+            row(
+                enc::t(en, "消息字节", "Message bytes"),
+                fill(en, Tmpl::Bytes, message.len()),
+            ),
+            row(
+                enc::t(en, "输出大小写", "Output case"),
+                enc::t(
+                    en,
+                    if boolean(ctx, "uppercase", false) && format == "hex" {
+                        "大写"
+                    } else {
+                        "原样"
+                    },
+                    if boolean(ctx, "uppercase", false) && format == "hex" {
+                        "uppercase"
+                    } else {
+                        "as is"
+                    },
+                ),
+            ),
+        ]),
+        section(enc::t(en, "说明", "Notes")),
+        [
+            enc::t(
+                en,
+                "· 密钥与消息都按 UTF-8 取字节，HMAC 结构为 H(key⊕opad ‖ H(key⊕ipad ‖ message))。",
+                "- Key and message are taken as UTF-8 bytes; HMAC is H(key opad || H(key ipad || message)).",
+            ),
+            enc::t(en, "· 签名密钥不会写入结果内容。", "- The signing key is omitted from the result."),
+        ]
+        .join("\n"),
+    ];
+    // emitText convention: one trailing newline.
+    format!("{}\n", join_blocks(blocks.iter().map(String::as_str)).trim_end())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::RunContext;
+
+    fn ctx<'a>(tool: &'a str, options: &'a serde_json::Value) -> RunContext<'a> {
+        RunContext {
+            tool,
+            options,
+            locale: "zh-CN",
+            inputs: &[],
+            name_pattern: None,
+            runtime_data: None,
         }
     }
-    let mut extra = serde_json::Map::new();
-    extra.insert("files".into(), json!(ctx.inputs.len()));
-    extra.insert("algorithms".into(), json!(algos.len()));
-    extra.insert("algorithm".into(), json!(algos.join(",")));
-    extra.insert("format".into(), json!(format));
-    extra.insert(
-        "checkedBytes".into(),
-        json!(ctx.inputs.iter().map(|x| x.bytes.len()).sum::<usize>()),
-    );
-    extra.insert("matched".into(), json!(matched));
-    extra.insert("mismatched".into(), json!(mismatches));
-    if mismatches > 0 {
-        warnings.push(format!(
-            "{mismatches} expected checksum comparison(s) did not match"
-        ))
+
+    #[test]
+    fn hash_report_matches_product_framing() {
+        let options = serde_json::json!({"input":"abc","algorithm":"all"});
+        let result = run(&ctx("hash", &options)).unwrap().unwrap();
+        let text = result.text.unwrap();
+        assert!(text.starts_with("── 摘要结果 ─"));
+        assert!(text.contains("  md5         900150983cd24fb0d6963f7d28e17f72"));
+        assert!(text.contains("── 哈希摘要 · 6 种算法 ─"));
+        assert!(text.contains("  输入字节    3 字节"));
+        assert!(text.ends_with("改用文件校验类工具。\n"));
     }
-    let mut result = artifact("checksums.txt", lines.join("\n"), extra);
-    result.warnings = warnings;
-    Ok(result)
+
+    #[test]
+    fn hmac_report_matches_product_framing() {
+        let options = serde_json::json!({"message":"hello","secret":"key","algorithm":"sha256"});
+        let result = run(&ctx("hmac", &options)).unwrap().unwrap();
+        let text = result.text.unwrap();
+        assert!(text.starts_with("── 签名结果 ─"));
+        assert!(text.contains("  sha256  9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b"));
+        assert!(text.contains("── 等价表示 · base64 ─"));
+        assert!(text.contains("  密钥        ••••（3 字符）"));
+    }
 }

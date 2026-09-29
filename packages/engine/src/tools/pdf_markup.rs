@@ -245,7 +245,7 @@ pub fn run(ctx: &RunContext<'_>) -> Result<Option<ToolResult>, EngineError> {
     result.extra.insert(key.into(), json!(total_touched));
     result
         .extra
-        .insert("pageCountOut".into(), json!(total_touched));
+        .insert("__pageCountOut".into(), json!(total_touched));
     Ok(Some(result))
 }
 

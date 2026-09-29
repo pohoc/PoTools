@@ -1,358 +1,367 @@
-//! Implementations for the date ops text tool group.
+//! Timestamp tool: mirrors the product engine's timestamp converter framing.
 
-use super::calendar::*;
 use super::common::*;
-use super::relative::{dominant_relative, relative_phrase};
+use super::fmt::{self, row};
 use super::{EngineError, RunContext, ToolResult};
-use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
+use chrono::{TimeZone, DateTime, Datelike, NaiveDate, Utc};
 use serde_json::Map;
 
 pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     match ctx.tool {
         "timestamp" => run_timestamp(ctx),
-        "date-diff" => run_date_diff(ctx),
-        "date-math" => run_date_math(ctx),
+        "date-diff" => super::date_diff::run(ctx),
+        "date-math" => super::date_math::run(ctx),
         _ => Err(err("Unsupported date operation")),
     }
 }
 
-pub(super) fn run_timestamp(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
-    let tz = zone(ctx)?;
-    let raw = string(ctx, "input", "");
-    let lines: Vec<_> = raw
-        .lines()
+fn phrase_locale(ctx: &RunContext<'_>) -> fmt::LocaleCode {
+    if is_en(ctx) {
+        fmt::EN_US
+    } else if string(ctx, "locale", "zh-CN").to_lowercase().starts_with('e') {
+        fmt::EN_US
+    } else {
+        fmt::ZH_CN
+    }
+}
+
+fn split_lines(raw: &str) -> Vec<String> {
+    raw.split(['\r', '\n'])
         .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .collect();
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn timestamp_style_select(raw: &str) -> String {
+    match raw {
+        "full" | "iso" | "date" | "datetime" | "relative" | "chinese" => raw.to_string(),
+        _ => "both".to_string(),
+    }
+}
+
+fn style_label(style: &str, ui: &str) -> String {
+    match style {
+        "full" => fmt::msg(ui, "完整对照", "Full report").into(),
+        "iso" => "ISO 8601".into(),
+        "date" => fmt::msg(ui, "仅日期", "Date only").into(),
+        "datetime" => fmt::msg(ui, "日期 + 时间", "Date + time").into(),
+        "relative" => fmt::msg(ui, "相对时间", "Relative").into(),
+        "chinese" => fmt::msg(ui, "中文写法", "Chinese style").into(),
+        other => other.into(),
+    }
+}
+
+pub(super) fn run_timestamp(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
+    let ui = ctx.locale;
+    let zh = fmt::is_zh(ui);
+    let lines = split_lines(string(ctx, "input", ""));
     if lines.is_empty() {
-        return Err(err(if is_en(ctx) {
-            "Input is required"
+        return Err(err(if zh {
+            "input（时间戳）不能为空。支持：now、today、2026-03-08 12:00:00、2026-03-08T12:00:00+08:00、2026-03-08、1700000000（秒）、1700000000000000（微秒）、1700000000000000000（纳秒），可每行填一个值。"
         } else {
-            "请输入时间"
+            "input (timestamp) is required. Supported: now, today, 2026-03-08 12:00:00, 2026-03-08T12:00:00+08:00, 2026-03-08, 1700000000 (seconds), 1700000000000000 (microseconds), 1700000000000000000 (nanoseconds). Enter one value per line."
         }));
     }
-    let unit = string(ctx, "unit", "auto");
-    let style = string(ctx, "style", "both");
-    let style = if [
-        "full", "both", "iso", "date", "datetime", "relative", "chinese",
-    ]
-    .contains(&style)
-    {
-        style
-    } else {
-        "both"
-    };
-    let unit = if ["auto", "s", "ms", "us", "ns"].contains(&unit) {
-        unit
+    let tz = zone(ctx)?;
+    let unit_raw = string(ctx, "unit", "auto");
+    let unit = if ["auto", "s", "ms", "us", "ns"].contains(&unit_raw) {
+        unit_raw
     } else {
         "auto"
     };
+    let style = timestamp_style_select(string(ctx, "style", "both")).leak() as &'static str;
+    let locale = phrase_locale(ctx);
+    let show_range = boolean(ctx, "showRange", true);
+    let show_now = boolean(ctx, "showNow", true);
     let now = Utc::now();
-    let mut rendered = Vec::new();
-    for line in &lines {
-        let dt = validate_date_range(parse_at_unit(line, tz, unit)?, tz)?;
-        let ms = dt.timestamp_millis();
-        let ns = epoch_ns(dt);
-        let value = match style {
-            "iso" => local(dt, tz).to_rfc3339(),
-            "date" => local(dt, tz).format("%Y-%m-%d").to_string(),
-            "datetime" => fmt_local(dt, tz),
-            "relative" => {
-                let delta = (dt - now).num_milliseconds();
-                let (n, relative_unit) = dominant_relative(delta);
-                relative_phrase(
-                    n,
-                    relative_unit,
-                    if is_en(ctx) { "en-US" } else { "zh-CN" },
-                    false,
-                )
-            }
-            "chinese" => {
-                if is_en(ctx) {
-                    local(dt, tz).format("%B %-d, %Y %I:%M:%S %p").to_string()
-                } else {
-                    local(dt, tz).format("%Y年%-m月%-d日 %H:%M:%S").to_string()
-                }
-            }
-            "full" => {
-                let mut report=format!("Local time: {}\nUnix seconds: {}\nUnix milliseconds: {}\nUnix microseconds: {}\nUnix nanoseconds: {}\nISO 8601: {}\nISO 8601 UTC: {}\nRFC 2822: {}\nInput: {line}\nTimezone: {}\nWeekday: {}\nDay of year: {}\nISO week: {}-W{:02}-{}\nRelative: {}",fmt_local(dt,tz),dt.timestamp(),ms,ns/1000,ns,local(dt,tz).to_rfc3339(),dt.to_rfc3339(),local(dt,tz).format("%a, %d %b %Y %H:%M:%S %z"),tz,local(dt,tz).format("%A"),local(dt,tz).ordinal(),local(dt,tz).iso_week().year(),local(dt,tz).iso_week().week(),local(dt,tz).weekday().number_from_monday(),relative_phrase(dominant_relative((dt-now).num_milliseconds()).0,dominant_relative((dt-now).num_milliseconds()).1,if is_en(ctx){"en-US"}else{"zh-CN"},false));
-                if boolean(ctx, "showNow", true) {
-                    report.push_str(&format!(
-                        "\nNow: {} ({} ms)",
-                        fmt_local(now, tz),
-                        now.timestamp_millis()
-                    ));
-                }
-                if boolean(ctx, "showRange", true) {
-                    let date = local(dt, tz).date_naive();
-                    let year_start = NaiveDate::from_ymd_opt(date.year(), 1, 1)
-                        .ok_or_else(|| err("Date out of range"))?;
-                    let month_start = NaiveDate::from_ymd_opt(date.year(), date.month(), 1)
-                        .ok_or_else(|| err("Date out of range"))?;
-                    let week_start =
-                        date - Duration::days(date.weekday().num_days_from_monday() as i64);
-                    let mut ranges = Vec::new();
-                    for (label, start, length) in [
-                        ("day", date, 1_i64),
-                        ("week", week_start, 7),
-                        ("month", month_start, 0),
-                        ("year", year_start, 0),
-                    ] {
-                        let start_dt = resolve_local(tz, start.and_hms_opt(0, 0, 0).unwrap())?;
-                        let end_dt = if length > 0 {
-                            let end_date = start + Duration::days(length);
-                            resolve_local(tz, end_date.and_hms_opt(0, 0, 0).unwrap())?
-                                - Duration::milliseconds(1)
-                        } else if label == "month" {
-                            let next = if date.month() == 12 {
-                                NaiveDate::from_ymd_opt(date.year() + 1, 1, 1)
-                            } else {
-                                NaiveDate::from_ymd_opt(date.year(), date.month() + 1, 1)
-                            }
-                            .ok_or_else(|| err("Date out of range"))?;
-                            resolve_local(tz, next.and_hms_opt(0, 0, 0).unwrap())?
-                                - Duration::milliseconds(1)
-                        } else {
-                            let next = NaiveDate::from_ymd_opt(date.year() + 1, 1, 1)
-                                .ok_or_else(|| err("Date out of range"))?;
-                            resolve_local(tz, next.and_hms_opt(0, 0, 0).unwrap())?
-                                - Duration::milliseconds(1)
-                        };
-                        ranges.push(format!(
-                            "{label}: {} to {}",
-                            fmt_local(start_dt, tz),
-                            fmt_local(end_dt, tz)
-                        ));
-                    }
-                    report.push_str(&format!("\nRanges:\n{}", ranges.join("\n")));
-                }
-                report
-            }
-            _ if is_en(ctx) => format!(
-                "Date/time: {}\nUnix seconds: {}\nUnix milliseconds: {}",
-                fmt_local(dt, tz),
-                dt.timestamp(),
-                ms
-            ),
-            _ => format!(
-                "日期时间：{}\nUnix 秒：{}\nUnix 毫秒：{}",
-                fmt_local(dt, tz),
-                dt.timestamp(),
-                ms
-            ),
-        };
-        rendered.push(value);
+    let mut extra = Map::new();
+    if style != "full" {
+        let mut rendered = Vec::new();
+        for line in &lines {
+            let at = validate_date_range(parse_at_unit(line, tz, unit)?, tz)?;
+            rendered.push(render_style(style, at, tz, now, locale, ui));
+        }
+        put(&mut extra, "inputs", lines.len().to_string());
+        put(&mut extra, "timezone", tz.name());
+        put(&mut extra, "style", style);
+        put(&mut extra, "unit", unit);
+        put(&mut extra, "showRange", "false");
+        put(&mut extra, "showNow", "false");
+        return Ok(output("timestamp.txt", rendered.join("\n"), extra));
     }
-    Ok(text_result(
-        ctx,
+    let unit_label = if unit == "auto" {
+        fmt::msg(ui, "自动（按位数判断）", "Auto (detected from digit count)").to_string()
+    } else {
+        format!("Unix {}", fmt::unit_name(unit, ui))
+    };
+    let mut blocks = vec![
+        fmt::section(&fmt::msg(
+            ui,
+            &format!("时间戳转换 · {} 条 · {}", lines.len(), tz.name()),
+            &format!("Timestamp conversion · {} entries · {}", lines.len(), tz.name()),
+        )),
+        fmt::align_rows(&[
+            row(fmt::msg(ui, "单位选项", "Unit option"), unit_label),
+            row(fmt::msg(ui, "输出样式", "Output style"), style_label(style, ui)),
+            row(
+                fmt::msg(ui, "对照“现在”", "Compared with \"now\""),
+                fmt::format_zone_stamp(now, tz),
+            ),
+        ]),
+    ];
+    if show_now {
+        blocks.push(fmt::section(fmt::msg(ui, "当前时间（实时）", "Current time (live)")));
+        blocks.push(fmt::align_rows(&[
+            row(fmt::msg(ui, "Unix 秒", "Unix seconds"), now.timestamp().to_string()),
+            row(fmt::msg(ui, "Unix 毫秒", "Unix milliseconds"), now.timestamp_millis().to_string()),
+            row(fmt::msg(ui, "本地时间", "Local time"), fmt::format_in_zone(now, tz)),
+            row(fmt::msg(ui, "时区", "Time zone"), fmt::zone_line(tz, now, ui)),
+        ]));
+    }
+    for (index, line) in lines.iter().enumerate() {
+        let at = validate_date_range(parse_at_unit(line, tz, unit)?, tz)?;
+        let mut parts: Vec<String> = vec![fmt::section(&format!("#{} {line}", index + 1))];
+        parts.push(full_rows(ctx, at, tz, now, locale, ui));
+        if show_range {
+            parts.push(fmt::section(&fmt::msg(
+                ui,
+                "周期边界（Unix 秒 · 周起始 周一）",
+                "Period bounds (Unix seconds, week starts Monday)",
+            )));
+            parts.push(range_rows(at, tz, ui));
+            parts.push(fmt::msg(
+                ui,
+                "· 周起始固定为周一（ISO 8601）；每个周期给出第一秒与最后一秒（含），均为该时区的本地时间。",
+                "· The week always starts on Monday (ISO 8601); every bound is the first or the last second (inclusive) of that period in the selected zone.",
+            ).to_string());
+        }
+        blocks.push(fmt::join_blocks(parts.iter().map(String::as_str)));
+    }
+    put(&mut extra, "inputs", lines.len().to_string());
+    put(&mut extra, "timezone", tz.name());
+    put(&mut extra, "style", style);
+    put(&mut extra, "unit", unit);
+    put(&mut extra, "showRange", show_range.to_string());
+    put(&mut extra, "showNow", show_now.to_string());
+    Ok(output(
         "timestamp.txt",
-        rendered.join("\n"),
-        &[
-            ("inputs", lines.len().to_string()),
-            ("timezone", tz.to_string()),
-            ("style", style.into()),
-            ("unit", unit.into()),
-            (
-                "showRange",
-                if style == "full" {
-                    boolean(ctx, "showRange", true).to_string()
-                } else {
-                    "false".into()
-                },
-            ),
-            (
-                "showNow",
-                if style == "full" {
-                    boolean(ctx, "showNow", true).to_string()
-                } else {
-                    "false".into()
-                },
-            ),
-        ],
+        fmt::join_blocks(blocks.iter().map(String::as_str)),
+        extra,
     ))
 }
 
-pub(super) fn run_date_diff(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
-    let tz = zone(ctx)?;
-    let from = parse_at(string(ctx, "from", "now"), tz)?;
-    let to = parse_at(string(ctx, "to", "now"), tz)?;
-    let delta = to.timestamp_millis() - from.timestamp_millis();
-    let abs = delta.unsigned_abs();
-    let days = abs / DAY_MS as u64;
-    let (span, whole_days) = calendar_span(from, to, tz, is_en(ctx))?;
-    let hours = abs / 3_600_000;
-    let minutes = abs / 60_000;
-    let seconds = abs / 1000;
-    let direction = if delta == 0 {
-        "same"
-    } else if delta > 0 {
-        "forward"
-    } else {
-        "backward"
-    };
-    let breakdown = boolean(ctx, "breakdown", true);
-    let include_end = boolean(ctx, "includeEnd", false);
-    let count_workdays = boolean(ctx, "countWorkdays", true);
-    let mut lines = vec![
-        format!("{} → {}", fmt_local(from, tz), fmt_local(to, tz)),
-        format!("Direction: {direction}"),
-    ];
-    if breakdown {
-        let sign = if delta < 0 { "−" } else { "" };
-        lines.push(format!("Calendar span: {sign}{span}"));
-        lines.push(format!(
-            "Totals: {days} days, {hours} hours, {minutes} minutes, {seconds} seconds"
-        ));
-        lines.push(format!(
-            "Calendar days: {whole_days}; including end: {}",
-            whole_days.unsigned_abs() + 1
-        ));
-    }
-    let unit = string(ctx, "unit", "auto");
-    let unit = if ["auto", "days", "hours", "minutes", "seconds", "ms", "weeks"].contains(&unit) {
-        unit
-    } else {
-        "auto"
-    };
-    if unit != "auto" {
-        let divisor = match unit {
-            "weeks" => 604_800_000.0,
-            "days" => 86_400_000.0,
-            "hours" => 3_600_000.0,
-            "minutes" => 60_000.0,
-            "seconds" => 1000.0,
-            "ms" => 1000.0,
-            _ => 1.0,
-        };
-        lines.push(format!("{unit}: {:+.6}", delta as f64 / divisor));
-    }
-    let mut workday_count = String::new();
-    if count_workdays {
-        let weekend = parse_weekend_set(string(ctx, "weekend", "0,6"))?;
-        let holiday_set = parse_holidays(string(ctx, "holidays", ""), tz)?;
-        let a = local(from, tz).date_naive();
-        let b = local(to, tz).date_naive();
-        let mut cursor = a.min(b);
-        let end = a.max(b);
-        let limit = if include_end {
-            end
-        } else if cursor == end {
-            cursor.pred_opt().unwrap_or(cursor)
-        } else {
-            end.pred_opt().unwrap_or(end)
-        };
-        let mut work = 0_u64;
-        let mut rest = 0_u64;
-        if a != b || include_end {
-            while cursor <= limit {
-                if is_rest_day(cursor, &weekend, &holiday_set) {
-                    rest += 1;
-                } else {
-                    work += 1;
-                }
-                cursor = cursor.succ_opt().ok_or_else(|| err("Date out of range"))?;
+fn render_style(
+    style: &str,
+    at: DateTime<Utc>,
+    tz: chrono_tz::Tz,
+    now: DateTime<Utc>,
+    locale: fmt::LocaleCode,
+    ui: &str,
+) -> String {
+    match style {
+        "iso" => fmt::iso_in_zone(at, tz),
+        "date" => local(at, tz).format("%Y-%m-%d").to_string(),
+        "datetime" => fmt::format_in_zone(at, tz),
+        "relative" => fmt::relative_phrase((at - now).num_milliseconds(), locale, false),
+        "chinese" => fmt::long_date(at, tz, ui),
+        _ => {
+            if fmt::is_zh(ui) {
+                format!(
+                    "日期时间：{}\nUnix 秒：{}\nUnix 毫秒：{}",
+                    fmt::format_in_zone(at, tz),
+                    at.timestamp(),
+                    at.timestamp_millis()
+                )
+            } else {
+                format!(
+                    "Date/time: {}\nUnix seconds: {}\nUnix milliseconds: {}",
+                    fmt::format_in_zone(at, tz),
+                    at.timestamp(),
+                    at.timestamp_millis()
+                )
             }
         }
-        workday_count = work.to_string();
-        lines.push(format!("Workdays: {work}; weekends and holidays: {rest}"));
     }
-    let mut extra = Map::new();
-    put(&mut extra, "timezone", tz.to_string());
-    put(&mut extra, "unit", unit.to_string());
-    put(&mut extra, "milliseconds", delta.to_string());
-    put(
-        &mut extra,
-        "phrase",
-        format!("{}{}", if delta < 0 { "-" } else { "" }, span),
-    );
-    put(
-        &mut extra,
-        "daysExcludingEnd",
-        whole_days.unsigned_abs().to_string(),
-    );
-    put(
-        &mut extra,
-        "daysIncludingEnd",
-        (whole_days.unsigned_abs() + 1).to_string(),
-    );
-    put(&mut extra, "includeEnd", include_end.to_string());
-    put(&mut extra, "breakdown", breakdown.to_string());
-    put(&mut extra, "workdays", workday_count);
-    Ok(output("date-diff.txt", lines.join("\n"), extra))
 }
 
-pub(super) fn run_date_math(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
-    let tz = zone(ctx)?;
-    let base = parse_at(string(ctx, "base", "now"), tz)?;
-    let direction = string(ctx, "direction", "add");
-    let direction = if ["add", "subtract"].contains(&direction) {
-        direction
+fn period_start(at: DateTime<Utc>, tz: chrono_tz::Tz, unit: &str) -> DateTime<Utc> {
+    let p = local(at, tz);
+    let date = if unit == "week" {
+        p.date_naive() - chrono::Duration::days(p.weekday().num_days_from_monday() as i64)
     } else {
-        "add"
+        let month = match unit {
+            "year" => 1,
+            "quarter" => (p.month0() / 3) * 3 + 1,
+            _ => p.month(),
+        };
+        let day = if unit == "day" { p.day() } else { 1 };
+        NaiveDate::from_ymd_opt(p.year(), month, day).unwrap_or(p.date_naive())
     };
-    let unit = string(ctx, "unit", "days");
-    let unit = if [
-        "years", "months", "weeks", "days", "hours", "minutes", "seconds",
-    ]
-    .contains(&unit)
-    {
-        unit
-    } else {
-        "days"
+    resolve_local(tz, date.and_hms_opt(0, 0, 0).unwrap_or_default()).unwrap_or(at)
+}
+
+fn period_end(at: DateTime<Utc>, tz: chrono_tz::Tz, unit: &str) -> DateTime<Utc> {
+    let start = period_start(at, tz, unit);
+    let shift = match unit {
+        "day" => (0, 0, 0, 1),
+        "week" => (0, 0, 1, 0),
+        "month" => (0, 1, 0, 0),
+        "quarter" => (0, 3, 0, 0),
+        _ => (1, 0, 0, 0),
     };
-    let amount = number(ctx, "value", 1.0).round().abs() as i64
-        * if direction == "subtract" { -1 } else { 1 };
-    let result = add_calendar(base, tz, unit, amount)?;
-    let base_local = local(base, tz);
-    let result_local = local(result, tz);
-    let clamped = matches!(unit, "years" | "months") && base_local.day() != result_local.day();
-    let skip_weekend = boolean(ctx, "skipWeekend", false);
-    let weekend = parse_weekend_set(string(ctx, "weekend", "0,6"))?;
-    let holidays = parse_holidays(string(ctx, "holidays", ""), tz)?;
-    let mut rolled = result;
-    let mut skipped = Vec::new();
-    if skip_weekend {
-        for _ in 0..28 {
-            let p = local(rolled, tz);
-            let day = p.date_naive();
-            if !is_rest_day(day, &weekend, &holidays) {
-                break;
+    let (next, ..) = fmt::shift_calendar(start.timestamp_millis(), tz, shift.0, shift.1, shift.2, shift.3, 0, 0, 0)
+        .unwrap_or((start.timestamp_millis(), false, 0, 0, false));
+    Utc.timestamp_millis_opt(next - fmt::SEC_MS)
+        .single()
+        .unwrap_or(start)
+}
+
+fn range_rows(at: DateTime<Utc>, tz: chrono_tz::Tz, ui: &str) -> String {
+    let periods = [
+        ("day", fmt::msg(ui, "当日", "Day")),
+        ("week", fmt::msg(ui, "当周", "Week")),
+        ("month", fmt::msg(ui, "当月", "Month")),
+        ("year", fmt::msg(ui, "当年", "Year")),
+    ];
+    let mut rows = Vec::new();
+    for (unit, period) in periods {
+        for (kind, bound) in [
+            (
+                fmt::msg(ui, "起点", "start"),
+                period_start(at, tz, unit),
+            ),
+            (
+                fmt::msg(ui, "终点", "end"),
+                period_end(at, tz, unit),
+            ),
+        ] {
+            let label = if fmt::is_zh(ui) {
+                format!("{period} {kind}")
+            } else {
+                format!("{period} {kind}")
+            };
+            let seconds = bound.timestamp();
+            rows.push(row(
+                label,
+                format!(
+                    "{} · {}",
+                    seconds,
+                    fmt::format_in_zone(bound, tz)
+                ),
+            ));
+        }
+    }
+    fmt::align_rows(&rows)
+}
+
+fn full_rows(
+    ctx: &RunContext<'_>,
+    at: DateTime<Utc>,
+    tz: chrono_tz::Tz,
+    now: DateTime<Utc>,
+    locale: fmt::LocaleCode,
+    ui: &str,
+) -> String {
+    let p = local(at, tz);
+    let ms = at.timestamp_millis();
+    let ns = epoch_ns(at);
+    let millis = p.timestamp_subsec_millis();
+    let raw = string(ctx, "input", "").trim().to_string();
+    let numeric_only = !raw.is_empty()
+        && raw
+            .strip_prefix(['+', '-'])
+            .unwrap_or(&raw)
+            .bytes()
+            .all(|b| b.is_ascii_digit() || b == b'.');
+    let (iso_year, iso_week, iso_weekday) = fmt::iso_week_of(p.year(), p.month(), p.day());
+    let mut rows = vec![
+        row(fmt::msg(ui, "本地时间", "Local time"), fmt::format_zone_stamp(at, tz)),
+        row(fmt::msg(ui, "Unix 秒", "Unix seconds"), at.timestamp().to_string()),
+        row(fmt::msg(ui, "Unix 毫秒", "Unix milliseconds"), ms.to_string()),
+        row(fmt::msg(ui, "Unix 微秒", "Unix microseconds"), (ns / 1_000).to_string()),
+        row(fmt::msg(ui, "Unix 纳秒", "Unix nanoseconds"), ns.to_string()),
+        row("ISO 8601", fmt::iso_in_zone(at, tz)),
+        row("ISO 8601 (UTC)", utc_iso(at)),
+        row("RFC 2822", fmt::rfc2822(at, tz)),
+        row(fmt::msg(ui, "输入", "Input"), raw.clone()),
+        row(
+            fmt::msg(ui, "识别单位", "Detected unit"),
+            if numeric_only {
+                format!("Unix {}", fmt::unit_name(detected_unit(&raw, string(ctx, "unit", "auto")), ui))
+            } else {
+                fmt::msg(ui, "文本时间", "Text time").to_string()
+            },
+        ),
+        row(fmt::msg(ui, "时区", "Time zone"), fmt::zone_line(tz, at, ui)),
+        row(fmt::msg(ui, "中文日期", "Date (long)"), fmt::long_date(at, tz, ui)),
+        row(
+            fmt::msg(ui, "星期", "Weekday"),
+            fmt::weekday_pair(p.weekday().num_days_from_sunday(), ui),
+        ),
+        row(
+            fmt::msg(ui, "年内第几天", "Day of year"),
+            format!("{} / {}", p.ordinal(), if is_leap_year(p.year()) { 366 } else { 365 }),
+        ),
+        row(
+            fmt::msg(ui, "ISO 周", "ISO week"),
+            format!("{}-W{}-{}", iso_year, fmt::pad(iso_week, 2), iso_weekday),
+        ),
+        row(
+            fmt::msg(ui, "相对“现在”", "Relative to \"now\""),
+            fmt::relative_phrase((at - now).num_milliseconds(), locale, false),
+        ),
+        row(
+            fmt::msg(ui, "夏令时", "Daylight saving"),
+            fmt::msg(
+                ui,
+                if fmt::is_dst_active(at, tz) { "生效" } else { "未生效" },
+                if fmt::is_dst_active(at, tz) { "Active" } else { "Not active" },
+            ),
+        ),
+    ];
+    if millis > 0 {
+        rows.insert(3, row(fmt::msg(ui, "毫秒", "milliseconds"), fmt::pad(millis, 3)));
+    }
+    fmt::align_rows(&rows)
+}
+
+fn detected_unit(raw: &str, requested: &str) -> &'static str {
+    match requested {
+        "s" => "s",
+        "ms" => "ms",
+        "us" => "us",
+        "ns" => "ns",
+        _ => {
+            let unsigned = raw.trim_start_matches(['+', '-']);
+            let significant = unsigned.trim_start_matches('0');
+            let len = significant.split('.').next().filter(|s| !s.is_empty()).map_or(1, str::len);
+            if len <= 10 {
+                "s"
+            } else if len <= 13 {
+                "ms"
+            } else if len <= 16 {
+                "us"
+            } else {
+                "ns"
             }
-            skipped.push(day.to_string());
-            let next = day.succ_opt().ok_or_else(|| err("Date out of range"))?;
-            rolled = resolve_local(
-                tz,
-                next.and_hms_milli_opt(
-                    p.hour(),
-                    p.minute(),
-                    p.second(),
-                    p.timestamp_subsec_millis(),
-                )
-                .ok_or_else(|| err("Date out of range"))?,
-            )?;
-        }
-        if is_rest_day(local(rolled, tz).date_naive(), &weekend, &holidays) {
-            return Err(err("Could not roll date to a working day"));
         }
     }
-    let mut extra = Map::new();
-    put(&mut extra, "timezone", tz.to_string());
-    put(&mut extra, "unit", unit.to_string());
-    put(&mut extra, "value", amount.to_string());
-    put(&mut extra, "clamped", clamped);
-    put(&mut extra, "result", fmt_local(result, tz));
-    let mut report = format!(
-        "Base: {}\nAction: {} {} {}\nResult: {}\nISO 8601: {}\nUnix seconds: {}",
-        fmt_local(base, tz),
-        direction,
-        amount.unsigned_abs(),
-        unit,
-        fmt_local(rolled, tz),
-        local(rolled, tz).to_rfc3339(),
-        rolled.timestamp()
-    );
-    if !skipped.is_empty() {
-        report.push_str(&format!("\nSkipped rest days: {}", skipped.join(", ")));
+}
+
+fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+}
+
+fn utc_iso(at: DateTime<Utc>) -> String {
+    let p = at.with_timezone(&chrono_tz::UTC);
+    let fraction = p.timestamp_subsec_nanos();
+    let base = p.format("%Y-%m-%dT%H:%M:%S").to_string();
+    if fraction > 0 {
+        let frac = format!("{:09}", fraction);
+        let frac = frac.trim_end_matches('0');
+        format!("{base}.{frac}Z")
+    } else {
+        format!("{base}Z")
     }
-    Ok(output("date-math.txt", report, extra))
 }

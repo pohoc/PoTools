@@ -406,8 +406,10 @@ export async function runOcrJob(
       summary: {
         inputBytes,
         outputBytes,
+        // 页数语义与旧引擎一致：产物个数（每个输入一个 txt），
+        // 识别页数放 extra.pages。
         pageCountIn: 0,
-        pageCountOut: totalPages,
+        pageCountOut: (artifacts ?? []).length,
         sizeDeltaPercent: inputBytes > 0 ? Math.round(((outputBytes - inputBytes) / inputBytes) * 100) : 0,
         extra,
       },

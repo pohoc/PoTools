@@ -233,7 +233,7 @@ pub(super) fn run_crop(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         let bytes = save(&mut document)?;
         add_pdf(ctx, &mut result, input, "cropped", bytes);
     }
-    result.extra.insert("pageCountOut".into(), json!(cropped));
+    result.extra.insert("__pageCountOut".into(), json!(cropped));
     result.extra.insert("pages".into(), json!(cropped));
     Ok(result)
 }

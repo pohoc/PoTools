@@ -86,7 +86,7 @@ pub struct PdfImagePlacement {
     pub width_pt: f64,
     #[serde(default)]
     pub height_pt: f64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_bytes_flex")]
     pub bytes: Vec<u8>,
 }
 
@@ -99,7 +99,7 @@ pub struct PdfPageImage {
     pub page: u32,
     #[serde(default)]
     pub dpi: f64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_bytes_flex")]
     pub bytes: Vec<u8>,
 }
 
@@ -129,6 +129,30 @@ fn read_entries<T: serde::de::DeserializeOwned>(ctx: &RunContext<'_>, key: &str,
         return Vec::new();
     };
     serde_json::from_value(entry.clone()).unwrap_or_default()
+}
+
+/// Wire bytes for adapter-built runtime data: either a JSON array of numbers
+/// or a base64 string (the adapter encodes large rasters before dispatch,
+/// because a raw `Uint8Array` cannot be deserialized into a JSON value).
+fn deserialize_bytes_flex<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use base64::Engine as _;
+    let value = serde_json::Value::deserialize(deserializer)?;
+    if let Some(encoded) = value.as_str() {
+        return base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .map_err(serde::de::Error::custom);
+    }
+    let Some(items) = value.as_array() else {
+        return Ok(Vec::new());
+    };
+    Ok(items
+        .iter()
+        .filter_map(serde_json::Value::as_u64)
+        .map(|value| value as u8)
+        .collect())
 }
 
 /// Reads one input's `pdfText` pages.
@@ -183,7 +207,10 @@ pub fn font_resources(ctx: &RunContext<'_>) -> Vec<FontResource> {
         .iter()
         .filter_map(|item| {
             let name = item.get("name")?.as_str()?.to_owned();
-            let bytes = byte_array(item.get("bytes")?)?;
+            let bytes = item
+                .get("bytes")
+                .and_then(|value| byte_array(value))
+                .or_else(|| item.get("bytesBase64").and_then(|value| byte_array(value)))?;
             Some(FontResource { name, bytes })
         })
         .collect()

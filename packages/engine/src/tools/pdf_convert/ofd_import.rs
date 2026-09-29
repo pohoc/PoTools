@@ -28,7 +28,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
     for input in ctx.inputs {
         pages_out += convert_one(ctx, input, &mut result)?;
     }
-    result.extra.insert("pageCountOut".into(), json!(pages_out));
+    result.extra.insert("__pageCountOut".into(), json!(pages_out));
     Ok(result)
 }
 
@@ -243,7 +243,7 @@ mod end_to_end {
     fn round_trips_text_and_image_into_a_valid_pdf() {
         let (ctx, _) = setup(json!({}));
         let result = run(&ctx).unwrap();
-        assert_eq!(result.extra["pageCountOut"], json!(1));
+        assert_eq!(result.extra["__pageCountOut"], json!(1));
         let artifact = &result.artifacts[0];
         assert_eq!(artifact.name, "样例-ofd-pdf.pdf");
         assert_eq!(artifact.kind, "pdf");
@@ -292,6 +292,6 @@ mod end_to_end {
         assert_eq!(run(&ctx).unwrap_err().code, "bad_page_range");
         let (ctx, _) = setup(json!({ "pages": "1" }));
         let result = run(&ctx).unwrap();
-        assert_eq!(result.extra["pageCountOut"], json!(1));
+        assert_eq!(result.extra["__pageCountOut"], json!(1));
     }
 }

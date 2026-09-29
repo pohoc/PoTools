@@ -5,6 +5,17 @@ use crate::{RunContext, ToolResult};
 use serde_json::json;
 
 pub(super) fn run_merge(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
+    if ctx.inputs.is_empty() {
+        // merge is a file job; a bare tool.run reports unsupported like the engine.
+        return Err(crate::EngineError::new(
+            "unsupported",
+            if ctx.locale.starts_with("en") {
+                "Tool \"merge\" is not a plain-text tool; submit files through the job queue (job.submit) instead."
+            } else {
+                "工具「merge」不是纯文本工具，请通过任务队列（job.submit）提交文件后运行。"
+            },
+        ));
+    }
     let (mut doc, _, page_count) = combine(ctx.inputs)?;
     let mut result = ToolResult::default();
     if page_count == 0 {
@@ -23,9 +34,9 @@ pub(super) fn run_merge(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         bytes,
         None,
     );
-    result.extra.insert("pageCountIn".into(), json!(page_count));
+    result.extra.insert("__pageCountIn".into(), json!(page_count));
     result
         .extra
-        .insert("pageCountOut".into(), json!(page_count));
+        .insert("__pageCountOut".into(), json!(page_count));
     Ok(result)
 }

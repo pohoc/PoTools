@@ -69,9 +69,8 @@ pub(super) fn percent_decode(s: &str, component: bool, form: bool) -> Result<Str
 #[derive(Clone)]
 pub(super) struct QueryPair {
     pub(super) key: String,
-    value: String,
-    raw_value: String,
-    has_value: bool,
+    pub(super) value: String,
+    pub(super) has_value: bool,
 }
 pub(super) fn split_url(input: &str) -> (&str, &str, &str, bool, bool) {
     let (head, fragment, had_fragment) = if let Some((a, b)) = input.split_once('#') {
@@ -98,92 +97,10 @@ pub(super) fn parse_pairs(query: &str) -> Result<Vec<QueryPair>, EngineError> {
             Ok(QueryPair {
                 key: percent_decode(k, true, true)?,
                 value: percent_decode(v, true, true)?,
-                raw_value: v.to_string(),
                 has_value: has,
             })
         })
         .collect()
-}
-pub(super) fn parse_url(input: &str) -> Result<String, EngineError> {
-    let (base, query, fragment, had_fragment, had_query) = split_url(input);
-    let query = if query.is_empty() && !had_query && input.contains('=') && !input.contains("://") {
-        input
-    } else {
-        query
-    };
-    let pairs = parse_pairs(query)?;
-    let mut counts = std::collections::HashMap::<String, usize>::new();
-    for p in &pairs {
-        *counts.entry(p.key.clone()).or_default() += 1
-    }
-    let repeated = counts
-        .iter()
-        .filter(|(_, n)| **n > 1)
-        .map(|(k, n)| format!("{k}×{n}"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    let mut out = vec![
-        format!("Input: {input}"),
-        format!(
-            "Base: {}",
-            if base.is_empty() { "(not given)" } else { base }
-        ),
-        format!(
-            "Query: {}",
-            if query.is_empty() { "(blank)" } else { query }
-        ),
-        format!(
-            "Fragment: {}",
-            if had_fragment {
-                if fragment.is_empty() {
-                    "(empty)"
-                } else {
-                    fragment
-                }
-            } else {
-                "(none)"
-            }
-        ),
-        format!(
-            "Repeated keys: {}",
-            if repeated.is_empty() {
-                "(none)"
-            } else {
-                &repeated
-            }
-        ),
-        "Parameters:".into(),
-    ];
-    if pairs.is_empty() {
-        out.push("(no parameters)".into())
-    } else {
-        for (i, p) in pairs.iter().enumerate() {
-            out.push(format!(
-                "{}. {}{} = {}",
-                i + 1,
-                p.key,
-                if p.has_value { "" } else { " (no equals)" },
-                if p.raw_value == p.value {
-                    if p.value.is_empty() {
-                        "(empty)".to_string()
-                    } else {
-                        p.value.clone()
-                    }
-                } else {
-                    format!(
-                        "{} [raw: {}]",
-                        if p.value.is_empty() {
-                            "(empty)"
-                        } else {
-                            &p.value
-                        },
-                        p.raw_value
-                    )
-                }
-            ))
-        }
-    }
-    Ok(out.join("\n"))
 }
 pub(super) fn build_query(s: &str, component: bool) -> Result<String, EngineError> {
     let mut out = Vec::new();
@@ -204,6 +121,7 @@ pub(super) fn build_query(s: &str, component: bool) -> Result<String, EngineErro
     }
     Ok(out.join("&"))
 }
+
 fn build_value(value: &str, component: bool) -> String {
     if component {
         return percent_encode(value, true, false);

@@ -9,7 +9,13 @@ pub(super) fn english(locale: &str) -> bool {
     locale.starts_with("en")
 }
 pub(super) fn weekday(date: DateTime<Utc>, tz: Tz, en: bool) -> String {
-    dow(date.with_timezone(&tz).weekday().num_days_from_sunday(), en)
+    // The report spells weekdays with the long names (weekdayLong in the engine).
+    let index = date.with_timezone(&tz).weekday().num_days_from_sunday() as usize;
+    if en {
+        crate::tools::text::fmt::WEEKDAYS_EN[index].to_string()
+    } else {
+        crate::tools::text::fmt::WEEKDAYS_ZH[index].to_string()
+    }
 }
 pub(super) fn offset(dt: DateTime<Utc>, tz: Tz) -> i32 {
     dt.with_timezone(&tz).offset().fix().local_minus_utc() / 60
@@ -94,7 +100,7 @@ pub(super) fn label(key: &str, en: bool) -> String {
         ("gaps", true) => "Between neighbours",
         ("expression", false) => "表达式",
         ("fields", false) => "字段格式",
-        ("start", false) => "起点",
+        ("start", false) => "起始",
         ("planned", false) => "计划次数",
         ("hits", false) => "命中时刻",
         ("sentence", false) => "口语化",
@@ -159,7 +165,13 @@ pub(super) fn values(v: &BTreeSet<u32>, min: u32, max: u32) -> String {
 }
 pub(super) fn day_names(v: &BTreeSet<u32>, en: bool) -> String {
     v.iter()
-        .map(|d| dow(*d, en))
+        .map(|d| {
+            if en {
+                crate::tools::text::fmt::WEEKDAYS_EN_SHORT[(*d % 7) as usize].to_string()
+            } else {
+                dow(*d, false)
+            }
+        })
         .collect::<Vec<_>>()
         .join(if en { ", " } else { "、" })
 }
@@ -231,12 +243,22 @@ pub(super) fn expand(v: &BTreeSet<u32>, en: bool) -> String {
         }
     )
 }
+fn compact(v: &[u32]) -> String {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < v.len() {
+        let mut j = i;
+        while j + 1 < v.len() && v[j + 1] == v[j] + 1 {
+            j += 1;
+        }
+        out.push(if i == j { v[i].to_string() } else { format!("{}-{}", v[i], v[j]) });
+        i = j + 1;
+    }
+    out.join(",")
+}
+
 pub(super) fn named(v: &BTreeSet<u32>, en: bool, weekday_names: bool) -> String {
-    let nums = values(
-        v,
-        if weekday_names { 0 } else { 1 },
-        if weekday_names { 6 } else { 12 },
-    );
+    let nums = compact(&v.iter().copied().collect::<Vec<_>>());
     let names = if weekday_names {
         day_names(v, en)
     } else {

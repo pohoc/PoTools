@@ -9,7 +9,6 @@ use chrono_tz::Tz;
 use serde_json::{Map, Value};
 use std::str::FromStr;
 
-pub(super) const DAY_MS: i64 = 86_400_000;
 
 fn opt<'a>(ctx: &'a RunContext<'_>, key: &str) -> Option<&'a Value> {
     ctx.options.get(key)
@@ -34,11 +33,13 @@ pub(super) fn zone(ctx: &RunContext<'_>) -> Result<Tz, EngineError> {
     Tz::from_str(name).map_err(|_| err(format!("Invalid timezone: {name}")))
 }
 pub(super) fn output(name: &str, text: String, extra: Map<String, Value>) -> ToolResult {
-    let bytes = format!("{}\n", text.trim_end()).into_bytes();
-    let mut artifact = Artifact::new(name, "text", bytes);
+    // Mirrors the engine's emitText convention: trailing whitespace trimmed,
+    // exactly one final newline, shared by `text` and the text artifact.
+    let body = format!("{}\n", text.trim_end());
+    let mut artifact = Artifact::new(name, "text", body.clone().into_bytes());
     artifact.source_file_id = None;
     ToolResult {
-        text: Some(text),
+        text: Some(body),
         artifacts: vec![artifact],
         warnings: vec![],
         extra,

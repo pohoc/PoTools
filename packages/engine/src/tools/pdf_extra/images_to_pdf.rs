@@ -114,7 +114,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
     );
     result.artifacts.push(Artifact::new(name, "pdf", bytes));
     result.extra.insert("images".into(), json!(ctx.inputs.len()));
-    result.extra.insert("pageCountOut".into(), json!(page_count));
+    result.extra.insert("__pageCountOut".into(), json!(page_count));
     Ok(result)
 }
 
@@ -230,7 +230,7 @@ mod tests {
         assert_eq!(artifact.name, "one-2pages-images.pdf");
         assert_eq!(artifact.kind, "pdf");
         assert_eq!(result.extra["images"], json!(2));
-        assert_eq!(result.extra["pageCountOut"], json!(2));
+        assert_eq!(result.extra["__pageCountOut"], json!(2));
 
         let document = Document::load_mem(&artifact.bytes).unwrap();
         assert_eq!(document.get_pages().len(), 2);
@@ -310,7 +310,7 @@ mod tests {
         let result = invoke(json!({}), &inputs);
         assert_eq!(result.warnings, vec!["bad.png：无法解码图片".to_owned()]);
         assert_eq!(result.extra["images"], json!(2));
-        assert_eq!(result.extra["pageCountOut"], json!(1));
+        assert_eq!(result.extra["__pageCountOut"], json!(1));
 
         let broken = [InputFile { id: "a".into(), name: "bad.png".into(), path: None, bytes: vec![0, 1, 2, 3] }];
         let error = try_invoke(json!({}), &broken).unwrap_err();

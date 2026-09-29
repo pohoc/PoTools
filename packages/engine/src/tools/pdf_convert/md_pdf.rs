@@ -107,7 +107,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         emit(ctx, &mut result, input, "md-pdf", "pdf", "pdf", bytes);
         pages_out += pages;
     }
-    result.extra.insert("pageCountOut".into(), json!(pages_out));
+    result.extra.insert("__pageCountOut".into(), json!(pages_out));
     Ok(result)
 }
 
@@ -163,7 +163,7 @@ mod end_to_end {
         );
         let result = run(&ctx).unwrap();
         assert!(result.warnings.is_empty());
-        assert_eq!(result.extra["pageCountOut"], json!(2)); // tail lands on page 2
+        assert_eq!(result.extra["__pageCountOut"], json!(2)); // tail lands on page 2
         let artifact = &result.artifacts[0];
         assert_eq!(artifact.name, "note-md-pdf.pdf");
         assert_eq!(artifact.kind, "pdf");

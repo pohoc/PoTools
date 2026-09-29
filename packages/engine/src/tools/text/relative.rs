@@ -1,170 +1,202 @@
-//! Implementations for the relative text tool group.
+//! Relative-time tool: mirrors the product engine's relative-time report.
 
 use super::common::*;
+use super::fmt::{self, row};
 use super::{EngineError, RunContext, ToolResult};
+use chrono::Datelike;
+use serde_json::Map;
+
+fn span_with_positive_sign(span: &fmt::CalendarSpan) -> fmt::CalendarSpan {
+    fmt::CalendarSpan { sign: 1, ..*span }
+}
 
 pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
-    run_relative(ctx)
-}
-
-pub(super) fn run_relative(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
+    let ui = ctx.locale;
     let tz = zone(ctx)?;
+    let locale: fmt::LocaleCode = if !fmt::is_zh(ui) {
+        fmt::EN_US
+    } else if string(ctx, "locale", "zh-CN").to_lowercase().starts_with('e') {
+        fmt::EN_US
+    } else {
+        fmt::ZH_CN
+    };
+    let numeric_auto = match string(ctx, "style", "auto") {
+        "always" => false,
+        _ => true,
+    };
+    let show_countdown = boolean(ctx, "showCountdown", true);
     let target = parse_at(string(ctx, "input", ""), tz)?;
-    let base = parse_at(string(ctx, "base", "now"), tz)?;
-    let delta = target.timestamp_millis() - base.timestamp_millis();
-    let abs = delta.unsigned_abs();
-    let phrase_locale = if is_en(ctx) {
-        "en-US"
+    let base_raw = string(ctx, "base", "now").trim();
+    let base_raw = if base_raw.is_empty() { "now" } else { base_raw };
+    let base = parse_at(base_raw, tz)?;
+    let target_ms = target.timestamp_millis();
+    let base_ms = base.timestamp_millis();
+    let delta = target_ms - base_ms;
+    let span = fmt::calendar_breakdown(base_ms, target_ms, tz)?;
+    let phrase = fmt::relative_phrase(delta, locale, numeric_auto);
+    let other: fmt::LocaleCode = if locale == fmt::ZH_CN { fmt::EN_US } else { fmt::ZH_CN };
+    let alt_locale: fmt::LocaleCode = if !fmt::is_zh(ui) { locale } else { other };
+    let alt_auto = if !fmt::is_zh(ui) {
+        !numeric_auto
     } else {
-        string(ctx, "locale", "zh-CN")
+        numeric_auto
     };
-    let numeric = string(ctx, "style", "auto");
-    let numeric = if ["auto", "always"].contains(&numeric) {
-        numeric
-    } else {
-        "auto"
-    };
-    let (value, unit) = dominant_relative(delta);
-    let phrase = relative_phrase(value, unit, phrase_locale, numeric == "always");
-    let alternate_locale = if is_en(ctx) {
-        "zh-CN"
-    } else if phrase_locale == "zh-CN" {
-        "en-US"
-    } else {
-        "zh-CN"
-    };
-    let alt_style = if is_en(ctx) {
-        numeric != "auto"
-    } else {
-        numeric == "always"
-    };
-    let alt_phrase = relative_phrase(value, unit, alternate_locale, alt_style);
-    let days = abs / DAY_MS as u64;
-    let hours = abs / 3_600_000;
-    let minutes = abs / 60_000;
-    let seconds = abs / 1000;
-    let mut text=format!("Relative time: {phrase}\nDirection: {}\nTarget: {}\nBase: {}\nAlternative: {alt_phrase}\nExact: {} seconds, {} hours, {} days\nUnix seconds: {}\nUnix milliseconds: {}", if delta==0 {"same"} else if delta>0 {"future"} else {"past"},fmt_local(target,tz),fmt_local(base,tz),abs/1000,abs as f64/3_600_000.0,abs as f64/DAY_MS as f64,target.timestamp(),target.timestamp_millis());
-    if boolean(ctx, "showCountdown", true) {
-        text.push_str(&format!("\nCountdown: {} days {:02}:{:02}:{:02}\nTotals: {:.3} days, {:.3} hours, {:.3} minutes, {:.3} seconds",days,hours%24,minutes%60,seconds%60,abs as f64/DAY_MS as f64,abs as f64/3_600_000.0,abs as f64/60_000.0,abs as f64/1000.0));
-    }
-    Ok(text_result(
-        ctx,
-        "relative-time.txt",
-        text,
-        &[
-            ("locale", phrase_locale.into()),
-            ("style", numeric.into()),
-            ("timezone", tz.to_string()),
-            ("phrase", phrase),
-            (
-                "showCountdown",
-                boolean(ctx, "showCountdown", true).to_string(),
+    let en_phrase = locale == fmt::EN_US;
+    let ui_en = !fmt::is_zh(ui);
+    let target_p = local(target, tz);
+    let abs_ms = delta.unsigned_abs() as i64;
+    let whole_days = abs_ms / fmt::DAY_MS;
+    let mut rest_ms = abs_ms - whole_days * fmt::DAY_MS;
+    let hours = rest_ms / fmt::HOUR_MS;
+    rest_ms -= hours * fmt::HOUR_MS;
+    let minutes = rest_ms / fmt::MIN_MS;
+    let seconds = (rest_ms - minutes * fmt::MIN_MS) / fmt::SEC_MS;
+    let colon = if fmt::is_zh(ui) { "：" } else { ": " };
+    let rows = vec![
+        row(fmt::msg(ui, "口语", "Colloquial"), phrase.clone()),
+        row(
+            fmt::msg(ui, "方向", "Direction"),
+            if delta == 0 {
+                fmt::msg(ui, "与基准同一时刻", "Same instant as the base")
+            } else if delta > 0 {
+                fmt::msg(ui, "未来（晚于基准）", "Future (later than the base)")
+            } else {
+                fmt::msg(ui, "过去（早于基准）", "Past (earlier than the base)")
+            },
+        ),
+        row(
+            fmt::msg(ui, "目标", "Target"),
+            format!(
+                "{} → {} · {}",
+                string(ctx, "input", "").trim(),
+                fmt::format_zone_stamp(target, tz),
+                fmt::instant_line(tz, target, ui)
             ),
-        ],
+        ),
+        row(
+            fmt::msg(ui, "基准", "Base"),
+            format!(
+                "{} → {} · {}",
+                base_raw,
+                fmt::format_zone_stamp(base, tz),
+                fmt::instant_line(tz, base, ui)
+            ),
+        ),
+        row(
+            fmt::msg(ui, "口语对照", "Colloquial (cross-reference)"),
+            format!(
+                "{alt_locale}{colon}{}",
+                fmt::relative_phrase(delta, alt_locale, alt_auto)
+            ),
+        ),
+        row(
+            fmt::msg(ui, "精确跨度", "Exact span"),
+            format!(
+                "{}{}",
+                if delta < 0 { "−" } else { "" },
+                fmt::span_text(&span_with_positive_sign(&span), en_phrase)
+            ),
+        ),
+        row(
+            fmt::msg(ui, "目标绝对值", "Target absolute"),
+            format!(
+                "{} · {}",
+                fmt::iso_in_zone(target, tz),
+                fmt::weekday_spelled(target_p.weekday().num_days_from_sunday(), ui)
+            ),
+        ),
+        row(fmt::msg(ui, "基准绝对值", "Base absolute"), fmt::iso_in_zone(base, tz)),
+        row(
+            fmt::msg(ui, "总时长", "Total length"),
+            if ui_en {
+                format!(
+                    "{} s · {} h · {} d",
+                    fmt::format_number(abs_ms as f64 / fmt::SEC_MS as f64),
+                    fmt::format_number(abs_ms as f64 / fmt::HOUR_MS as f64),
+                    fmt::format_number(abs_ms as f64 / fmt::DAY_MS as f64),
+                )
+            } else {
+                format!(
+                    "{} 秒 · {} 小时 · {} 天",
+                    fmt::format_number(abs_ms as f64 / fmt::SEC_MS as f64),
+                    fmt::format_number(abs_ms as f64 / fmt::HOUR_MS as f64),
+                    fmt::format_number(abs_ms as f64 / fmt::DAY_MS as f64),
+                )
+            },
+        ),
+        row(
+            "Unix",
+            if ui_en {
+                format!(
+                    "{} seconds / {} milliseconds",
+                    target.timestamp(),
+                    target_ms
+                )
+            } else {
+                format!("{} 秒 / {} 毫秒", target.timestamp(), target_ms)
+            },
+        ),
+    ];
+    let mut blocks = vec![fmt::section(&format!(
+        "{} · {locale} · {}",
+        fmt::msg(ui, "相对时间", "Relative time"),
+        tz.name()
+    ))];
+    blocks.push(fmt::align_rows(&rows));
+    if show_countdown {
+        let totals = if ui_en {
+            format!(
+                "{} d · {} h · {} min · {} s",
+                fmt::format_number(abs_ms as f64 / fmt::DAY_MS as f64),
+                fmt::format_number(abs_ms as f64 / fmt::HOUR_MS as f64),
+                fmt::format_number(abs_ms as f64 / fmt::MIN_MS as f64),
+                fmt::format_number(abs_ms as f64 / fmt::SEC_MS as f64),
+            )
+        } else {
+            format!(
+                "{} 天 · {} 小时 · {} 分钟 · {} 秒",
+                fmt::format_number(abs_ms as f64 / fmt::DAY_MS as f64),
+                fmt::format_number(abs_ms as f64 / fmt::HOUR_MS as f64),
+                fmt::format_number(abs_ms as f64 / fmt::MIN_MS as f64),
+                fmt::format_number(abs_ms as f64 / fmt::SEC_MS as f64),
+            )
+        };
+        blocks.push(fmt::section(fmt::msg(ui, "倒计时", "Countdown")));
+        blocks.push(fmt::align_rows(&[
+            row(
+                fmt::msg(ui, "状态", "State"),
+                if delta == 0 {
+                    fmt::msg(ui, "与基准同一时刻", "Same instant as the base")
+                } else if delta > 0 {
+                    fmt::msg(ui, "还剩", "Remaining")
+                } else {
+                    fmt::msg(ui, "已过", "Elapsed")
+                },
+            ),
+            row(
+                fmt::msg(ui, "拆分", "Breakdown"),
+                if ui_en {
+                    format!("{whole_days} d {hours} h {minutes} min {seconds} s")
+                } else {
+                    format!("{whole_days} 天 {hours} 小时 {minutes} 分 {seconds} 秒")
+                },
+            ),
+            row(fmt::msg(ui, "总计", "Totals"), totals),
+        ]));
+    }
+    let mut extra = Map::new();
+    put(&mut extra, "locale", locale);
+    put(
+        &mut extra,
+        "style",
+        if numeric_auto { "auto" } else { "always" },
+    );
+    put(&mut extra, "timezone", tz.name());
+    put(&mut extra, "phrase", phrase);
+    put(&mut extra, "showCountdown", show_countdown.to_string());
+    Ok(output(
+        "relative-time.txt",
+        fmt::join_blocks(blocks.iter().map(String::as_str)),
+        extra,
     ))
 }
-
-pub(super) fn dominant_relative(delta_ms: i64) -> (i64, &'static str) {
-    let abs = delta_ms.unsigned_abs();
-    let (unit, divisor) = if abs >= 31_557_600_000 {
-        ("year", 31_557_600_000_u64)
-    } else if abs >= 2_629_800_000 {
-        ("month", 2_629_800_000_u64)
-    } else if abs >= 604_800_000 {
-        ("week", 604_800_000_u64)
-    } else if abs >= 86_400_000 {
-        ("day", 86_400_000_u64)
-    } else if abs >= 3_600_000 {
-        ("hour", 3_600_000_u64)
-    } else if abs >= 60_000 {
-        ("minute", 60_000_u64)
-    } else {
-        ("second", 1000_u64)
-    };
-    let magnitude = if matches!(unit, "year" | "month" | "week" | "day") {
-        (delta_ms as f64 / divisor as f64).trunc() as i64
-    } else {
-        (delta_ms as f64 / divisor as f64).round() as i64
-    };
-    (magnitude, unit)
-}
-
-pub(super) fn relative_phrase(value: i64, unit: &str, locale: &str, always: bool) -> String {
-    let zh = locale.to_lowercase().starts_with("zh");
-    if !always {
-        if value == 0 {
-            return if zh { "現在".into() } else { "now".into() };
-        }
-        if zh {
-            return match (unit, value) {
-                ("day", -1) => "昨天".into(),
-                ("day", 1) => "明天".into(),
-                ("week", -1) => "上周".into(),
-                ("week", 1) => "下周".into(),
-                ("month", -1) => "上个月".into(),
-                ("month", 1) => "下个月".into(),
-                ("year", -1) => "去年".into(),
-                ("year", 1) => "明年".into(),
-                _ => format!(
-                    "{}{}{}",
-                    value.abs(),
-                    relative_zh_unit(unit),
-                    if value < 0 { "前" } else { "后" }
-                ),
-            };
-        }
-        return match (unit, value) {
-            ("day", -1) => "yesterday".into(),
-            ("day", 1) => "tomorrow".into(),
-            ("week", -1) => "last week".into(),
-            ("week", 1) => "next week".into(),
-            ("month", -1) => "last month".into(),
-            ("month", 1) => "next month".into(),
-            ("year", -1) => "last year".into(),
-            ("year", 1) => "next year".into(),
-            _ => {
-                if value < 0 {
-                    format!(
-                        "{} {}{} ago",
-                        value.abs(),
-                        unit,
-                        if value.abs() == 1 { "" } else { "s" }
-                    )
-                } else {
-                    format!("in {value} {unit}{}", if value == 1 { "" } else { "s" })
-                }
-            }
-        };
-    }
-    if zh {
-        format!(
-            "{}{}{}",
-            value.abs(),
-            relative_zh_unit(unit),
-            if value < 0 { "前" } else { "后" }
-        )
-    } else if value < 0 {
-        format!(
-            "{} {}{} ago",
-            value.abs(),
-            unit,
-            if value.abs() == 1 { "" } else { "s" }
-        )
-    } else {
-        format!("in {value} {unit}{}", if value == 1 { "" } else { "s" })
-    }
-}
-
-pub(super) fn relative_zh_unit(unit: &str) -> &'static str {
-    match unit {
-        "year" => "年",
-        "month" => "个月",
-        "week" => "周",
-        "day" => "天",
-        "hour" => "小时",
-        "minute" => "分钟",
-        _ => "秒",
-    }
-}
-
-// RMB upper-case amount conversion mirrors the character set, limits and rounding behavior of finance.ts.

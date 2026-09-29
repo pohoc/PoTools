@@ -1,5 +1,5 @@
 //! X.509 certificate chain inspection and JSON export.
-use super::hash::{artifact, bad, hex};
+use super::hash::{bad, hex};
 use crate::{Artifact, EngineError, RunContext, ToolResult};
 use base64::Engine;
 use chrono::{Local, TimeZone, Utc};
@@ -9,23 +9,125 @@ use sha2::{Digest, Sha256, Sha512};
 use x509_parser::{extensions::ParsedExtension, parse_x509_certificate};
 
 type RunResult = Result<Option<ToolResult>, EngineError>;
-struct CertInfo {
-    der: Vec<u8>,
-    subject: String,
-    issuer: String,
-    serial: String,
-    version: u32,
-    sig_alg: String,
-    from: i64,
-    to: i64,
-    sans: Vec<(String, String)>,
-    ca: bool,
-    key_usage: Vec<String>,
-    eku: Vec<String>,
-    ski: String,
-    aki: String,
-    critical: Vec<String>,
+pub(super) struct CertInfo {
+    pub(super) der: Vec<u8>,
+    pub(super) subject: String,
+    pub(super) issuer: String,
+    pub(super) serial: String,
+    pub(super) version: u32,
+    pub(super) sig_alg: String,
+    pub(super) sig_alg_oid: String,
+    pub(super) from: i64,
+    pub(super) to: i64,
+    pub(super) sans: Vec<(String, String)>,
+    pub(super) ca: bool,
+    pub(super) has_basic_constraints: bool,
+    pub(super) bc_critical: bool,
+    pub(super) pathlen: Option<u32>,
+    pub(super) has_key_usage: bool,
+    pub(super) ku_critical: bool,
+    pub(super) has_eku: bool,
+    pub(super) key_usage: Vec<String>,
+    pub(super) eku: Vec<String>,
+    pub(super) ski: String,
+    pub(super) aki: String,
+    pub(super) critical: Vec<String>,
+    pub(super) spki_der: Vec<u8>,
+    pub(super) key_algorithm: String,
+    pub(super) key_bits: u32,
+    pub(super) curve: Option<String>,
 }
+
+/// Length of the DER TLV starting at `at`.
+fn tlv_total(data: &[u8], at: usize) -> usize {
+    let first = *data.get(at + 1).unwrap_or(&0) as usize;
+    let (length, header) = if first & 0x80 == 0 {
+        (first, 2)
+    } else {
+        let count = first & 0x7f;
+        let mut length = 0usize;
+        for offset in 0..count {
+            length = (length << 8) | *data.get(at + 2 + offset).unwrap_or(&0) as usize;
+        }
+        (length, 2 + count)
+    };
+    header + length
+}
+
+/// Content start (after the header) of the DER TLV at `at`.
+fn tlv_content(data: &[u8], at: usize) -> usize {
+    let first = *data.get(at + 1).unwrap_or(&0) as usize;
+    if first & 0x80 == 0 {
+        at + 2
+    } else {
+        at + 2 + (first & 0x7f)
+    }
+}
+
+/// The SubjectPublicKeyInfo TLV is the sixth field of the TBS certificate.
+fn spki_der_of(cert_der: &[u8]) -> Vec<u8> {
+    let tbs_start = tlv_content(cert_der, 0);
+    let mut cursor = tlv_content(cert_der, tbs_start);
+    if cert_der.get(cursor) == Some(&0xa0) {
+        cursor += tlv_total(cert_der, cursor);
+    }
+    for _ in 0..5 {
+        cursor += tlv_total(cert_der, cursor);
+    }
+    let total = tlv_total(cert_der, cursor);
+    cert_der[cursor..(cursor + total).min(cert_der.len())].to_vec()
+}
+
+fn rsa_bit_length(key_data: &[u8]) -> u32 {
+    // keyData = 0x00 || SEQUENCE { INTEGER modulus, INTEGER exponent }
+    let body = if key_data.first() == Some(&0x00) { &key_data[1..] } else { key_data };
+    let mut at = 1; // skip SEQUENCE tag
+    let first = *body.get(at).unwrap_or(&0) as usize;
+    at += if first & 0x80 == 0 { 1 } else { 1 + (first & 0x7f) };
+    if body.get(at) != Some(&0x02) {
+        return (body.len() * 8) as u32;
+    }
+    at += 1;
+    let first = *body.get(at).unwrap_or(&0) as usize;
+    let (length, header) = if first & 0x80 == 0 {
+        (first, 1)
+    } else {
+        let count = first & 0x7f;
+        let mut length = 0usize;
+        for offset in 0..count {
+            length = (length << 8) | *body.get(at + 1 + offset).unwrap_or(&0) as usize;
+        }
+        (length, 1 + count)
+    };
+    at += header;
+    let modulus = &body[at..(at + length).min(body.len())];
+    let stripped = modulus.iter().skip_while(|b| **b == 0).copied().collect::<Vec<_>>();
+    if stripped.is_empty() {
+        return 0;
+    }
+    let lead = stripped[0].leading_zeros();
+    (stripped.len() as u32) * 8 - lead
+}
+
+const SIGNATURE_ALG_NAMES: [(&str, &str); 6] = [
+    ("1.2.840.113549.1.1.5", "sha1WithRSAEncryption"),
+    ("1.2.840.113549.1.1.11", "sha256WithRSAEncryption"),
+    ("1.2.840.113549.1.1.12", "sha384WithRSAEncryption"),
+    ("1.2.840.113549.1.1.13", "sha512WithRSAEncryption"),
+    ("1.2.840.10045.4.3.2", "ecdsa-with-SHA256"),
+    ("1.2.840.10045.4.3.3", "ecdsa-with-SHA384"),
+];
+
+const EC_CURVE_NAMES: [(&str, &str); 8] = [
+    ("1.2.840.10045.3.1.1", "prime192v1"),
+    ("1.2.840.10045.3.1.7", "prime256v1"),
+    ("1.3.132.0.10", "secp256k1"),
+    ("1.3.132.0.31", "secp192k1"),
+    ("1.3.132.0.33", "secp224r1"),
+    ("1.3.132.0.34", "secp384r1"),
+    ("1.3.132.0.35", "secp521r1"),
+    ("1.3.36.3.3.2.8.1.1.7", "brainpoolP256r1"),
+];
 fn en(ctx: &RunContext<'_>) -> bool {
     ctx.locale.starts_with("en")
 }
@@ -54,6 +156,8 @@ fn parse(der: Vec<u8>) -> Result<CertInfo, String> {
     let mut sans = vec![];
     let (mut ca, mut key_usage, mut eku, mut ski, mut aki, mut critical) =
         (false, vec![], vec![], String::new(), String::new(), vec![]);
+    let (mut has_basic_constraints, mut bc_critical, mut pathlen) = (false, false, None);
+    let (mut has_key_usage, mut ku_critical, mut has_eku) = (false, false, false);
     for ext in cert.extensions() {
         if ext.critical {
             critical.push(ext.oid.to_string());
@@ -79,8 +183,15 @@ fn parse(der: Vec<u8>) -> Result<CertInfo, String> {
                     sans.push((k.into(), v));
                 }
             }
-            ParsedExtension::BasicConstraints(b) => ca = b.ca,
+            ParsedExtension::BasicConstraints(b) => {
+                ca = b.ca;
+                has_basic_constraints = true;
+                bc_critical = ext.critical;
+                pathlen = b.path_len_constraint;
+            }
             ParsedExtension::KeyUsage(u) => {
+                has_key_usage = true;
+                ku_critical = ext.critical;
                 for (flag, name) in [
                     (u.digital_signature(), "digitalSignature"),
                     (u.non_repudiation(), "nonRepudiation"),
@@ -98,6 +209,7 @@ fn parse(der: Vec<u8>) -> Result<CertInfo, String> {
                 }
             }
             ParsedExtension::ExtendedKeyUsage(u) => {
+                has_eku = true;
                 for (flag, name) in [
                     (u.server_auth, "serverAuth"),
                     (u.client_auth, "clientAuth"),
@@ -127,9 +239,39 @@ fn parse(der: Vec<u8>) -> Result<CertInfo, String> {
         .tbs_certificate
         .raw_serial_as_string()
         .replace(':', "")
-        .to_ascii_lowercase();
+        .trim_start_matches('0')
+        .to_ascii_uppercase();
+    let serial = if serial.is_empty() { "0".into() } else { serial };
     let version = cert.version().0 + 1;
-    let sig_alg = cert.signature_algorithm.algorithm.to_id_string();
+    let sig_alg_oid = cert.signature_algorithm.algorithm.to_id_string();
+    let sig_alg = SIGNATURE_ALG_NAMES
+        .iter()
+        .find(|(oid, _)| *oid == sig_alg_oid)
+        .map(|(_, name)| name.to_string())
+        .unwrap_or_else(|| sig_alg_oid.clone());
+    let spki = &cert.tbs_certificate.subject_pki;
+    let spki_der = spki_der_of(&der);
+    let key_algorithm_oid = spki.algorithm.algorithm.to_id_string();
+    let key_data = spki.subject_public_key.data.to_vec();
+    let parameters = spki
+        .algorithm
+        .parameters
+        .as_ref()
+        .map(|p| p.as_oid().map(|oid| oid.to_id_string()).unwrap_or_default())
+        .unwrap_or_default();
+    let (key_algorithm, key_bits, curve) = match key_algorithm_oid.as_str() {
+        "1.2.840.113549.1.1.1" => ("rsa".to_string(), rsa_bit_length(&key_data), None),
+        "1.2.840.10045.2.1" => {
+            let curve = EC_CURVE_NAMES
+                .iter()
+                .find(|(oid, _)| *oid == parameters)
+                .map(|(_, name)| name.to_string());
+            ("ec".to_string(), 256, curve)
+        }
+        "1.3.101.112" => ("ed25519".to_string(), 256, None),
+        "1.3.101.113" => ("ed448".to_string(), 456, None),
+        other => (other.to_string(), 0, None),
+    };
     let from = cert.validity().not_before.timestamp();
     let to = cert.validity().not_after.timestamp();
     Ok(CertInfo {
@@ -139,15 +281,26 @@ fn parse(der: Vec<u8>) -> Result<CertInfo, String> {
         serial,
         version,
         sig_alg,
+        sig_alg_oid,
         from,
         to,
         sans,
         ca,
+        has_basic_constraints,
+        bc_critical,
+        pathlen,
+        has_key_usage,
+        ku_critical,
+        has_eku,
         key_usage,
         eku,
         ski,
         aki,
         critical,
+        spki_der,
+        key_algorithm,
+        key_bits,
+        curve,
     })
 }
 fn get_certificates(input: &str) -> Vec<Result<Vec<u8>, String>> {
@@ -277,58 +430,9 @@ pub fn run(ctx: &RunContext<'_>) -> RunResult {
         "summary"
     };
     let shown = if chain { &certs[..] } else { &certs[..1] };
-    let mut lines = Vec::new();
-    for (i, c) in shown.iter().enumerate() {
-        lines.push(format!(
-            "X.509 certificate {} of {} · {}",
-            i + 1,
-            certs.len(),
-            if i == 0 {
-                if en(ctx) {
-                    "primary"
-                } else {
-                    "主证书"
-                }
-            } else if c.subject == c.issuer {
-                if en(ctx) {
-                    "self-signed"
-                } else {
-                    "自签名"
-                }
-            } else {
-                if en(ctx) {
-                    "chain certificate"
-                } else {
-                    "链证书"
-                }
-            }
-        ));
-        lines.push(format!("Subject: {}\nIssuer: {}\nSerial: {} (decimal {})\nVersion: X.509 v{}\nSignature algorithm: {}",c.subject,c.issuer,c.serial,u128::from_str_radix(&c.serial,16).unwrap_or(0),c.version,c.sig_alg));
-        lines.push(format!(
-            "DER size: {} bytes\nSHA-256: {}\nSHA-1: {}\nSHA-512: {}",
-            c.der.len(),
-            digest(&c.der, "sha256"),
-            digest(&c.der, "sha1"),
-            digest(&c.der, "sha512")
-        ));
-        lines.push(format!("Validity: {} ~ {}\nRemaining: {:.2} days\nCA: {}\nKey usage: {}\nCritical extensions: {}",time(c.from),time(c.to),(c.to-Utc::now().timestamp()) as f64/86400.,c.ca,c.key_usage.join(", "),c.critical.join(", ")));
-        lines.push(format!(
-            "Subject alternative names:\n{}",
-            if c.sans.is_empty() {
-                "(none)".into()
-            } else {
-                c.sans
-                    .iter()
-                    .map(|(k, v)| format!("  {k}: {v}"))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            }
-        ));
-        if chain {
-            lines.push(input.to_string());
-        }
-    }
-    let mut result = artifact("x509.txt", lines.join("\n\n"), serde_json::Map::new());
+    let report = super::x509_report::render(ctx, &certs, shown, chain, &warnings, &input);
+    let mut result = report;
+
     if output == "full-json" {
         let vals = shown.iter().map(|c| json_cert(c)).collect::<Vec<_>>();
         let payload = if vals.len() == 1 {

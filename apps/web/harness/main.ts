@@ -8,6 +8,8 @@ import { defaultOptions } from '../src/lib/core-bindings.ts';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { canonicalArtifactDigest } from './canonical-artifact.ts';
 import { ensureRustCore } from '../src/lib/rust-core.ts';
+import { buildConvertRuntimeData, CONVERSION_TOOLS } from '../src/lib/pdf-convert-runtime.ts';
+import { contentInsetsRuntimeData, removeBlankInkRuntimeData } from '../src/lib/pdf-content-insets.ts';
 
 await ensureRustCore();
 
@@ -82,8 +84,34 @@ async function systemFontRuntimeData(item: GoldenCase): Promise<Record<string, u
   return {};
 }
 
-async function loadFonts(urls: string[]): Promise<Array<{ name: string; bytes: Uint8Array }>> {
-  const fonts = await Promise.all(urls.map(async (url) => {
+/**
+ * Builds the full runtimeData the real app transport would provide for this
+ * job: conversion contracts (pdfText/pdfImages/pdfPageImages/pdfOcrPages),
+ * content insets (crop/invoice auto-crop), blank-page ink ratios, and the
+ * font payloads. Keeps the replay faithful to the app path.
+ */
+async function jobRuntimeData(item: GoldenCase, inputs: Array<{ id: string; name: string; path: string | null; bytes: Uint8Array }>, options: Record<string, unknown>): Promise<Record<string, unknown>> {
+  await ensureRustCore();
+  const fonts = await systemFontRuntimeData(item);
+  const convert = CONVERSION_TOOLS.has(item.tool)
+    ? await buildConvertRuntimeData({ tool: item.tool, options, globals: {} } as never, inputs as never) ?? {}
+    : {};
+  const insets = item.tool === 'invoice-merge' || item.tool === 'crop'
+    ? await contentInsetsRuntimeData(inputs) ?? {}
+    : {};
+  const blank = item.tool === 'remove-blank'
+    ? await removeBlankInkRuntimeData(inputs) ?? {}
+    : {};
+  return { ...fonts, ...convert, ...insets, ...blank };
+}
+
+async function loadFonts(urls: string[]): Promise<Array<{ name: string; bytesBase64: string }>> {
+  // Mirrors the app transport caps: 8 fonts, 32 MB each, 96 MB total. The
+  // payload travels as base64 — raw typed arrays cannot cross the wasm
+  // runtimeData boundary (serde cannot place byte arrays in a JSON value).
+  const fonts: Array<{ name: string; bytesBase64: string }> = [];
+  let total = 0;
+  for (const url of urls.slice(0, 8)) {
     let bytes = fontCache.get(url);
     if (!bytes) {
       const response = await fetch(url);
@@ -91,9 +119,15 @@ async function loadFonts(urls: string[]): Promise<Array<{ name: string; bytes: U
       bytes = new Uint8Array(await response.arrayBuffer());
       fontCache.set(url, bytes);
     }
+    if (!bytes.length || bytes.length > 32 * 1024 * 1024 || total + bytes.length > 96 * 1024 * 1024) continue;
+    total += bytes.length;
     const path = new URL(url, location.origin).searchParams.get('path') ?? '';
-    return { name: path.split('/').pop() ?? path, bytes };
-  }));
+    let binary = '';
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+    }
+    fonts.push({ name: path.split('/').pop() ?? path, bytesBase64: btoa(binary) });
+  }
   return fonts;
 }
 
@@ -164,7 +198,6 @@ interface GoldenOutcome {
                 if (!response.ok) throw new Error(`sample fetch failed: ${file.url} HTTP ${response.status}`);
                 inputs.push({ id: file.name, name: file.name, path: null, bytes: new Uint8Array(await response.arrayBuffer()) });
               }
-              const runtimeData = await systemFontRuntimeData(item);
               const idByName = new Map(inputs.map((input) => [input.name, input.id]));
               const job = {
                 id: item.key.replace(/[^A-Za-z0-9_-]/g, '-'),
@@ -173,6 +206,7 @@ interface GoldenOutcome {
                 options: remapFileIds({ ...defaultOptions(item.tool as never), ...item.options }, idByName),
                 output: { dir: '' },
               };
+              const runtimeData = await jobRuntimeData(item, inputs, job.options);
               const reply = await callWorker({
                 rpc: { method: 'job.submit', params: { job } },
                 inputs,

@@ -18,7 +18,7 @@ use parser::DayRule;
 fn bad(message: String) -> EngineError {
     err(message)
 }
-fn matches_day(rule: &DayRule, date: NaiveDate) -> bool {
+fn matches_day(rule: &DayRule, date: NaiveDate, is_dom: bool) -> bool {
     let d = date.day();
     let wd = date.weekday().num_days_from_sunday();
     let dim = (date
@@ -32,7 +32,7 @@ fn matches_day(rule: &DayRule, date: NaiveDate) -> bool {
     let last = d == dim;
     match rule {
         DayRule::All => true,
-        DayRule::Values(v) => v.contains(&d),
+        DayRule::Values(v) => v.contains(&(if is_dom { d } else { wd })),
         DayRule::Last => last,
         DayRule::LastWeekday => {
             let dim = (date
@@ -214,8 +214,8 @@ fn run_cron(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
         if plan.month.contains(&date.month()) {
             let dom_all = matches!(plan.dom, DayRule::All);
             let dow_all = matches!(plan.dow, DayRule::All);
-            let dm = matches_day(&plan.dom, date);
-            let dw = matches_day(&plan.dow, date);
+            let dm = matches_day(&plan.dom, date, true);
+            let dw = matches_day(&plan.dow, date, false);
             let day_ok = if dom_all {
                 dw
             } else if dow_all {

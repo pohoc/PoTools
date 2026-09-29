@@ -87,11 +87,9 @@ pub(crate) fn write_ofd(input: &OfdInput<'_>) -> Result<Vec<u8>, EngineError> {
 
     // TS: new Date().toISOString().slice(0, 19) — UTC.
     let stamp = Utc::now().format("%Y-%m-%dT%H:%M:%S").to_string();
-    // TS: Date.now().toString(16).padStart(16, '0').
-    let millis = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|value| value.as_millis())
-        .unwrap_or(0);
+    // TS: Date.now().toString(16).padStart(16, '0'). chrono's clock works on
+    // wasm; std::time::SystemTime::now does not (panics).
+    let millis = Utc::now().timestamp_millis().max(0) as u64;
     let doc_id = format!("{millis:016x}");
     let mut next_id = 10u64;
     let ids = |next_id: &mut u64| {

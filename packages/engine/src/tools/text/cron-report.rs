@@ -1,4 +1,5 @@
 use super::super::common::*;
+use super::super::fmt;
 use super::parser::{DayRule, Plan};
 use super::ToolResult;
 #[path = "cron-report-format.rs"]
@@ -8,62 +9,85 @@ use chrono_tz::Tz;
 use formatting::*;
 use std::collections::BTreeSet;
 
-fn field_values(plan: &Plan, en: bool) -> Vec<(String, String)> {
-    let mut week = match &plan.dow {
-        DayRule::All => {
+fn dow_long_list(v: &BTreeSet<u32>, en: bool) -> String {
+    v.iter()
+        .map(|d| {
             if en {
-                "all 7 values".into()
+                crate::tools::text::fmt::WEEKDAYS_EN[(*d % 7) as usize].to_string()
             } else {
-                "全部 7 个取值".into()
+                super::description::dow(*d, false)
             }
+        })
+        .collect::<Vec<_>>()
+        .join(if en { ", " } else { "、" })
+}
+
+fn dow_run_names(v: &BTreeSet<u32>, en: bool) -> String {
+    let values: Vec<u32> = v.iter().copied().collect();
+    let is_run = values.len() > 1
+        && values
+            .iter()
+            .enumerate()
+            .all(|(i, n)| *n == values[0] + i as u32);
+    if is_run {
+        if en {
+            let long = crate::tools::text::fmt::WEEKDAYS_EN;
+            format!(
+                "{} to {}",
+                long[(values[0] % 7) as usize],
+                long[(values[values.len() - 1] % 7) as usize]
+            )
+        } else {
+            format!(
+                "{} 至 {}",
+                super::description::dow(values[0], false),
+                super::description::dow(values[values.len() - 1], false)
+            )
         }
-        DayRule::Values(v) => {
-            if v.len() == 7 {
-                if en {
-                    "all 7 values".into()
-                } else {
-                    "全部 7 个取值".into()
-                }
-            } else {
-                named(v, en, true)
-            }
-        }
-        rule => special(rule, en).unwrap_or_default(),
-    };
-    if let DayRule::Values(v) = &plan.dow {
-        if v.len() == 7 {
-            week = if en {
-                "all 7 values".into()
-            } else {
-                "全部 7 个取值".into()
-            }
-        }
-    }
-    let day = match &plan.dom {
-        DayRule::All => {
-            if en {
-                "all 31 values".into()
-            } else {
-                "全部 31 个取值".into()
-            }
-        }
-        DayRule::Values(v) => expand(v, en),
-        rule => special(rule, en).unwrap_or_default(),
-    };
-    let month = if plan.month.len() == 12 {
-        named(&plan.month, en, false)
     } else {
-        named(&plan.month, en, false)
+        dow_long_list(v, en)
+    }
+}
+
+fn field_values_rows(plan: &Plan, en: bool) -> Vec<(String, String)> {
+    let week = match &plan.dow {
+        DayRule::All => if en { "all 7 values".into() } else { "全部 7 个取值".into() },
+        rule => match special(rule, en) {
+            Some(text) => text,
+            None => match rule {
+                DayRule::Values(v) if v.len() == 7 => {
+                    if en { "all 7 values".into() } else { "全部 7 个取值".into() }
+                }
+                DayRule::Values(v) => {
+                    let nums = values(v, 0, 6);
+                    let names = dow_run_names(v, en);
+                    if en {
+                        format!("{nums} ({names})")
+                    } else {
+                        format!("{nums}（{names}）")
+                    }
+                }
+                _ => String::new(),
+            },
+        },
     };
     vec![
         (label("second", en), expand(&plan.sec, en)),
         (label("minute", en), expand(&plan.min, en)),
         (label("hour", en), expand(&plan.hour, en)),
-        (label("day", en), day),
-        (label("month", en), month),
+        (
+            label("day", en),
+            match &plan.dom {
+                DayRule::All => if en { "all 31 values".into() } else { "全部 31 个取值".into() },
+                DayRule::Values(v) => expand(v, en),
+                rule => special(rule, en).unwrap_or_default(),
+            },
+        ),
+        (label("month", en), named(&plan.month, en, false)),
         (label("weekday", en), week),
     ]
 }
+
 pub(super) fn reboot(
     expression: &str,
     zone_name: &str,
@@ -206,6 +230,23 @@ pub(super) fn render(
         (label("planned", en), grouped(count, en)),
         (label("hits", en), hit_text),
     ]));
+    if show_countdown {
+        blocks.push(section(if en { "Next run" } else { "下次执行" }));
+        blocks.push(align(&[
+            (
+                label("next", en),
+                if en {
+                    format!("{} ({zone_name})", fmt_local(runs[0], tz))
+                } else {
+                    format!("{}（{zone_name}）", fmt_local(runs[0], tz))
+                },
+            ),
+            (
+                label("countdown", en),
+                countdown((runs[0] - from).num_milliseconds(), en),
+            ),
+        ]));
+    }
     blocks.push(section(if en {
         "Schedule in words"
     } else {
@@ -220,20 +261,12 @@ pub(super) fn render(
     } else {
         sentence.clone()
     };
-    blocks.push(align(&[(label("sentence", en), sentence_row)]));
-    if show_countdown {
-        blocks.push(section(if en { "Next run" } else { "下次执行" }));
-        blocks.push(align(&[
-            (
-                label("next", en),
-                format!("{} ({zone_name})", fmt_local(runs[0], tz)),
-            ),
-            (
-                label("countdown", en),
-                countdown((runs[0] - from).num_milliseconds(), en),
-            ),
-        ]));
-    }
+    let sentence_label = if canonical != expression {
+        if en { "Macro" } else { "宏展开" }
+    } else {
+        &*label("sentence", en)
+    };
+    blocks.push(align(&[(sentence_label.to_string(), sentence_row)]));
     blocks.push(section(if en {
         "Normalized fields"
     } else {
@@ -246,7 +279,7 @@ pub(super) fn render(
         } else {
             "字段取值展开"
         }));
-        blocks.push(align(&field_values(plan, en)));
+        blocks.push(align(&field_values_rows(plan, en)));
     }
     blocks.push(section(if en { "Run times" } else { "执行时刻" }));
     let rows: Vec<_> = runs
@@ -256,7 +289,7 @@ pub(super) fn render(
             let m = offset(*dt, tz);
             let dst = if dst(*dt, tz) {
                 if en {
-                    " DST"
+                    " daylight time"
                 } else {
                     " 夏令时"
                 }
@@ -270,13 +303,13 @@ pub(super) fn render(
                     fmt_local(*dt, tz),
                     weekday(*dt, tz, en),
                     offset_text(m),
-                    dt.with_timezone(&tz).format("%Z"),
+                    fmt::zone_abbrev(tz, *dt),
                     dst
                 ),
             )
         })
         .collect();
-    blocks.push(align(&rows));
+    blocks.push(fmt::align_rows_indent(&rows, 2, 3));
     let gaps: Vec<_> = runs
         .windows(2)
         .map(|pair| decimal((pair[1] - pair[0]).num_milliseconds() as f64 / 1000.0))

@@ -306,7 +306,13 @@ fn month_phrase(months: &BTreeSet<u32>, english: bool) -> String {
                 }
             })
             .collect();
-        names.join(if english { ", " } else { "、" })
+        let joined = names.join(if english { ", " } else { "、" });
+        if english {
+            joined
+        } else {
+            // mpOf: "每年 {months}"
+            format!("每年 {joined}")
+        }
     }
 }
 fn dow_clause(rule: &DayRule, english: bool) -> String {
@@ -383,9 +389,9 @@ pub(super) fn describe(plan: &Plan, locale: &str) -> String {
         )
     } else {
         format!(
-            "第 {} 分钟、第 {} 小时",
-            describe_values(&plan.min, 0, 59),
-            describe_values(&plan.hour, 0, 23)
+            "第 {} 小时的第 {} 分钟",
+            describe_values(&plan.hour, 0, 23),
+            describe_values(&plan.min, 0, 59)
         )
     };
     if !restricted {

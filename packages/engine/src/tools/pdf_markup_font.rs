@@ -133,6 +133,10 @@ impl Font {
         let (cid_font_id, cid_map_id, unicode_id) = {
             let font_subset = self.subset.as_mut().expect("subset exists");
             for (character, glyph_id, width) in additions {
+                // A repeated character inside one extension batch is added once.
+                if self.glyphs.contains_key(&character) {
+                    continue;
+                }
                 let cid = (self.glyphs.len() + 1) as u16;
                 self.glyphs.insert(character, cid);
                 self.widths.insert(character, width);
@@ -162,10 +166,17 @@ impl Font {
             }
             (font_subset.cid_font_id, font_subset.cid_map_id, font_subset.to_unicode_id)
         };
-        let mut cid_map = vec![0u8; (self.glyphs.len() + 1) * 2];
-        {
+        // The CID map tracks one subset GID per entry (plus .notdef) — the
+        // same count the extension loop pushed.
+        // CID map entry count == pushed subset GIDs (+ .notdef slot 0).
+        let cid_count = {
             let subset = self.subset.as_ref().expect("subset exists");
-            for (index, gid) in subset.gids.iter().enumerate() {
+            subset.gids.len()
+        };
+        let mut cid_map = vec![0u8; (cid_count + 1) * 2];
+        {
+            let font_subset = self.subset.as_ref().expect("subset exists");
+            for (index, gid) in font_subset.gids.iter().enumerate() {
                 cid_map[(index + 1) * 2..(index + 2) * 2].copy_from_slice(&gid.to_be_bytes());
             }
         }
@@ -342,6 +353,7 @@ pub(crate) fn embed_face(
     let mut glyphs = HashMap::new();
     let mut gids = Vec::new();
     let mut widths = HashMap::new();
+    let chars_count = chars.len();
     for character in chars {
         if glyphs.contains_key(&character) {
             continue;

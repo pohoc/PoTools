@@ -5,6 +5,7 @@ import { imagePlugin, officePlugin, pdfPlugin, textPlugin } from '@open-file-vie
 import '@open-file-viewer/core/style.css';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 import { TOOLS } from '../lib/core-bindings.ts';
+import { useJobs } from '../stores/jobs.ts';
 import type { FileRef, PageThumb } from 'core';
 import {
   Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -129,7 +130,19 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
             </Button>
           ) : null}
           {onRetry ? (
-            <Button size="sm" variant="ghost" icon="reset" onClick={onRetry}>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon="reset"
+              onClick={() => {
+                void (async () => {
+                  // Replay the exact original request; the draft may have
+                  // changed (or gone) since the job completed.
+                  const reran = await useJobs.getState().resubmit(job.id);
+                  if (!reran) onRetry();
+                })();
+              }}
+            >
               {t('result.rerun')}
             </Button>
           ) : null}

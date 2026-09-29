@@ -8,6 +8,15 @@ import { optionFlag, optionJsonNumber } from './option-coerce.ts';
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
+/** Wire bytes for runtime data: base64 (raw typed arrays cannot cross dispatch). */
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+
 const MAX_EDGE = 6000;
 const MAX_PIXELS = 24_000_000;
 
@@ -65,14 +74,14 @@ interface ImagePlacement {
   index: number;
   widthPt: number;
   heightPt: number;
-  bytes: Uint8Array;
+  bytes: string;
 }
 
 /** Full-page PNG render at a specific dpi. */
 interface PageImage {
   page: number;
   dpi: number;
-  bytes: Uint8Array;
+  bytes: string;
 }
 
 /** OCR fallback text for one zero-run page (lines joined with '\n'). */
@@ -269,7 +278,7 @@ async function cropRectPlacements(rectPage: RectPage, canvas: OffscreenCanvas): 
     const context = crop.getContext('2d', { alpha: true });
     if (!context) throw new Error('PDF 区域画布不可用');
     context.drawImage(canvas, left, top, width, height, 0, 0, width, height);
-    placements.push({ page: rectPage.page, index, widthPt: w, heightPt: h, bytes: await pngBytes(crop) });
+    placements.push({ page: rectPage.page, index, widthPt: w, heightPt: h, bytes: bytesToBase64(await pngBytes(crop)) });
   }
   return placements;
 }
@@ -308,7 +317,7 @@ async function recognizeScanPage(
     const page = await document.getPage(pageNumber);
     try {
       const canvas = await renderPageCanvas(page, renderScale(fallbackDpi, textPage.width, textPage.height));
-      pushFallback({ page: pageNumber, dpi: fallbackDpi, bytes: await pngBytes(canvas) });
+      pushFallback({ page: pageNumber, dpi: fallbackDpi, bytes: bytesToBase64(await pngBytes(canvas)) });
     } finally {
       page.cleanup();
     }
@@ -405,7 +414,7 @@ export async function buildConvertRuntimeData(
               const page = await document.getPage(textPage.page);
               try {
                 const canvas = await renderPageCanvas(page, renderScale(plan.allPagesDpi, textPage.width, textPage.height));
-                images.push({ page: textPage.page, dpi: plan.allPagesDpi, bytes: await pngBytes(canvas) });
+                images.push({ page: textPage.page, dpi: plan.allPagesDpi, bytes: bytesToBase64(await pngBytes(canvas)) });
               } finally {
                 page.cleanup();
               }

@@ -9,10 +9,15 @@ interface JobState {
   attached: boolean;
   attach: () => void;
   submit: (job: Omit<JobRequest, 'id' | 'createdAt'>) => Promise<JobSnapshot>;
+  /** Re-runs the exact original request (files + options), independent of the current draft. */
+  resubmit: (jobId: string) => Promise<boolean>;
   cancel: (jobId: string) => Promise<void>;
   clearFinished: () => Promise<void>;
   refresh: () => Promise<void>;
 }
+
+/** Original requests by job id — powers 重新处理 without the current draft. */
+const requests = new Map<string, JobRequest>();
 
 const TERMINAL = new Set(['succeeded', 'failed', 'cancelled']);
 const RANK: Record<JobSnapshot['progress']['state'], number> = {
@@ -92,6 +97,7 @@ export const useJobs = create<JobState>((set, get) => ({
   submit: async (job) => {
     const id = `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
     const request: JobRequest = { ...job, id, createdAt: Date.now() };
+    requests.set(id, request);
     const snapshot = await useEngine.getState().call<JobSnapshot>('job.submit', { job: request });
     set((state) => {
       const local = state.jobs.find((item) => item.id === snapshot.id);
@@ -101,6 +107,13 @@ export const useJobs = create<JobState>((set, get) => ({
     });
     armWatchdog();
     return snapshot;
+  },
+
+  resubmit: async (jobId) => {
+    const request = requests.get(jobId);
+    if (!request) return false;
+    await get().submit(request);
+    return true;
   },
 
   cancel: async (jobId) => {

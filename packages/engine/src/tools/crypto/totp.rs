@@ -211,7 +211,7 @@ fn at_ms(raw: &str, ctx: &RunContext<'_>) -> Result<(i64, String), EngineError> 
     if s.is_empty() || s.eq_ignore_ascii_case("now") {
         return Ok((
             Utc::now().timestamp_millis(),
-            if en(ctx) { "now" } else { "当前时刻" }.into(),
+            if en(ctx) { "now (this very moment)" } else { "now（当前时刻）" }.into(),
         ));
     }
     if let Ok(n) = s.parse::<f64>() {
@@ -224,18 +224,19 @@ fn at_ms(raw: &str, ctx: &RunContext<'_>) -> Result<(i64, String), EngineError> 
             ));
         }
         let ms = if n.abs() >= 1e11 { n } else { n * 1000. };
+        let raw = s.to_string();
         return Ok((
             ms as i64,
             if en(ctx) {
                 if n.abs() >= 1e11 {
-                    "Unix milliseconds"
+                    format!("{raw} (read as a millisecond timestamp)")
                 } else {
-                    "Unix seconds"
+                    format!("{raw} (read as a second timestamp)")
                 }
             } else if n.abs() >= 1e11 {
-                "Unix 毫秒"
+                format!("{raw}（按毫秒时间戳解释）")
             } else {
-                "Unix 秒"
+                format!("{raw}（按秒时间戳解释）")
             }
             .into(),
         ));
@@ -255,9 +256,9 @@ fn at_ms(raw: &str, ctx: &RunContext<'_>) -> Result<(i64, String), EngineError> 
     Ok((
         parsed,
         if en(ctx) {
-            format!("parsed: {s}")
+            format!("{s} (parsed as a flex time expression)")
         } else {
-            format!("解析时间：{s}")
+            format!("{s}（按 flex 时间表达式解析）")
         },
     ))
 }
@@ -273,17 +274,6 @@ impl NaiveDateFallback {
             .single()
             .unwrap_or_else(|| Local.from_utc_datetime(&n))
             .timestamp_millis())
-    }
-}
-fn date(ms: i64, ctx: &RunContext<'_>) -> String {
-    let dt = Local
-        .timestamp_millis_opt(ms)
-        .single()
-        .unwrap_or_else(|| Local.timestamp_millis_opt(0).unwrap());
-    if en(ctx) {
-        dt.format("%b %e, %Y, %H:%M:%S").to_string()
-    } else {
-        dt.format("%Y/%m/%d  %H:%M:%S").to_string()
     }
 }
 #[path = "totp-report.rs"]

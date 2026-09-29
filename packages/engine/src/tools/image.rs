@@ -299,21 +299,9 @@ pub fn run(context: &RunContext<'_>) -> Result<Option<ToolResult>, EngineError> 
         let data = serde_json::to_vec_pretty(&rows)
             .map_err(|e| EngineError::new("internal", e.to_string()))?;
         let mut result = ToolResult::default();
-        result.artifacts.push(Artifact::new(
-            render_name(
-                context.name_pattern,
-                NameContext {
-                    name: naming_base(&context.inputs[0].name),
-                    tool: "info",
-                    index: Some(1),
-                    total: Some(context.inputs.len()),
-                    range: None,
-                },
-                "json",
-            ),
-            "json",
-            data,
-        ));
+        // Fixed product name (matches the original engine); downstream
+        // dedupe appends the (2)-style suffix when needed.
+        result.artifacts.push(Artifact::new("image-info.json", "json", data));
         result.extra.insert("images".into(), json!(rows.len()));
         return Ok(Some(result));
     }

@@ -5,12 +5,17 @@ mod amount;
 mod calendar;
 mod common;
 mod cron;
+mod date_diff;
 mod date_format;
+mod date_math;
 mod date_ops;
 mod duration;
+pub mod fmt;
+pub mod fmt_cal;
 mod relative;
 mod timezone_board;
 mod workdays;
+mod workdays_scan;
 
 pub fn run(context: &RunContext<'_>) -> Result<Option<ToolResult>, EngineError> {
     let result = match context.tool {
@@ -51,7 +56,7 @@ mod tests {
     fn duration_default_is_copyable_hhmmss() {
         let v = serde_json::json!({"value":"3735","unit":"s","style":"hhmmss"});
         let r = run_duration(&ctx("duration", &v)).unwrap();
-        assert_eq!(r.text.as_deref(), Some("01:02:15"));
+        assert_eq!(r.text.as_deref(), Some("01:02:15\n"));
     }
     #[test]
     fn amount_upper_and_number_round_trip() {
@@ -87,6 +92,45 @@ mod tests {
     fn timestamp_respects_explicit_microsecond_unit() {
         let options = serde_json::json!({"input":"1700000000123456","unit":"us","style":"iso","timezone":"UTC"});
         let result = run_timestamp(&ctx("timestamp", &options)).unwrap();
-        assert!(result.text.unwrap().starts_with("2023-11-14T22:13:20"));
+        // isoInZone renders whole seconds only; sub-second precision is not shown.
+        assert_eq!(result.text.as_deref(), Some("2023-11-14T22:13:20+00:00\n"));
+    }
+    #[test]
+    fn duration_full_report_matches_product_framing() {
+        let options = serde_json::json!({"value":"3735","unit":"s","style":"all"});
+        let result = run_duration(&ctx("duration", &options)).unwrap();
+        let text = result.text.unwrap();
+        assert!(text.starts_with("── 时长换算 · 3735 秒 ─"));
+        assert!(text.contains("── 写法 · HH:MM:SS ─"));
+        assert!(text.contains("  HH:MM:SS  01:02:15"));
+        assert!(text.contains("── 总量（各单位） ─"));
+    }
+    #[test]
+    fn date_diff_matches_product_framing() {
+        let options = serde_json::json!({"from":"2026-01-05","to":"2026-03-08","timezone":"Asia/Shanghai"});
+        let result = super::date_diff::run(&ctx("date-diff", &options)).unwrap();
+        let text = result.text.unwrap();
+        assert!(text.starts_with("── 结果 ─"));
+        assert!(text.contains("  日历分解  2个月 3天"));
+        assert!(text.contains("── 总量（各单位） ─"));
+        assert!(text.contains("  天    62 天"));
+    }
+    #[test]
+    fn relative_time_matches_product_framing() {
+        let options = serde_json::json!({"input":"2026-12-31 23:59:59","base":"2026-09-22 04:00:00","timezone":"Asia/Shanghai"});
+        let result = super::relative::run(&ctx("relative-time", &options)).unwrap();
+        let text = result.text.unwrap();
+        assert!(text.starts_with("── 相对时间 · zh-CN · Asia/Shanghai ─"));
+        assert!(text.contains("  口语        3个月后"));
+        assert!(text.contains("── 倒计时 ─"));
+    }
+    #[test]
+    fn timestamp_default_style_matches_product_framing() {
+        let options = serde_json::json!({"input":"1700000000","timezone":"Asia/Shanghai"});
+        let result = run_timestamp(&ctx("timestamp", &options)).unwrap();
+        assert_eq!(
+            result.text.as_deref(),
+            Some("日期时间：2023-11-15 06:13:20\nUnix 秒：1700000000\nUnix 毫秒：1700000000000\n")
+        );
     }
 }

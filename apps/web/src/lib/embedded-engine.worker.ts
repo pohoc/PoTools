@@ -117,14 +117,44 @@ async function runRustFileJob(id: number, job: JobRequest, inputs: ResolvedInput
       warnings: [],
     } satisfies JobSnapshot,
   });
-  const reply = dispatchWasm(rustDispatchRequest(
-    job.tool,
-    job.options,
-    job.globals?.locale ?? 'zh-CN',
-    inputs,
-    job.namePattern,
-    runtimeData,
-  )) as RustReply;
+  // dispatchWasm rejects on engine errors (Result::Err). Surface them as a
+  // failed job snapshot instead of a bare error reply, which the UI cannot
+  // render.
+  let reply: RustReply;
+  try {
+    reply = dispatchWasm(rustDispatchRequest(
+      job.tool,
+      job.options,
+      job.globals?.locale ?? 'zh-CN',
+      inputs,
+      job.namePattern,
+      runtimeData,
+    )) as RustReply;
+  } catch (issue) {
+    const payload = issue as { source?: { message?: string; code?: string } ; message?: string };
+    const inner = payload.source ?? payload;
+    worker.postMessage({
+      id,
+      handled: true,
+      jobResult: {
+        handled: true,
+        snapshot: {
+          id: job.id,
+          tool: job.tool,
+          label: job.label,
+          fileNames: inputs.map((input) => input.name),
+          createdAt,
+          finishedAt: Date.now(),
+          progress: { state: 'failed', percent: preparePercent },
+          artifacts: [],
+          warnings: [],
+          error: { code: inner.code ?? 'internal', message: inner.message ?? String(issue) },
+        },
+        artifacts: [],
+      },
+    });
+    return true;
+  }
   if (!reply.handled) return false;
 
   const base = {

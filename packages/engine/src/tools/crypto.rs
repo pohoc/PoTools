@@ -6,12 +6,16 @@ use crate::{EngineError, RunContext, ToolResult};
 
 pub mod aes;
 pub mod codec;
+mod codec_report;
+mod codec_report_text;
+mod enc;
 mod files;
 pub mod hash;
 pub mod jwt;
 pub mod password;
 pub mod rsa;
 pub mod totp;
+mod x509_report;
 pub mod unicode;
 pub mod url;
 pub mod x509;
