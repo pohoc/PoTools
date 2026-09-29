@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Worker-only 迁移阶段 10：Debian 12 容器内 Linux x64 全量打包。
 # 依赖：仓库挂载在 /repo（读写）。apt/Node/rustup/npm 全部走国内镜像，
-# crates 走仓库自带的 rsproxy 配置（src-tauri/.cargo/config.toml）。
+# crates 走仓库自带的 rsproxy 配置（apps/desktop/.cargo/config.toml）。
 # 既可在 potools-builder:latest（工具链已预装，跳过 1-4 步）也可在
 # 裸 debian:bookworm 中运行。
 set -euo pipefail
@@ -62,11 +62,11 @@ mkdir -p "$BUILD"
 tar -C /repo \
   --exclude=./.git \
   --exclude=./node_modules \
-  --exclude=./apps/desktop/node_modules \
+  --exclude=./apps/web/node_modules \
   --exclude=./packages/core/node_modules \
   --exclude=./packages/engine/node_modules \
   --exclude=./release \
-  --exclude=./apps/desktop/src-tauri/target \
+  --exclude=./apps/desktop/target \
   -cf - . | tar -C "$BUILD" -xf -
 
 cd "$BUILD"
@@ -97,12 +97,12 @@ chmod +x "$CACHE/AppRun-x86_64" "$CACHE/linuxdeploy-x86_64.AppImage" "$CACHE/lin
 # linuxdeploy 靠 PATH 找 linuxdeploy-plugin-*（extract-and-run 模式下同目录发现失效）
 export PATH="$CACHE:$PATH"
 
-rm -rf "$BUILD/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+rm -rf "$BUILD/apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle"
 pnpm tauri build ${POTOOLS_TAURI_VERBOSE:+--verbose} --bundles "${BUNDLES:-deb,rpm,appimage}" --target x86_64-unknown-linux-gnu
 
 # 8. 产物拷回挂载目录，再按标准路径收集
-BUNDLE="$BUILD/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
-DEST="/repo/apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+BUNDLE="$BUILD/apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle"
+DEST="/repo/apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle"
 mkdir -p "$DEST/deb" "$DEST/rpm" "$DEST/appimage"
 cp -f "$BUNDLE"/deb/*.deb "$DEST/deb/" 2>/dev/null || true
 cp -f "$BUNDLE"/rpm/*.rpm "$DEST/rpm/" 2>/dev/null || true

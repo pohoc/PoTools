@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
-  "description": "本机文件工具平台 · Vite + React + WebView Worker + Tauri",
+  "description": "本机文件工具平台 · Web 前端 + Rust/Tauri 桌面宿主",
   "author": "pohoc <po.hoc4@gmail.com>",
   "packageManager": "pnpm@12.5.1",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "dev": "pnpm --filter @potools/desktop dev",
-    "dev:web": "pnpm --filter @potools/desktop dev",
+    "dev": "pnpm --filter @potools/web dev",
+    "dev:web": "pnpm --filter @potools/web dev",
+    "wasm:build": "node scripts/build-engine-wasm.mjs",
     "tauri": "pnpm --filter @potools/desktop tauri",
     "package:macos": "pnpm icons && pnpm tauri build --bundles dmg --target x86_64-apple-darwin && node scripts/collect-release-artifacts.mjs macos",
     "package:windows:x64": "pnpm icons && pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc && node scripts/collect-release-artifacts.mjs windows x64",
@@ -25,10 +26,10 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "licenses:inventory": "node scripts/generate-license-inventory.mjs",
-    "samples": "pnpm --filter @potools/engine samples",
-    "icons": "node scripts/make-icons.mjs && pnpm --filter @potools/desktop exec tauri icon \"$PWD/apps/desktop/src-tauri/app-icon.png\"",
-    "test:tools": "pnpm --filter @potools/desktop test:golden:browser",
-    "test:golden": "pnpm --filter @potools/desktop test:golden:browser"
+    "samples": "pnpm --filter @potools/scripts samples",
+    "icons": "node scripts/make-icons.mjs && pnpm --filter @potools/desktop exec tauri icon \"$PWD/apps/desktop/app-icon.png\"",
+    "test:tools": "pnpm --filter @potools/web test:golden:browser",
+    "test:golden": "pnpm --filter @potools/web test:golden:browser"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

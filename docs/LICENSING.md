@@ -10,27 +10,29 @@ This grant covers only material copyrightable by the PoTools authors. Third-part
 
 The macOS DMG does not attach the deprecated system disk-image license panel. On first launch, the app presents the PoTools MIT agreement in its own localized screen; the language selector and acceptance prompt sit below the scrollable agreement. The local processing engine starts only after the user accepts. Windows continues to show the license in the NSIS installer.
 
+All bundled third-party components are permissively licensed; no copyleft component is bundled with the application. The components with dedicated notice obligations are:
+
 | Component | Current use | License | Required before distribution |
 | --- | --- | --- | --- |
-| MuPDF.js 1.28.1 | Bundled in the local engine for PDF processing | AGPL-3.0-or-later | May be distributed through an AGPL-compliant open-source route, under an applicable commercial license, or replaced. |
 | Hickory DNS 0.24.4 | Native desktop DNS queries using the OS resolver configuration | MIT OR Apache-2.0 | Keep both upstream license texts and the current version in the installed notices. |
-
-The table row applies to the current packaged app. An AGPL-compliant open-source distribution is a valid route for these components; the project does not have to obtain a commercial license solely to publish open source. The MIT project license covers PoTools-authored code, while the combined installer must meet the terms of every bundled component and must not be represented as MIT-only.
+| MediaPipe Tasks Vision + Selfie Segmentation model | Local person masking in the image studio | Apache-2.0 | Retain the Apache-2.0 text (`Apache-2.0.txt`) and model attribution in the installed notices. |
+| PaddleOCR PP-OCRv6 models + dictionary | Local OCR detection/recognition | Apache-2.0 | Retain the Apache-2.0 text and model attribution in the installed notices. |
+| pdf.js (pdfjs-dist) | Browser PDF rendering and text extraction | Apache-2.0 | Retain the Apache-2.0 text in the installed notices. |
+| onnxruntime-web | Local OCR WebAssembly inference | MIT | Retain the copyright notice per the MIT license. |
+| WebKitGTK (Linux only) | System webview, provided by the distribution | LGPL-2.1-or-later | Satisfied by platform libraries; PoTools does not bundle it. Verify the target distribution ships a compliant build. |
 
 ## Bundled third-party material
 
-- `apps/desktop/public/licenses/THIRD_PARTY_NOTICES.md` is included in the app and lists the direct runtime components and known exceptions.
-- `MuPDF-AGPL-3.0.txt` contains the license text for the bundled MuPDF.js package.
-- `Apache-2.0.txt` is retained for MediaPipe Tasks Vision and the bundled segmentation model.
+- `apps/web/public/licenses/THIRD_PARTY_NOTICES.md` is included in the app and lists the direct runtime components and known exceptions.
+- `Apache-2.0.txt` covers MediaPipe Tasks Vision, the bundled segmentation model, and the PaddleOCR PP-OCRv6 models.
 - `Hickory-DNS-MIT.txt` and `Hickory-DNS-Apache-2.0.txt` retain the licenses for the native DNS resolver and protocol crates.
 - JavaScript and Rust dependency trees include several additional permissive and notice-based licenses. The inventory must be refreshed for each release.
 
 ## Release checklist
 
-1. Choose and document an AGPL-compliant open-source route, an applicable commercial license, or a replacement for MuPDF for the exact runtime and app distribution model.
-2. Regenerate `apps/desktop/public/licenses/DEPENDENCY_LICENSES.json` with `pnpm licenses:inventory`; review it alongside `pnpm licenses list --json -r --long` and `cargo metadata --format-version 1 --manifest-path apps/desktop/src-tauri/Cargo.toml`.
-3. Review newly added, unknown, dual-licensed, copyleft, model, and platform-specific components; retain the chosen license text and copyright notices in the installed app.
-4. Inspect each platform installer and confirm its About/license view exposes the applicable notices and license texts.
-5. Verify the release source archive contains the exact source and build instructions needed for whichever dependency licensing route was selected.
+1. Regenerate `apps/web/public/licenses/DEPENDENCY_LICENSES.json` with `pnpm licenses:inventory`; review it alongside `pnpm licenses list --json -r --long` and `cargo metadata --format-version 1 --manifest-path apps/desktop/Cargo.toml`. The script fails on any `Unknown` npm license or Rust crate without a declared license — resolve those before shipping.
+2. Review newly added, unknown, dual-licensed, copyleft, model, and platform-specific components; retain the chosen license text and copyright notices in the installed app. If a copyleft component is ever introduced, document its distribution route here before release.
+3. Inspect each platform installer and confirm its About/license view exposes the applicable notices and license texts.
+4. Verify the release source archive contains the exact source and build instructions needed for the dependency licensing route.
 
 This checklist records current engineering findings, not a legal opinion. Reassess it when dependency versions, build resources, or release targets change.

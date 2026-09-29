@@ -9,12 +9,12 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
-const require = createRequire(resolve(ROOT, 'packages/engine/package.json'));
+const require = createRequire(resolve(ROOT, 'scripts/package.json'));
 const sharp = require('sharp');
 
-const SOURCE = resolve(ROOT, 'apps/desktop/public/app-icon.svg');
-const PUBLIC = resolve(ROOT, 'apps/desktop/public');
-const TAURI = resolve(ROOT, 'apps/desktop/src-tauri');
+const SOURCE = resolve(ROOT, 'apps/web/public/app-icon.svg');
+const PUBLIC = resolve(ROOT, 'apps/web/public');
+const TAURI = resolve(ROOT, 'apps/desktop');
 
 async function render(svg, size) {
   return sharp(Buffer.from(svg), { density: 300 })

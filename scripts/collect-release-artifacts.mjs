@@ -9,7 +9,7 @@ const architecture = process.argv[3];
 const outputs = {
   macos: {
     label: 'macOS',
-    source: 'apps/desktop/src-tauri/target/x86_64-apple-darwin/release/bundle/dmg',
+    source: 'apps/desktop/target/x86_64-apple-darwin/release/bundle/dmg',
     destination: 'release/macOS',
     pattern: /^PoTools_.*\.dmg$/,
   },
@@ -18,10 +18,10 @@ const outputs = {
     destination: 'release/Windows',
     files: {
       x64: [
-        `apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/PoTools_${version}_x64-setup.exe`,
+        `apps/desktop/target/x86_64-pc-windows-msvc/release/bundle/nsis/PoTools_${version}_x64-setup.exe`,
       ],
       x86: [
-        `apps/desktop/src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/PoTools_${version}_x86-setup.exe`,
+        `apps/desktop/target/i686-pc-windows-msvc/release/bundle/nsis/PoTools_${version}_x86-setup.exe`,
       ],
     },
   },
@@ -29,11 +29,11 @@ const outputs = {
     label: 'Linux',
     destination: 'release/Linux',
     bundleRoots: {
-      x64: 'apps/desktop/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle',
-      arm64: 'apps/desktop/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle',
-      armv7: 'apps/desktop/src-tauri/target/armv7-unknown-linux-gnueabihf/release/bundle',
-      ppc64le: 'apps/desktop/src-tauri/target/powerpc64le-unknown-linux-gnu/release/bundle',
-      s390x: 'apps/desktop/src-tauri/target/s390x-unknown-linux-gnu/release/bundle',
+      x64: 'apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle',
+      arm64: 'apps/desktop/target/aarch64-unknown-linux-gnu/release/bundle',
+      armv7: 'apps/desktop/target/armv7-unknown-linux-gnueabihf/release/bundle',
+      ppc64le: 'apps/desktop/target/powerpc64le-unknown-linux-gnu/release/bundle',
+      s390x: 'apps/desktop/target/s390x-unknown-linux-gnu/release/bundle',
     },
     formats: {
       x64: ['appimage', 'deb', 'rpm'],

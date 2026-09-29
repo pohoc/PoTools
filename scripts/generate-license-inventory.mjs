@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const output = resolve(root, 'apps/desktop/public/licenses/DEPENDENCY_LICENSES.json');
+const output = resolve(root, 'apps/web/public/licenses/DEPENDENCY_LICENSES.json');
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -43,7 +43,7 @@ const cargo = run('cargo', [
   '--format-version',
   '1',
   '--manifest-path',
-  'apps/desktop/src-tauri/Cargo.toml',
+  'apps/desktop/Cargo.toml',
 ]);
 
 for (const pkg of cargo.packages) {
@@ -61,13 +61,28 @@ for (const pkg of cargo.packages) {
 
 components.push(
   {
-  {
     ecosystem: 'model',
     name: 'MediaPipe Selfie Segmentation',
     version: 'float16 latest',
     license: 'Apache-2.0',
     author: 'Google AI Edge',
     repository: 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite',
+  },
+  {
+    ecosystem: 'model',
+    name: 'PaddleOCR PP-OCRv6 (detection)',
+    version: 'PP-OCRv6_small_det_infer.onnx',
+    license: 'Apache-2.0',
+    author: 'PaddlePaddle',
+    repository: 'https://github.com/PaddlePaddle/PaddleOCR',
+  },
+  {
+    ecosystem: 'model',
+    name: 'PaddleOCR PP-OCRv6 (recognition + dictionary)',
+    version: 'PP-OCRv6_small_rec_infer.onnx / ppocrv6_dict.txt',
+    license: 'Apache-2.0',
+    author: 'PaddlePaddle',
+    repository: 'https://github.com/PaddlePaddle/PaddleOCR',
   },
 );
 

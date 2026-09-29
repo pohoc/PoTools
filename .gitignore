@@ -2,6 +2,9 @@ node_modules/
 **/dist/
 **/dist-tauri/
 **/target/
+packages/engine/wasm/pkg/potools_engine.js
+packages/engine/wasm/pkg/potools_engine_bg.js
+packages/engine/wasm/pkg/potools_engine_bg.wasm
 **/.vite/
 *.tsbuildinfo
 *.log
@@ -11,11 +14,9 @@ node_modules/
 !.env.example
 .DS_Store
 .idea/
-apps/desktop/src-tauri/gen/
+apps/desktop/gen/
 samples/out/
 samples/__tmp-photo-*.jpg
 coverage/
 release/
-
-# golden capture intermediate fixture dirs (consolidated into testdata/fixtures by merge-golden)
-packages/engine/testdata/golden-pass*-fixtures/
+/.codegraph/

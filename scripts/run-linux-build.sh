@@ -16,7 +16,7 @@ fi
 # pnpm store 与 cargo registry 用命名卷持久化，二次构建显著加速。
 exec docker run --rm -v "$PWD":/repo -w /repo \
   -v potools-build:/build \
-  -v potools-target:/build/apps/desktop/src-tauri/target \
+  -v potools-target:/build/apps/desktop/target \
   -v potools-pnpm-store:/root/.local/share/pnpm/store \
   -v potools-cargo-registry:/root/.cargo/registry \
   "$IMAGE" bash scripts/build-linux-in-docker.sh

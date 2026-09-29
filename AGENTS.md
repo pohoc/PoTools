@@ -4,12 +4,13 @@
 
 PoTools is a pnpm workspace for a local-first desktop file-tools application:
 
-- `apps/desktop/` contains the Vite + React UI and Tauri host. UI code is under `src/`; Rust integration is under `src-tauri/`; static assets and bundled licenses are under `public/`.
-- `packages/core/` contains shared protocols, tool definitions, fields, and page metadata.
-- `packages/engine/` contains the Node sidecar, JSON-RPC transports, jobs, tool implementations, OCR models, and runtime scripts.
+- `apps/web/` contains the Vite + React UI, static assets, and bundled licenses.
+- `apps/desktop/` contains the Tauri host, with Cargo/Tauri config at the app root and Rust code under `src/`.
+- `packages/core/` is the Rust shared protocol/catalog crate; `catalog/*.json` is the shared tool metadata consumed by Rust.
+- `packages/engine/` is the Rust tool engine library, built as native Rust for Tauri and WebAssembly for browser Workers. Keep host APIs and UI adapters in `apps/web/` and privileged native services in the Tauri app.
 - `scripts/` contains repository utilities; `samples/` contains fixtures for tool checks; `docs/` contains licensing documentation.
 
-Keep business and engine behavior in the packages, UI state and presentation in `apps/desktop/src`, and avoid committing generated build output.
+Keep business and engine behavior in the packages, UI state and presentation in `apps/web/src`, and avoid committing generated build output.
 
 ## Build, Test, and Development Commands
 
@@ -17,19 +18,20 @@ Use Node 20.19+ or 22.12+, pnpm 12, and Rust stable. From the repository root:
 
 ```sh
 pnpm install                 # install workspace dependencies
-pnpm dev                     # run the desktop Vite app and engine together
+pnpm dev                     # run the web frontend
 pnpm tauri dev               # run the native desktop application
-pnpm build                   # build every workspace package
-pnpm typecheck               # type-check every package
-pnpm test:tools              # run engine end-to-end tool checks
+pnpm wasm:build              # build the Rust engine for browser Workers
+pnpm --filter @potools/web build # build the Web app
+pnpm --filter @potools/web typecheck # type-check the Web adapters/UI
+pnpm test:tools              # run browser tool checks
 pnpm samples                 # generate or refresh engine samples
 ```
 
-Use `pnpm dev:web` or `pnpm dev:engine` when working on one process. Use `pnpm tauri build` for a production desktop bundle.
+Use `pnpm dev:web` when working on the Web app. The `@potools/desktop` app owns Tauri; `@potools/web` owns the UI and browser host adapters.
 
 ## Coding Style & Naming Conventions
 
-Use TypeScript with strict typing and 2-space indentation. Prefer React function components, hooks, and descriptive PascalCase component filenames; use camelCase for variables, functions, and utilities. Keep shared contracts typed in `packages/core`. Follow the existing Tailwind/CSS conventions and use the established i18n files for user-visible text rather than hardcoding strings.
+Use Rust for shared core behavior and engine tool logic. Use TypeScript with strict typing and 2-space indentation for `apps/web` UI and browser capability adapters. Prefer React function components, hooks, and descriptive PascalCase component filenames; use camelCase for variables, functions, and utilities. Keep shared contracts in `packages/core`. Follow the existing Tailwind/CSS conventions and use the established i18n files for user-visible text rather than hardcoding strings.
 
 ## Testing Guidelines
 

@@ -1,175 +1,130 @@
 # PoTools 工具箱
 
-PoTools 是本机文件处理工作台，提供文档、图片与格式转换工具。PDF 是当前最完整的工具组，此外已支持 Office、OFD、Markdown 与常见图片格式。**所有处理都在这台电脑上的 Node 子进程里完成，文件不会离开本机。**
-
-技术栈：**Vite 8 + React 19 + TypeScript**（界面与 Worker 工具引擎） · **Tauri 2 + Rust**（桌面壳与特权操作）
+PoTools 是本机文件处理工作台，提供 PDF、图片、Office/OFD/EPUB、OCR 与时间、密码学、开发辅助等工具。**全部工具逻辑由 Rust 实现**：桌面以原生库运行（Tauri 宿主），浏览器以 WebAssembly 在 Web Worker 中运行，两端行为同源。UI 为 Vite + React + TypeScript，只承担展示、任务编排与浏览器专属能力（PDF.js 渲染、Canvas、ONNX 推理）。
 
 ---
 
 ## 1. 架构
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  Tauri 宿主 (Rust, apps/desktop/src-tauri)                    │
-│  · 窗口 / 菜单 / 原生文件对话框 / 拖放文件路径                  │
-│  · engine_start|write|stop  ← 负责拉起并转发 Node 子进程        │
-└───────────────┬──────────────────────────────────────────────┘
-                │  spawn `tsx packages/engine/src/index.ts serve --stdio`
-                │  ndjson JSON-RPC (stdin/stdout) + engine://line 事件
-┌───────────────▼──────────────────────────────────────────────┐
-│  Worker 工具引擎 (packages/engine，WebView 内运行)             │
-│  pdf-lib  结构操作   ·  MuPDF-WASM  页面光栅化                 │
-│  sharp    图片重编码 ·  fontkit     中文字形子集嵌入            │
-│  JobManager：队列 / 并发 / 进度事件 / 取消 / 产物落盘           │
-└───────────────▲──────────────────────────────────────────────┘
-                │  浏览器开发模式：HTTP + SSE (127.0.0.1:8787)
-┌───────────────┴──────────────────────────────────────────────┐
-│  Vite + React (apps/desktop/src)                              │
-│  工具箱首页 / 工具页 / 页面组织器 / 任务队列 / 设置             │
-│  选项表单由 core 里的字段 schema 驱动，一份定义两端复用         │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────── apps/web（界面与浏览器宿主）────────────────────────┐
+│ React 工具页 / 任务队列 / 设置 · 契约层: core-protocol/core-contract（纯类型） │
+│ 宿主层: transport 路由 · embedded-jobs 任务编排 · embedded-engine Worker 池   │
+│ 浏览器能力 adapter: PDF.js 渲染/裁剪 · Canvas 编码 · PaddleOCR 推理          │
+└──────────┬──────────────────────────────────────────┬──────────────────────┘
+     Web Worker（浏览器与桌面 WebView 共用）        Tauri IPC（仅桌面）
+           ▼                                          ▼
+┌────────── packages/engine（Rust，单一实现）─────────────────────────────────┐
+│ dispatch(): text→crypto→developer→image→pdf_basic→pdf_extra→pdf_convert     │
+│ 96 个能力 + OCR/图片导出支撑（表格重建、XLSX、图像解码等 WASM 导出）            │
+│ native 特性: filesystem/invoice/network/shell 等特权服务（wasm 构建编译期排除）│
+└──────────┬──────────────────────────────────────────────────────────────────┘
+           ▼ potools-core（Rust）
+   协议类型 · 页码解析 · 字段 schema · 密码强度 · 证件照预设
+   catalog/*.json 经 include_str! 内嵌——UI 表单、默认值、参数校验的单一事实源
 ```
 
-- `packages/core` 是唯一协议来源：`ToolDescriptor` + `ToolField` schema 同时驱动 UI 表单渲染和引擎参数校验。工具目录描述任务归属、操作类型、支持的输入与输出格式；首页用单层任务导航浏览，并依据实际能力生成格式筛选。后续新增其他常用工具时，按具体用户任务纳入目录。
-- 桌面模式用 **路径** 传文件（零拷贝）；浏览器模式没有磁盘权限，自动降级为 **base64** 传输，因此同一套 UI 在两种宿主里都能跑。
-- 产物一律先写入临时目录（`$TMPDIR/potools/jobs/<jobId>/`），设置了输出目录时再复制一份过去，所以「另存为 / 重新保存」不会丢历史。
+要点：
 
-## 2. 已实现工具（42 个）
+- **一份引擎，两种宿主**。桌面通过 `engine_run_file_tool` / `engine_run_text_tool` IPC 直调原生 Rust（路径传文件、零拷贝）；浏览器 Worker 调用同一 crate 编译的 WASM `dispatch`（无磁盘权限时以字节传输）。96 个引擎能力由 `toolCapabilities` 声明，并有测试逐一对账 dispatch，清单与实现不会漂移。
+- **浏览器专属能力留在 apps/web adapter**：PDF.js 渲染、Canvas 编码、PaddleOCR 推理是浏览器技术，负责产出像素/字节；判定、布局规则与序列化全部在 Rust。数据经 `runtimeData` 单向传入（内容框、墨水占比、文本 runs、区域裁剪、OCR 文本）。
+- **OCR 在本地运行**：PP-OCRv6 模型随应用资源分发（`apps/web/public/models/ocr/`），onnxruntime-web WASM 推理，识别结果的表格重建与 XLSX 导出在 Rust 完成。
+- **产物先落临时目录**（`$TMPDIR/potools/jobs/<jobId>/`），设置输出目录后再复制，另存/重存不丢历史。
+- 选项表单由 catalog 字段 schema 驱动，一份定义同时驱动 UI 渲染与引擎解析。
 
-| 工具 | 能力 | 关键实现 |
-| --- | --- | --- |
-| 合并 PDF | 多文件顺序合并、统一页面尺寸/方向/边距 | pdf-lib `copyPages` + `embedPage/drawPage` 等比缩放（不裁切） |
-| 拆分 PDF | 每页 / 每 N 页 / 页码范围 / 平均两份 / **可视化选点** | 缩略图流 + 页间切割点（点击增删、拖拽移动），实时预览分组 |
-| 组织页面 | 缩略图拖拽排序、旋转、复制、删除、跨文件混排 | 交互式页面计划 `plan[{fileId,page,rotation}]` |
-| 旋转页面 | 顺/逆时针、翻转，可指定页 | 写 `/Rotate`，不改动内容流 |
-| 提取页面 | 按页码提取，可每段一个文件 | — |
-| 删除页面 | 按页码删除，拒绝删空 | — |
-| 删除空白页 | 自动识别并删除空白页，可"只报告" | 36DPI 光栅化后统计有墨像素占比 |
-| 调整页面尺寸 | A4/A5/Letter/跟随首页/按百分比 | 与合并共用 `appendScaledPage` 缩放原语 |
-| 页面裁剪 | 四边分别裁剪，或自动贴合内容再叠加边距 | MuPDF 低分辨率扫描求内容包围盒 → 改 `CropBox` |
-| 添加页边距 | 四边/上下/左右白边，可选保持或放大页面 | 保持尺寸时收缩绘制区域即为白边 |
-| 多页合一 | 2/4/6/9 合 1，横纵顺序、间距、边距、边框 | 预嵌入全部页面后按网格排版 |
-| 发票合并 | 多张票据去重、自动裁白边后拼到 A4/A3/Letter（自动或 1/2/4/6 合 1） | MuPDF 求内容包围盒 → 以 `embedPage` 的 BBox 裁切，并把 `/Rotate` 折进表单矩阵后按货架式排版 |
-| 水印 | 中文文字水印、字号/透明度/倾斜/9 宫格定位/平铺/上下图层 | 视觉坐标系反算 + 基线回推，旋转页同样对齐 |
-| 页码 | `{n}/{total}` 自定义格式、起始值、边距、首页跳过 | 同上 |
-| 页眉页脚 | 上下文本 + `{n}/{total}/{name}` 变量、左中右对齐 | 复用同一套文字排版 |
-| 文档属性 | 读取导出 JSON / 写入字段 / 一键清除（含 XMP） | 直接操作 Catalog 与 Info 字典 |
-| 压缩 PDF | 内嵌 JPEG 重采样重编码 + 对象流 + 清除元信息 | 原地替换图像流对象（pdf-lib 不回收孤儿对象） |
-| 修复文档 | 重建交叉引用表，修复打不开的文件 | MuPDF 修复后回交 pdf-lib；无法恢复时明确报错 |
-| PDF 转图片 | 每页导出 JPG / PNG / WebP，DPI 与质量可调 | MuPDF 光栅化 → sharp 转码 |
-| 图片转 PDF | 尺寸/方向/摆放（完整·填满·原始）/边距/背景 | EXIF 方向、CMYK→sRGB、Alpha 保 PNG |
-| 提取图片 | 导出内嵌图片原件或统一转格式，可按体积过滤 | 遍历间接对象识别 Image XObject |
-| 提取文字 | 导出纯文本（合并或每页一个），可带页码标记 | MuPDF StructuredText |
-| 图片压缩 | 批量调整质量、统一输出格式、可选限制最长边 | sharp 重编码，保留 EXIF 方向并报告体积变化 |
-| 图片尺寸调整 | 按宽高缩放，支持完整包含、填充裁剪、拉伸和禁止放大 | sharp resize |
-| 图片裁剪 | 以常用宽高比裁剪，支持居中及上下左右锚点 | 依据 EXIF 修正方向后提取裁剪区域 |
-| 图片旋转与翻转 | 90°/180°/270° 旋转及水平、垂直翻转 | sharp 图像变换 |
-| 图片格式转换 | 批量转换 JPG、PNG、WebP、TIFF | sharp 编解码 |
-| 图片信息 | 批量读取像素尺寸、格式、通道、透明度与文件体积 | 导出 JSON 清单 |
+## 2. 仓库布局
 
-附带能力：空口令加密文件自动解密后处理（MuPDF 中转）、损坏 PDF 自动修复重试、批量任务并发、任务取消、结果一键**保存到指定文件夹**、按平台的**默认输出目录**、**临时文件统计与清理**、中英文界面、明暗主题、文件名模板。
+```
+apps/web          界面、任务编排、Worker 池、浏览器能力 adapter、OCR 模型资源
+apps/desktop      Tauri 宿主：IPC wrapper 与受限系统服务（invoice 归档等）
+packages/core     Rust 协议/目录 crate（catalog/*.json 为工具元数据事实源）
+packages/engine   Rust 工具引擎（native + wasm 双目标）
+packages/ui       共享 UI 组件（shadcn/ui vendor + 应用级组合）
+scripts           构建/打包/样例脚本（wasm:build、发行包收集、图标、许可清单）
+docs              许可与发布检查文档
+samples           引擎自测样例（pnpm samples 生成）
+```
 
-## 2b. 工作台界面
+`packages/core` 与 `packages/engine` 均为纯 Cargo 包（无 TS 实现、无 Node 运行路径）。web 侧的 `'core'` 别名指向纯类型契约（`core-protocol.ts` / `core-contract.ts`），运行时绑定收敛在 `core-bindings.ts`；`packages/engine/wasm/pkg/` 为构建产物（git 忽略，`predev`/`prebuild` 自动重建）。
 
-- 工具库按页面管理、页面版式、标注、转换、提取、优化、图片处理和文档信息等任务组浏览；每项工具只归属一个任务组。列表标出实际输入与输出方向，避免把“PDF 转 Word”和“Word 转 PDF”混为同一文件领域。
-- 首页只保留一层任务导航与真实可用格式筛选；最近使用展示工具，任务队列单独展示运行状态。后续新增常用工具时按其实际任务归属加入工具库。
-- 首页采用紧凑列表呈现工具用途和格式方向，避免重复卡片占据主要工作区。
+## 3. 工具能力
 
-- 组件层是 vendor 进来的 shadcn/ui（`src/components/ui/*`，Radix + CVA + tailwind-merge），`components/ui.tsx` 只做应用级组合：带图标/忙碌态的 Button、Section=Card、Segmented=Tabs、Toggle=Switch。shadcn 用到的语义色直接映射到既有 `--c-*` 调色板，换组件不改配色。
-- 反馈统一走 sonner toast（保存成功/失败、临时目录清理结果），不再在卡片里塞一行临时文字。
-- 标题栏由应用自绘（`components/TitleBar.tsx`）：整条都是拖拽区，中部分隔线后显示当前页面名，右侧是语言/主题下拉菜单。macOS 走 `titleBarStyle: Overlay + hiddenTitle`，红绿灯浮在自绘栏左侧预留的 78px 内（见 `tauri.macos.conf.json`）；Windows/Linux 用 `decorations: false`，在标题栏内自绘最小化/最大化/关闭（`src/lib/window.ts`）。浏览器模式下不渲染窗口按钮，其余布局一致。
+目录收录 **98 个工具**（另有 21 个证件照尺寸预设作为选项数据），按任务域分组浏览：页面管理、页面版式、标注、转换、提取、优化、图片处理、文档信息、时间、密码学、开发辅助、网络、发票整理。
 
-## 3. 开始使用
+| 域 | 代表能力 |
+| --- | --- |
+| 页面管理 | 合并、拆分（含可视化选点）、组织（拖拽重排）、旋转、提取、删除、删除空白页（墨水占比判定） |
+| 页面版式 | 尺寸调整、裁剪（含自动贴合内容）、页边距、N 合 1、发票合并（去重+自动裁边） |
+| 标注 | 中文水印、页码、页眉页脚（模板变量、9 宫格定位、平铺） |
+| 转换 | PDF↔图片、图片→PDF、PDF→Word/Excel/PPT/Markdown/HTML/CSV/RTF/EPUB/OFD、OFD→PDF、Markdown→PDF |
+| 提取 | 提取文字（逐页/合并/页码标记）、提取图片（原件或转格式）、OCR 文字/表格（本地模型）、文档属性 |
+| 优化 | 压缩（图像重采样+对象流+元信息清除）、修复（交叉引用重建） |
+| 图片处理 | 压缩、缩放、裁剪、旋转翻转、格式转换（含 TIFF 预览/转换）、证件照、抠图、水印清除、元信息清理 |
+| 时间 | 时间戳转换、日期差/计算、工作日、时区板、时长、Cron 解析与说明、相对时间、金额转换 |
+| 密码学 | 哈希/HMAC/文件校验、Base64、JWT、AES、RSA、TOTP、X.509、密码生成/强度、UUID、文件 Base64、bcrypt |
+| 开发/网络 | JSON/XML/YAML、正则测试、进制/编码、颜色、URL/IPv4/IPv6、robots/SPF/DMARC、DNS/Ping/TCP、IP 归属 |
 
-前置：Node 20.19+ 或 22.12+、pnpm 12、Rust stable（`rustup default stable`）、macOS 需 Xcode Command Line Tools。
+完整清单与每项工具的选项默认值见 `packages/core/catalog/*.json`（单一事实源，勿在别处手工复制）。发票整理为独立工作流页（目录扫描 → 解析字段 → 归档/撤销），经桌面特权服务执行。
+
+## 4. 开始使用
+
+前置：Node 20.19+ 或 22.12+、pnpm 12、Rust stable（`rustup default stable`）、wasm-bindgen-cli 0.2.129（`wasm:build` 需要）。macOS 需 Xcode Command Line Tools。
 
 ```bash
 pnpm install
 
-# 只跑浏览器版（引擎 HTTP 模式，用于快速调试 UI）
-pnpm dev              # http://127.0.0.1:5199
-
-# 桌面版（工具全部内建于应用；Rust 处理文件与系统特权操作）
-pnpm tauri dev
-
-# 生成样例 PDF（供自测与手动验证）
-pnpm samples
+pnpm dev              # 浏览器版 http://127.0.0.1:5199（引擎以 WASM 在 Worker 运行）
+pnpm tauri dev        # 桌面版（原生引擎 + 特权服务）
+pnpm wasm:build       # 单独构建引擎 WASM bindings
+pnpm samples          # 生成/刷新引擎自测样例
 ```
 
-桌面发行包使用两个平台目录，避免把 Rust target、缓存和构建中间文件当成最终软件包：
-
-- macOS：`pnpm package:macos`，发行文件输出到 `release/macOS/`。
-- Windows：`pnpm package:windows:x64` / `pnpm package:windows:x86`，NSIS 安装包输出到 `release/Windows/`。
-- Linux：在目标架构的 Linux 主机运行 `pnpm package:linux`，输出到固定的 `release/Linux/`。x64、ARM64 配置 AppImage、DEB、RPM；ARMv7、PowerPC64 LE、IBM Z（s390x）配置 DEB、RPM。各架构须在对应的原生 Linux 环境分别构建；ARMv7 还要求 ARMv7 hard-float 主机，PowerPC 必须为小端。x64、ARM64 可从 Ubuntu 22.04 或 Debian 12 起构建。构建成功不代表信创发行版已兼容，仍需在具体目标系统验证 WebKitGTK 4.1 等运行依赖。
-Rust/Tauri 的构建缓存仍位于 `apps/desktop/src-tauri/target/`，日常交付请从 `release/` 目录取包。Windows 安装版和绿色版启动时都会检查 WebView2；系统缺少时会自动从微软下载并静默安装，需要网络连接。应用不会把用户文档发送到网络。
-
-## 4. 验证
+## 5. 验证与质量门禁
 
 ```bash
-pnpm test:tools        # 端到端检查：工具全覆盖 + 内容断言 + 格式往返 + 错误路径 + 临时清理
-pnpm --filter @potools/engine typecheck
-pnpm --filter @potools/desktop typecheck
-pnpm tauri dev         # 桌面版：工具在 WebView Worker 内运行
+cd packages/engine && cargo test --offline --lib   # 引擎单测（含能力对账、写入器 zip 校验、往返）
+cd packages/core  && cargo test --offline          # 协议内核单测（页码/密码强度/证件照）
+cargo check --offline --no-default-features --features wasm   # wasm 目标编译
+pnpm --filter @potools/web typecheck               # web 契约与宿主类型
+pnpm test:tools                                    # 浏览器端到端金样回放（需先 pnpm wasm:build）
 ```
 
-`scripts/run-tools.ts` 会真实调用引擎跑完每个工具，分四层：
+约束：功能/服务文件不超过 500 行；`packages/engine/src/wasm.rs` 的 `toolCapabilities` 与 dispatch 由测试强制对账；web build 前有 Rust WASM 启动 smoke（`apps/web/scripts/check-embedded-registry.mjs`）。
 
-1. **逐工具功能**：产物存在、页数正确、中文渲染；
-2. **覆盖矩阵**：遍历工具注册表，用默认参数（organize 补 plan、按 accept 选样）各跑一遍，任何新工具漏测都会立刻显形；
-3. **内容与往返**：读回产物 PDF 的 CropBox/MediaBox 尺寸与 `/Rotate`、MuPDF 反查文本，校验 docx/xlsx/pptx/epub/ofd 的 zip 结构，并做 PDF→docx→PDF、PDF→OFD→PDF 往返；
-4. **错误路径**：空文件、页码越界、错格式输入（每种导入工具各一条）、Markdown 喂二进制、任务取消。
+界面多视口审计：浏览器打开 `http://127.0.0.1:5199/ui-audit.html#/`，在 1440/1180/1024/900/780 五个宽度下渲染实例并报告横向溢出与被裁切元素。
 
-浏览器多视口审计：打开 `http://127.0.0.1:5199/ui-audit.html#/`，会在 1440/1180/1024/900/780 五个宽度下各渲染一个实例，并报告横向溢出、被裁切元素与溢出省略的文本。
+## 6. 打包与发行
 
-已实测通过的关键链路：
-- 引擎工具均产出正确文件；Office/OFD 产物用 JSZip 解包校验内部 XML 与页数，导入结果再用 MuPDF 反读文本核对；
-- 发票合并：拼接后的票据经 MuPDF 回渲确认裁边与旋转（`/Rotate 90` 的横条在产物中竖放，实测 43×403 pt）；
-- 压缩：9.3 MB 图片型 PDF → 380 KB（原地替换图像流，不产生孤儿对象）；
-- 桌面：Rust 宿主 spawn `packages/engine` 的 Node 进程（`serve --stdio`），ndjson 握手 + `engine_write` 双向通信有日志佐证；
-- 浏览器模式：上传→执行→进度事件→产物列表全链路走通（Vite 代理会缓冲 SSE，因此事件流直连引擎端口）。
+- macOS：`pnpm package:macos` → `release/macOS/`。
+- Windows：`pnpm package:windows:x64` / `package:windows:x86`（NSIS）→ `release/Windows/`；安装版启动时检查并静默安装 WebView2（需网络）。
+- Linux：在目标架构原生主机运行 `pnpm package:linux` → `release/Linux/`。x64/ARM64 配 AppImage、DEB、RPM（Ubuntu 22.04 / Debian 12 基线）；ARMv7 hard-float、PowerPC64 LE、s390x 配 DEB、RPM（需 glibc 2.36+）。构建机需 Tauri Linux 依赖（`libwebkit2gtk-4.1-dev`、GTK、OpenSSL、AppIndicator、librsvg）。信创发行版（UOS/麒麟/openEuler）须按具体版本验证 WebKitGTK 4.1、GTK 3 与 glibc，构建成功不等于发行认证。
+- 全平台发行包不含 Node 运行时或旁置引擎进程：引擎编进 Tauri 宿主，并以 WASM 形式供浏览器 Worker 独立运行。
+- `apps/desktop/.cargo/config.toml` 将 crates.io 指向 rsproxy.cn 镜像（直连易卡死）；删除即回官方源。
+- 图标单一美术源 `apps/web/public/app-icon.svg`，`pnpm icons` 生成 favicon 与 `apps/desktop/icons/*`。
 
-Linux 包依赖目标系统的 WebKitGTK 4.1。当前配置了 x64、ARM64、ARMv7 hard-float、PowerPC64 LE 与 IBM Z（s390x）五种构建目标，但尚无这些架构的完整发行验收记录。UOS、银河麒麟、openEuler 等信创系统需按具体产品版本验证 WebKitGTK 4.1、GTK 3、AppIndicator 与 glibc；x64/ARM64 的 Sharp 运行库最低需要 glibc 2.28，ARMv7、PowerPC64 LE、s390x 最低需要 glibc 2.36。后三种架构的 OCR 使用 WebAssembly。LoongArch、申威、RISC-V 尚未配置完整的 Node、Rust/Tauri、WebKitGTK 和原生依赖组合；当前不作发行版认证兼容声明。
+## 7. 设置项
 
-Debian/Ubuntu 构建机需安装 Tauri 的 Linux 开发依赖（包括 `libwebkit2gtk-4.1-dev`、GTK、OpenSSL、AppIndicator 和 librsvg）。x64/ARM64 可用 Ubuntu 22.04 或 Debian 12 作为构建基线；ARMv7、PowerPC64 LE、s390x 应从提供 glibc 2.36 或更新版本的原生构建环境制作发行包。
-
-## 5. 打包说明
-
-- `src-tauri/.cargo/config.toml` 把 crates.io 换成了 `rsproxy.cn` 镜像（本机网络直连 crates.io 会卡死）。删掉该文件即回到官方源。
-- 全平台发行包均不包含 Node 运行时、`engine/` 目录或任何旁置引擎文件：工具引擎内建于应用二进制，在 WebView Worker 中运行。
-- MuPDF WASM、ONNX Runtime Web WASM、OCR 模型等运行资产随前端构建编入应用二进制；Worker 执行架构与浏览器 golden 验证结果见 [`docs/worker-only-migration-plan.md`](docs/worker-only-migration-plan.md)。
-
-## 6. 设置项
-
-设置页按标签分组（外观 / 输出 / 存储 / 高级 / 引擎 / 关于），可用 `#/settings?tab=engine` 直达某一页。
+设置页按外观 / 输出 / 存储 / 高级 / 引擎 / 关于分组，`#/settings?tab=engine` 可直达。
 
 | 项 | 说明 |
 | --- | --- |
 | 默认输出目录 | 留空则结果留在临时目录，可逐条另存/下载 |
-| 文件名模板 | `{name} {tool} {index} {i} {total} {range} {date} {time}`；同名不覆盖，自动追加 `(2)` |
-| 并行任务数 | JobManager 并发度，默认 2 |
-| 中文字体文件 | 用于嵌入 CJK 字形；留空自动探测（macOS 命中 `Arial Unicode.ttf`，Windows `msyh/simhei`，Linux `Noto CJK/wqy`） |
-| 平台默认目录 | 引擎按平台给出：macOS/Linux `~/Documents/PoTools`（本地化目录名自适应）、Windows `%USERPROFILE%\Documents\PoTools`（有 OneDrive 时优先） |
-| 临时目录保留天数 | 启动时自动清理更早的任务目录，0 表示不自动清理；存储页可随时查看占用并手动清理 |
-| 引擎自检 | 中英文列出连接状态、运行方式、协议版本、PID、渲染/转码能力与中文字体探测结果 |
+| 文件名模板 | `{name} {tool} {index} {i} {total} {range} {date} {time}`；同名自动追加 `(2)` |
+| 并行任务数 | 任务编排并发度，默认 1 |
+| 中文字体文件 | 转换类工具嵌入 CJK 字形用；留空由宿主探测系统字体候选 |
+| 临时目录保留天数 | 启动时自动清理更早任务目录；存储页可查看占用并手动清理 |
+| 引擎自检 | 运行方式、协议版本、能力标志与字体探测结果 |
 
-图标只有一份美术源：`apps/desktop/public/app-icon.svg`。`pnpm icons` 由它生成 favicon、apple-touch、应用内 LOGO 与 `src-tauri/icons/*`，桌面图标和界面 LOGO 因此不会走偏。
+## 8. 已知边界
 
-## 7. 已知边界
+- **加密 PDF**：带真实用户口令的文件明确报错，不做解密；空口令文件可直接处理。
+- **书签/表单/注释**：合并与组织页面不迁移大纲（书签）；AcroForm 字段与注释不保证保留。
+- **转换精度**：PDF→Word/Excel/PPT 按版面重建可编辑内容，复杂版式精度有限；OFD 矢量路径（PathObject）暂不导出；PDF→OFD 文字模式对超大字体只登记字体名（>3 MB）。
+- **OCR**：模型随应用分发并在本地推理；扫描件发票归档识别标注 `needs-ocr`，表格按文字位置推断行列，导出后需人工复核。
+- **图片导出**：PDF 内嵌图位置由内容流 `cm ... Do` 反算后从页面光栅裁切，异常变换（旋转/斜切）取包围盒。
 
-- **加密**：只处理空口令文件。带真实用户口令的 PDF 会明确报错，本版本不含解密。
-- **压缩**：只重编码无透明通道的 8bit DeviceRGB/DeviceGray JPEG；带 SMask、JPX、CMYK、16bit 的图片会跳过并在结果里提示。
-- **书签/表单/注释**：合并与组织页面不迁移大纲（书签），AcroForm 字段与注释不保证保留。
-- **PDF 转 Office**：以纯 JS 重建可编辑的 Word/Excel/PPT 内容，布局精度有限。
-- **OFD 转换**：当前为本机解析/重建，复杂路径与未嵌入字体仍有边界。
-- **PDF 转 OFD 的文字模式**：字体小于 3 MB 时整份嵌入，否则只登记字体名（打开的机器需装有该字体）；OFD 矢量路径（PathObject）暂不导出。
-- **PDF 转图片类导出的图片**：MuPDF 的 structured text 在本 WASM 构建里不回报图片块，图片位置由内容流的 `cm ... Do` 反算，再从页面光栅中裁切；异常变换（旋转/斜切）下取包围盒。
-- **未实现**：OCR、电子签名、文档对比、添加密码——这些依赖外部二进制或额外的安全处理实现，尚未纳入。
-- 引擎以子进程方式运行；发行包自带匹配架构的 Node 和已配置的原生模块。Linux 当前配置 x64、ARM64、ARMv7、PowerPC64 LE、IBM Z（s390x）；LoongArch 仍缺少完整的 Node、ONNX Runtime、Sharp 运行时组合。
-
-## 8. 版权与许可
+## 9. 版权与许可
 
 作者 / Author：**pohoc** · 邮箱：**po.hoc4@gmail.com**
 
-PoTools 自有源代码采用 [MIT 许可证](LICENSE)。第三方组件和模型保留各自许可证；根目录的 MIT 许可不会改变它们的许可条件。发行版所含组件及许可边界见 [第三方许可声明](apps/desktop/public/licenses/THIRD_PARTY_NOTICES.md)。
-
-**许可说明：**PoTools 自有代码使用 MIT；MuPDF.js 提供 AGPL 开源发行路径，也可按适用商业授权发行。包含该组件的安装包可以按相应 AGPL 条款合规开源发布，但不能将整个安装包描述为“仅 MIT”。桌面发行前请完成 [许可发布检查](docs/LICENSING.md)。
+PoTools 自有源代码采用 [MIT 许可证](LICENSE)。第三方组件与模型（Rust crates、pdf.js、onnxruntime-web、PaddleOCR 模型等）保留各自许可证，随包清单见 `apps/web/public/licenses/`，许可边界与发布检查见 [docs/LICENSING.md](docs/LICENSING.md)。应用不上传用户文档，OCR 与全部处理均在本机完成。
