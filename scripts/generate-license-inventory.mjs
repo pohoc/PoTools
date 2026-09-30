@@ -32,6 +32,7 @@ const PLATFORM_BUILD_TOOL_PREFIXES = [
   '@tailwindcss/oxide-',
   '@tauri-apps/cli-',
   '@typescript/typescript-',
+  '@oxlint/binding-',
   'lightningcss-',
 ];
 
@@ -141,6 +142,12 @@ if (check) {
     const added = [...after].filter((key) => !before.has(key));
     const removed = [...before].filter((key) => !after.has(key));
     console.error('[licenses] DEPENDENCY_LICENSES.json is out of date.');
+    console.error(
+      '  If the only difference is a new *-<platform>-<arch> binary for a build tool, add its',
+    );
+    console.error(
+      '  package prefix to PLATFORM_BUILD_TOOL_PREFIXES so the file stays host-independent.',
+    );
     for (const key of added.slice(0, 25)) console.error(`  + ${key}`);
     if (added.length > 25) console.error(`  + … ${added.length - 25} more`);
     for (const key of removed.slice(0, 25)) console.error(`  - ${key}`);

@@ -81,15 +81,40 @@ pnpm samples          # 生成/刷新引擎自测样例
 
 ## 5. 验证与质量门禁
 
+CI 会跑的全部门禁，本地一条命令即可复现：
+
 ```bash
-cd packages/engine && cargo test --offline --lib   # 引擎单测（含能力对账、写入器 zip 校验、往返）
-cd packages/core  && cargo test --offline          # 协议内核单测（页码/密码强度/证件照）
-cargo check --offline --no-default-features --features wasm   # wasm 目标编译
-pnpm --filter @potools/web typecheck               # web 契约与宿主类型
+pnpm check                                         # 版本一致性 + lint + 类型 + Rust fmt/clippy/test
+```
+
+单条门禁：
+
+```bash
+pnpm version:check                                 # 各处清单版本与根 package.json 一致
+pnpm lint                                          # oxlint：正确性、React hooks、未使用代码（可 --fix）
+pnpm typecheck                                     # web / ui 契约与宿主类型
+pnpm rust:fmt                                      # cargo fmt --check（三个 crate）
+pnpm rust:clippy                                   # cargo clippy --all-targets -- -D warnings
+pnpm rust:test                                     # cargo test（core / engine / desktop）
+pnpm rust:check:wasm                               # 引擎 wasm32 目标编译（native 服务须被排除）
+pnpm licenses:check                                # 随包许可清单与依赖图一致
 pnpm test:tools                                    # 浏览器端到端金样回放（需先 pnpm wasm:build）
 ```
 
-约束：功能/服务文件不超过 500 行；`packages/engine/src/wasm.rs` 的 `toolCapabilities` 与 dispatch 由测试强制对账；web build 前有 Rust WASM 启动 smoke（`apps/web/scripts/check-embedded-registry.mjs`）。
+工具链由 `rust-toolchain.toml`（stable + rustfmt + clippy + wasm32）与 `rustfmt.toml` 声明。
+Rust 侧用 `cargo fmt` + `clippy`；TypeScript 侧用 `oxlint`——**刻意不用 ESLint**：
+`typescript-eslint` 尚不支持本仓库使用的 TypeScript 7，而 oxlint 是独立二进制、不依赖
+TS 编译器 API，覆盖同样的正确性与 hooks 规则。
+
+约束：功能/服务文件不超过 500 行；`packages/engine/src/tools/capabilities.rs` 的
+`SUPPORTED` / `ENGINE_ONLY` / `ADAPTER_HANDLED` 三份登记与目录 `catalog/*.json`
+由测试双向对账（新增目录项却忘了实现会直接测试失败）；引擎 `run_tool` 有 panic 隔离，
+panic 转成 `internal` 错误；web build 前有 Rust WASM 启动 smoke
+（`apps/web/scripts/check-embedded-registry.mjs`）。
+
+颜色 token 按角色使用：`--ui-line` 只用于装饰性分隔（卡片、面板、弹层、分隔线），
+`--ui-control-line` 用于「边框即识别手段」的交互控件（输入类、复选/单选、分段控件、
+描边按钮、滑块拇指、拖放区）——后者是 WCAG 2.2 SC 1.4.11 要求的 3:1 层级。
 
 界面多视口审计：浏览器打开 `http://127.0.0.1:5199/ui-audit.html#/`，在 1440/1180/1024/900/780 五个宽度下渲染实例并报告横向溢出与被裁切元素。
 

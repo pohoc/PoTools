@@ -31,15 +31,18 @@
     "package:linux:s390x:build": "pnpm version:check && node scripts/assert-linux-build-host.mjs s390x && pnpm tauri build --bundles deb,rpm --target s390x-unknown-linux-gnu",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
     "licenses:inventory": "node scripts/generate-license-inventory.mjs",
     "licenses:check": "node scripts/generate-license-inventory.mjs --check",
     "samples": "pnpm --filter @potools/scripts samples",
     "icons": "node scripts/make-icons.mjs && pnpm --filter @potools/desktop exec tauri icon \"$PWD/apps/desktop/app-icon.png\"",
     "test:tools": "pnpm --filter @potools/web test:golden:browser",
     "test:golden": "pnpm --filter @potools/web test:golden:browser",
-    "check": "pnpm version:check && pnpm typecheck && pnpm rust:fmt && pnpm rust:clippy && pnpm rust:test"
+    "check": "pnpm version:check && pnpm lint && pnpm typecheck && pnpm licenses:check && pnpm rust:fmt && pnpm rust:clippy && pnpm rust:test && pnpm rust:check:wasm"
   },
   "devDependencies": {
+    "oxlint": "^1.86.0",
     "typescript": "^7.0.2"
   }
 }

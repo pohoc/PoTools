@@ -6644,6 +6644,14 @@
     },
     {
       "ecosystem": "npm",
+      "name": "oxlint",
+      "version": "1.86.0",
+      "license": "MIT",
+      "author": "Boshen and oxc contributors",
+      "repository": "https://oxc.rs/docs/guide/usage/linter"
+    },
+    {
+      "ecosystem": "npm",
       "name": "package-manager-detector",
       "version": "1.8.0",
       "license": "MIT",

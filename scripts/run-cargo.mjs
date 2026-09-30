@@ -33,10 +33,17 @@ const crates = (process.env.POTOOLS_CARGO_CRATES ?? DEFAULT_CRATES.join(','))
   .filter(Boolean);
 const offline = process.env.POTOOLS_CARGO_OFFLINE === '1' ? ['--offline'] : [];
 
-// `--offline` is a cargo flag, so it has to stay on cargo's side of the `--`
-// separator; appending it after the separator would hand it to rustc/clippy.
+// Two placement rules for the injected flags:
+//  * `--offline` is a cargo flag, so it has to stay on cargo's side of the `--`
+//    separator; after the separator it would be handed to rustc/clippy-driver.
+//  * `cargo fmt` does not accept `--offline` at all (it forwards its arguments
+//    to rustfmt), so it only ever gets the caller's own arguments.
 const separator = args.indexOf('--');
-const cargoArgs = separator === -1 ? [...args, ...offline] : [...args.slice(0, separator), ...offline, ...args.slice(separator)];
+const forwardOffline = offline.length > 0 && args[0] !== 'fmt';
+const flagArgs = forwardOffline ? offline : [];
+const cargoArgs = separator === -1
+  ? [...args, ...flagArgs]
+  : [...args.slice(0, separator), ...flagArgs, ...args.slice(separator)];
 
 const failures = [];
 for (const crate of crates) {

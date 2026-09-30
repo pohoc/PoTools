@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "react",
+    "react-hooks",
+    "typescript",
+    "oxc"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "rules": {
+    "no-unused-vars": "error",
+    "typescript/no-unused-vars": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/set-state-in-effect": "off",
+    "react/purity": "off",
+    "react/no-array-index-key": "off",
+    "no-control-regex": "off",
+    "no-await-in-loop": "off",
+    "no-underscore-dangle": "off",
+    "no-console": "off",
+    "no-shadow": "error",
+    "react/exhaustive-effect-dependencies": "off"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/dist-tauri/**",
+    "**/target/**",
+    "**/node_modules/**",
+    "packages/engine/wasm/pkg/**",
+    "apps/web/public/**",
+    "apps/web/testdata/**",
+    "samples/**",
+    "release/**"
+  ]
+}

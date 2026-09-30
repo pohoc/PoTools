@@ -39,7 +39,7 @@ jobs:
       - run: node scripts/generate-license-inventory.mjs --check
 
   web:
-    name: Web typecheck
+    name: Web (lint + typecheck)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +49,10 @@ jobs:
           node-version: 24.x
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # oxlint is a Rust binary shipped as an npm package: it does not depend on
+      # the TypeScript compiler API, which matters here because this repo is on
+      # TypeScript 7 and typescript-eslint does not support it yet.
+      - run: pnpm lint
       # Typecheck resolves the engine bindings from the committed `.d.ts`, so this
       # job needs neither Rust nor wasm-bindgen.
       - run: pnpm --filter @potools/web typecheck
