@@ -25,8 +25,30 @@ function interpolate(template: string, vars?: Record<string, string | number>): 
   );
 }
 
+/** Mirrors the provider's locale so non-React modules can translate too. */
+let activeLocale: Locale = 'zh-CN';
+
+/**
+ * Translates outside React.
+ *
+ * Transport, worker and native-bridge modules raise user-visible text but are
+ * plain modules, so they cannot call `useI18n`. The provider keeps
+ * `activeLocale` in sync; resolution order matches the hook (active locale, then
+ * `zh-CN`, then the key itself).
+ */
+export function translate(key: string, vars?: Record<string, string | number>): string {
+  const table = TABLES[activeLocale] ?? zhCN;
+  const value =
+    (table as Record<string, string>)[key] ?? (zhCN as Record<string, string>)[key] ?? key;
+  return interpolate(value, vars);
+}
+
 export function I18nProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
   const table = TABLES[locale] ?? zhCN;
+  // Assigning during render is safe here: it is an idempotent module-level mirror
+  // of the locale being rendered, which is what keeps `translate` correct for
+  // module-scope callers before any effect has run.
+  activeLocale = locale;
 
   const t = useCallback(
     (key: MessageKey | string): string => {

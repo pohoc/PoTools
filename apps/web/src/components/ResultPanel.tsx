@@ -12,6 +12,7 @@ import {
   EmptyState, Icon, ProgressBar, Section, StateBadge, toast,
 } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
+import { localizedErrorText } from '../lib/error-text.ts';
 import { jobBadgeTone, jobProgress, jobStateIcon, jobStateLabelKey } from '../lib/jobState.tsx';
 import { formatBytes, formatDuration } from '../lib/format.ts';
 import {
@@ -168,7 +169,7 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
         <div className="mx-4 mb-4 flex items-start gap-2 rounded-control border border-bad/30 bg-bad/10 px-3 py-2.5">
           <Icon name="warning" size={15} className="mt-[1px] shrink-0 text-bad" />
           <div className="min-w-0">
-            <p className="text-[12.5px] leading-5 text-ink">{error.hintKey ? t(error.hintKey) : error.message}</p>
+            <p className="text-[12.5px] leading-5 text-ink">{localizedErrorText(error, t)}</p>
             <p className="mt-0.5 font-mono text-[11px] text-faint">{error.code}</p>
           </div>
           {onRetry ? (

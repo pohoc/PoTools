@@ -18,6 +18,7 @@ import { useEngine, rpcErrorMessage } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { useSettings } from '../lib/settings.ts';
 import { formatBytes } from '../lib/format.ts';
+import { localizedErrorText } from '../lib/error-text.ts';
 import { filesFromDataTransfer, kindFor } from '../lib/files.ts';
 import { usePageThumbs } from '../lib/usePageThumbs.ts';
 import type { PickedFile } from '../lib/files.ts';
@@ -175,7 +176,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
     await draft.run();
   };
 
-  const error = draft.error ? describeError(draft.error, t) : null;
+  const error = draft.error ? describeError(draft.error, draft.errorCode, t) : null;
   const textLayout = descriptor.layout === 'text';
   const outputDir = settings.outputDir ?? info?.defaultOutputDir ?? '';
 
@@ -593,10 +594,10 @@ function shorten(path: string): string {
   return parts.length > 2 ? `…/${parts.slice(-2).join('/')}` : path;
 }
 
-function describeError(raw: string, t: (key: string) => string): string {
-  const known = ['error.encrypted', 'error.unreadable', 'error.noRasterizer', 'error.notMarkdown', 'error.notOfd', 'error.badRange', 'error.noTable', 'error.emptySelection', 'error.ocrInit'];
-  if (known.includes(raw)) return t(raw);
-  return raw;
+function describeError(raw: string, code: string | null, t: (key: string) => string): string {
+  // The draft stores either an i18n key (when the engine supplied a hintKey) or
+  // a raw message, so `raw` is tried as both before falling back to the code.
+  return localizedErrorText({ message: raw, code: code ?? undefined, hintKey: raw }, t);
 }
 
 const META_ROWS = ['title', 'author', 'subject', 'keywords', 'creator', 'producer'] as const;

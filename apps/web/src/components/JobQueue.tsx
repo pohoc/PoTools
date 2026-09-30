@@ -2,6 +2,7 @@ import type { JobSnapshot } from 'core';
 import { TOOLS } from '../lib/core-bindings.ts';
 import { Button, Card, EmptyState, Icon, ProgressBar, StateBadge } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
+import { localizedErrorText } from '../lib/error-text.ts';
 import { formatBytes, formatTime } from '../lib/format.ts';
 import { jobBadgeTone, jobProgress, jobStateIcon, jobStateLabelKey } from '../lib/jobState.tsx';
 import { useJobs } from '../stores/jobs.ts';
@@ -72,7 +73,7 @@ function JobRow({ job }: { job: JobSnapshot }) {
         {job.error ? (
           <p className="flex items-start gap-1.5 rounded-control bg-bad/10 px-2.5 py-1.5 text-[12px] leading-5 text-ink">
             <Icon name="warning" size={13} className="mt-[3px] shrink-0 text-bad" />
-            {hintKey ? t(hintKey) : job.error.message}
+            {localizedErrorText({ message: job.error.message, code: job.error.code, hintKey }, t)}
           </p>
         ) : null}
 

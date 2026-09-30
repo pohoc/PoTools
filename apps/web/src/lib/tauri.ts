@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { EngineInfo } from 'core';
+import { translate } from '../i18n/index.tsx';
 
 export type AcceptKind = 'pdf' | 'image' | 'raster' | 'portrait' | 'ofd' | 'markdown' | 'any' | 'pdf-image';
 
@@ -14,50 +15,52 @@ export function isTauri(): boolean {
   return Boolean(scope.__TAURI_INTERNALS__ || scope.__TAURI__);
 }
 
-export const ACCEPT_EXTENSIONS: Record<AcceptKind, { name: string; extensions: string[]; mime: string }> = {
-  pdf: { name: 'PDF', extensions: ['pdf'], mime: 'application/pdf,.pdf' },
-  'pdf-image': { name: 'PDF 和图片', extensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'tif', 'tiff'], mime: 'application/pdf,image/*' },
+export const ACCEPT_EXTENSIONS: Record<AcceptKind, { nameKey: string; extensions: string[]; mime: string }> = {
+  pdf: { nameKey: 'accept.pdf', extensions: ['pdf'], mime: 'application/pdf,.pdf' },
+  'pdf-image': { nameKey: 'accept.pdfImage', extensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'tif', 'tiff'], mime: 'application/pdf,image/*' },
   image: {
-    name: '图片',
+    nameKey: 'accept.image',
     extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif', 'tif', 'tiff'],
     mime: 'image/*',
   },
   raster: {
-    name: 'JPG、PNG、WebP、TIFF',
+    nameKey: 'accept.raster',
     extensions: ['jpg', 'jpeg', 'png', 'webp', 'tif', 'tiff'],
     mime: '.jpg,.jpeg,.png,.webp,.tif,.tiff',
   },
-  portrait: { name: '人像照片', extensions: ['jpg', 'jpeg', 'png', 'webp'], mime: '.jpg,.jpeg,.png,.webp' },
-  ofd: { name: 'OFD', extensions: ['ofd'], mime: '.ofd' },
+  portrait: { nameKey: 'accept.portrait', extensions: ['jpg', 'jpeg', 'png', 'webp'], mime: '.jpg,.jpeg,.png,.webp' },
+  ofd: { nameKey: 'accept.ofd', extensions: ['ofd'], mime: '.ofd' },
   markdown: {
-    name: 'Markdown',
+    nameKey: 'accept.markdown',
     extensions: ['md', 'markdown', 'txt'],
     mime: '.md,.markdown,.txt,text/markdown',
   },
-  any: { name: '所有文件', extensions: [], mime: '*/*' },
+  any: { nameKey: 'accept.any', extensions: [], mime: '*/*' },
 };
 
-const FILTERS: Record<AcceptKind, { name: string; extensions: string[] }[]> = {
-  pdf: [{ name: ACCEPT_EXTENSIONS.pdf.name, extensions: ACCEPT_EXTENSIONS.pdf.extensions }],
-  'pdf-image': [
-    { name: ACCEPT_EXTENSIONS.pdf.name, extensions: ACCEPT_EXTENSIONS.pdf.extensions },
-    { name: ACCEPT_EXTENSIONS.image.name, extensions: ACCEPT_EXTENSIONS.image.extensions },
-  ],
-  image: [{ name: ACCEPT_EXTENSIONS.image.name, extensions: ACCEPT_EXTENSIONS.image.extensions }],
-  raster: [{ name: ACCEPT_EXTENSIONS.raster.name, extensions: ACCEPT_EXTENSIONS.raster.extensions }],
-  portrait: [{ name: ACCEPT_EXTENSIONS.portrait.name, extensions: ACCEPT_EXTENSIONS.portrait.extensions }],
-  ofd: [{ name: ACCEPT_EXTENSIONS.ofd.name, extensions: ACCEPT_EXTENSIONS.ofd.extensions }],
-  markdown: [
-    { name: ACCEPT_EXTENSIONS.markdown.name, extensions: ACCEPT_EXTENSIONS.markdown.extensions },
-  ],
-  any: [],
-};
+/**
+ * Dialog filter labels are resolved per call: a module-scope table would freeze
+ * them at import time, before the i18n provider knows the active locale.
+ */
+function filtersFor(kind: AcceptKind): { name: string; extensions: string[] }[] {
+  const entry = ACCEPT_EXTENSIONS[kind];
+  const label = (key: string): string => translate(key);
+  const self = [{ name: label(entry.nameKey), extensions: entry.extensions }];
+  if (kind === 'pdf-image') {
+    return [
+      { name: label(ACCEPT_EXTENSIONS.pdf.nameKey), extensions: ACCEPT_EXTENSIONS.pdf.extensions },
+      { name: label(ACCEPT_EXTENSIONS.image.nameKey), extensions: ACCEPT_EXTENSIONS.image.extensions },
+    ];
+  }
+  return self;
+}
 
 /** Native open dialog; returns absolute paths. */
 export async function nativePickFiles(kind: AcceptKind, multiple: boolean): Promise<string[]> {
   if (!isTauri()) return [];
   const { open } = await import('@tauri-apps/plugin-dialog');
-  const selected = await open({ multiple, directory: false, ...(FILTERS[kind].length ? { filters: FILTERS[kind] } : {}) });
+  const filters = filtersFor(kind);
+  const selected = await open({ multiple, directory: false, ...(filters.length ? { filters } : {}) });
   if (!selected) return [];
   return Array.isArray(selected) ? selected : [selected];
 }
