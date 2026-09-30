@@ -510,11 +510,23 @@ Function .onInit
   !insertmacro SetContext
 
   ${If} $INSTDIR == "${PLACEHOLDER_INSTALL_DIR}"
-    ; PoTools default install location is on the D drive.
+    ; Default to the OS-provided locations. A hardcoded drive letter (the
+    ; previous D:\PoTools default) is unusable on single-partition machines and
+    ; when D: is an optical or removable drive.
     !if "${INSTALLMODE}" == "perMachine"
-      StrCpy $INSTDIR "D:\PoTools"
+      ${If} ${RunningX64}
+        StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCTNAME}"
+      ${Else}
+        StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCTNAME}"
+      ${EndIf}
     !else if "${INSTALLMODE}" == "currentUser"
-      StrCpy $INSTDIR "D:\PoTools"
+      StrCpy $INSTDIR "$LOCALAPPDATA\${PRODUCTNAME}"
+    !else if "${INSTALLMODE}" == "both"
+      ${If} ${RunningX64}
+        StrCpy $INSTDIR "$PROGRAMFILES64\${PRODUCTNAME}"
+      ${Else}
+        StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCTNAME}"
+      ${EndIf}
     !endif
 
     Call RestorePreviousInstallLocation
