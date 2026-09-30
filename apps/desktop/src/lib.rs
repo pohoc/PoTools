@@ -1,3 +1,21 @@
+//! Tauri IPC surface: engine entry points plus the privileged native services.
+//!
+//! # Command execution policy
+//!
+//! In Tauri v2 a plain `#[tauri::command]` function runs **inline on the
+//! WebView's main thread**, so every command that touches the filesystem,
+//! spawns a process, hits the network, or runs the PDF/image engine is declared
+//! `#[tauri::command(async)]` to move it onto the async runtime instead.
+//! Without that, a large conversion or an invoice scan freezes the whole window
+//! for its duration.
+//!
+//! Only `desktop_runtime_info` (a few env lookups), `dns_lookup` (already
+//! `async fn`) and `exit_app` (must run on the main thread) stay synchronous.
+//!
+//! The remaining refinement, for when several heavy jobs run concurrently, is to
+//! wrap the CPU-bound bodies in `tauri::async_runtime::spawn_blocking` so they
+//! occupy the blocking pool rather than an async worker.
+
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -39,7 +57,7 @@ struct NativeEngineInput {
     data_base64: String,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn engine_run_text_tool(
     tool: String,
     options: serde_json::Value,
@@ -59,7 +77,7 @@ fn engine_run_text_tool(
     run_native_tool(context, started)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn engine_run_file_tool(
     tool: String,
     options: serde_json::Value,
@@ -142,12 +160,12 @@ fn native_tool_error(error: potools_engine::EngineError) -> NativeTextRunReply {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn write_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
     potools_engine::services::filesystem::write_file_bytes(path, bytes)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn invoice_scan_list(
     directory: String,
     recursive: Option<bool>,
@@ -162,7 +180,7 @@ fn invoice_scan_list(
     )
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn invoice_read_candidate(
     path: String,
     expected_size_bytes: u64,
@@ -170,14 +188,14 @@ fn invoice_read_candidate(
     potools_engine::services::invoice::invoice_read_candidate(path, expected_size_bytes)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn invoice_archive(
     input: potools_engine::services::invoice::InvoiceArchiveInput,
 ) -> Result<serde_json::Value, String> {
     potools_engine::services::invoice::invoice_archive(input)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn invoice_undo(archive_id: String) -> Result<serde_json::Value, String> {
     potools_engine::services::invoice::invoice_undo(archive_id)
 }
@@ -189,12 +207,12 @@ type StagedArtifact = potools_engine::services::filesystem::StagedArtifact;
 type TempUsage = potools_engine::services::temp::TempUsage;
 type TempCleanResult = potools_engine::services::temp::TempCleanResult;
 
-#[tauri::command]
+#[tauri::command(async)]
 fn temp_usage(root: String) -> TempUsage {
     potools_engine::services::temp::temp_usage(root)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn temp_clean(
     root: String,
     older_than_days: f64,
@@ -208,7 +226,7 @@ type WrittenFile = potools_engine::services::filesystem::WrittenFile;
 type DirectoryListing = potools_engine::services::filesystem::DirectoryListing;
 type DesktopRuntimeInfo = potools_engine::services::runtime::DesktopRuntimeInfo;
 
-#[tauri::command]
+#[tauri::command(async)]
 fn system_network_probe() -> potools_engine::services::network::NativeNetworkResult {
     potools_engine::services::network::system_network_probe()
 }
@@ -218,12 +236,12 @@ async fn dns_lookup(hostname: String, record_type: String) -> Result<Vec<String>
     potools_engine::services::network::dns_lookup(hostname, record_type).await
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn ping_host(host: String, count: usize) -> potools_engine::services::network::NativeNetworkResult {
     potools_engine::services::network::ping_host(host, count)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn tcp_check_host(
     host: String,
     port: u16,
@@ -231,7 +249,7 @@ fn tcp_check_host(
     potools_engine::services::network::tcp_check_host(host, port)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn system_font_candidates() -> Vec<String> {
     potools_engine::services::runtime::system_font_candidates()
 }
@@ -241,22 +259,22 @@ fn desktop_runtime_info() -> DesktopRuntimeInfo {
     potools_engine::services::runtime::desktop_runtime_info()
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     potools_engine::services::filesystem::read_file_bytes(path)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn read_file_binary(path: String) -> Result<tauri::ipc::Response, String> {
     potools_engine::services::filesystem::read_file_bytes(path).map(tauri::ipc::Response::new)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn browse_directories(path: Option<String>) -> Result<DirectoryListing, String> {
     potools_engine::services::filesystem::browse_directories(path)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn stage_job_artifact_binary(request: tauri::ipc::Request<'_>) -> Result<StagedArtifact, String> {
     let header = |name: &str| -> Result<String, String> {
         request
@@ -282,12 +300,12 @@ fn stage_job_artifact_binary(request: tauri::ipc::Request<'_>) -> Result<StagedA
     potools_engine::services::filesystem::stage_artifact(temp_root, job_id, name, output_dir, bytes)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn write_output_file(dir: String, name: String, bytes: Vec<u8>) -> Result<WrittenFile, String> {
     potools_engine::services::filesystem::write_output_file(dir, name, bytes)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn copy_staged_artifact(
     from: String,
     dir: String,
@@ -297,12 +315,12 @@ fn copy_staged_artifact(
     potools_engine::services::filesystem::copy_staged_artifact(from, dir, name, temp_root)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn open_path(path: String, _reveal: Option<bool>) -> Result<(), String> {
     potools_engine::services::shell::open_path(path, _reveal)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 fn print_file(path: String) -> Result<serde_json::Value, String> {
     potools_engine::services::shell::print_file(path)
 }
