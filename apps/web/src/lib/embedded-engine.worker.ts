@@ -7,6 +7,30 @@ import { runOcrJob } from './ocr-recognition.ts';
 import { buildConvertRuntimeData, CONVERSION_TOOLS } from './pdf-convert-runtime.ts';
 import type { EmbeddedRpcRequest, InMemoryJobResult, ResolvedInput } from './engine-types.ts';
 
+/**
+ * Give pdf.js an `ownerDocument` inside this worker.
+ *
+ * pdf.js builds an intermediate canvas for soft masks, patterns and transparency
+ * groups while rendering a page. In pdf.js 4.x that factory is constructed
+ * internally from `globalThis.document` and cannot be injected, so inside a
+ * worker — where `document` is undefined — such a render dies with
+ * `TypeError: Cannot read properties of undefined (reading 'createElement')`
+ * and the page preview stays empty.
+ *
+ * An `OffscreenCanvas` already satisfies what the factory asks of a canvas
+ * (`width`, `height`, `getContext('2d')`), so a one-method shim is enough. Any
+ * *other* element request throws loudly rather than failing somewhere deeper:
+ * nothing in the render path needs a real DOM.
+ */
+if (typeof OffscreenCanvas !== 'undefined' && typeof (globalThis as { document?: unknown }).document === 'undefined') {
+  (globalThis as { document?: unknown }).document = {
+    createElement(tag: string) {
+      if (tag !== 'canvas') throw new Error(`PoTools: pdf.js requested <${tag}> inside a worker`);
+      return new OffscreenCanvas(1, 1);
+    },
+  };
+}
+
 interface RequestMessage {
   id: number;
   rpc?: EmbeddedRpcRequest;
