@@ -257,6 +257,58 @@
   color-scheme: dark;
 }
 
+/* HeroUI's own neutral palette (oklch greys, pure white, and the eclipse/snow
+   near-black/near-white) is what shows wherever a component is painted by the
+   library instead of by a `.ui-*` class — most visibly in dark mode, where its
+   greys are cooler and lighter than `--ui-raised`. These slots are mapped onto
+   the package tokens. Every value resolves through `--ui-*`, so a single block
+   is correct for both themes (tokens.css swaps the `--ui-*` values). */
+:root,
+.dark {
+  /* Neutral surface plus its label and hover states: slider rails, switch tracks,
+     badges, avatars, accordion surfaces, ghost/outline button text. */
+  --default: rgb(var(--ui-raised));
+  --default-foreground: rgb(var(--ui-ink));
+  --default-hover: rgb(var(--ui-surface));
+  --surface-hover: rgb(var(--ui-raised));
+
+  /* Popovers, dialogs, drawers and their scrim. */
+  --overlay: rgb(var(--ui-surface));
+  --overlay-foreground: rgb(var(--ui-ink));
+  --overlay-shadow: var(--ui-shadow-overlay);
+  --backdrop: var(--ui-overlay-backdrop);
+
+  /* Field slots the library paints itself. The border is owned by
+     `.ui-field-control` (and `--field-border` is transparent by design there). */
+  --field-background: rgb(var(--ui-surface));
+  --field-foreground: rgb(var(--ui-ink));
+  --field-placeholder: rgb(var(--ui-faint));
+  --field-hover: rgb(var(--ui-surface));
+  --field-focus: rgb(var(--ui-surface));
+
+  /* Switch. `.switch` is a layout wrapper; `.switch__control` is the track, and
+     `--switch-control-bg*` is the only thing that paints it (the wrapper's own
+     `bg-line` / `data-[state=checked]:bg-accent` classes sit on the wrapper and
+     are covered by the control, so these variables are what realise them). */
+  --switch-control-bg: rgb(var(--ui-line));
+  --switch-control-bg-hover: rgb(var(--ui-line));
+  --switch-control-bg-pressed: rgb(var(--ui-line));
+  --switch-control-bg-checked: rgb(var(--ui-accent));
+  --switch-control-bg-checked-hover: rgb(var(--ui-accent));
+
+  /* Tabs indicator and selected tab label. */
+  --segment: rgb(var(--ui-surface));
+  --segment-foreground: rgb(var(--ui-ink));
+}
+
+/* The library sizes the switch track at 40x20, but `switch.tsx` targets a compact
+   32x18 pill (and sizes the wrapper, which is only a column layout box). Size the
+   control instead, otherwise the track overflows its wrapper. */
+.switch .switch__control {
+  width: 32px;
+  height: 18px;
+}
+
 @layer base {
   *,
   ::before,
