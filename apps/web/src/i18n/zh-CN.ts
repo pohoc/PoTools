@@ -1458,6 +1458,7 @@ export const zhCN = {
   'startup.privacy': '报告仅包含启动错误和引擎日志，不会上传；本机路径已隐藏，不包含所选文件或图片内容。',
 
   'error.notOfd': '文件不是有效的 OFD 包',
+  'error.pathNotAuthorized': '该路径未获授权（未通过系统对话框选择、未拖入，也不在已配置的目录内）：',
   'error.badRange': '页码超出范围，请检查输入的页码',
   'error.notMarkdown': '这是二进制文件，Markdown 导入只接受纯文本 .md',
   'error.encrypted': '文件已加密，请先移除密码后重试',

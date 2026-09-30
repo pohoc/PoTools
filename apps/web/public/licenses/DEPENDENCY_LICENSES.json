@@ -5372,14 +5372,6 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@tauri-apps/plugin-dialog",
-      "version": "2.7.3",
-      "license": "MIT OR Apache-2.0",
-      "author": null,
-      "repository": "https://github.com/tauri-apps/plugins-workspace#readme"
-    },
-    {
-      "ecosystem": "npm",
       "name": "@types/d3",
       "version": "7.4.3",
       "license": "MIT",

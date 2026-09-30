@@ -17,6 +17,12 @@ export interface LocalizableError {
 const CJK = /[\u3400-\u9fff]/;
 
 /**
+ * The host's path guard refusal, e.g.
+ * `path_not_authorized: /etc/passwd` followed by the granted directories.
+ */
+const PATH_DENIAL = /^path_not_authorized:\s*([^\n]+)/;
+
+/**
  * Resolves failure text for display in the active locale.
  *
  * Preference order:
@@ -38,6 +44,10 @@ export function localizedErrorText(error: LocalizableError, t: (key: string) => 
     const hinted = t(error.hintKey);
     if (hinted !== error.hintKey) return hinted;
   }
+  // A path-guard refusal names the offending path, which is the actionable part,
+  // so translate the sentence and keep the path rather than discarding both.
+  const denial = PATH_DENIAL.exec(error.message);
+  if (denial) return `${t('error.pathNotAuthorized')}${denial[1]}`;
   if (!CJK.test(error.message)) return error.message;
   if (error.code) {
     const genericKey = `error.${error.code}`;

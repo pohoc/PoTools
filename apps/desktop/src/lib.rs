@@ -19,7 +19,11 @@
 use std::path::PathBuf;
 use std::time::Instant;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_dialog::DialogExt;
+
+mod access;
+use access::PathGrants;
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -161,8 +165,18 @@ fn native_tool_error(error: potools_engine::EngineError) -> NativeTextRunReply {
 }
 
 #[tauri::command(async)]
-fn write_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
-    potools_engine::services::filesystem::write_file_bytes(path, bytes)
+fn write_file_bytes(
+    grants: tauri::State<'_, PathGrants>,
+    path: String,
+    bytes: Vec<u8>,
+) -> Result<(), String> {
+    // Only a path the user chose in the save dialog (or a file this process
+    // wrote) is writable; see `access.rs` for why IPC cannot grant this itself.
+    let authorized = grants.require_write(&path)?;
+    potools_engine::services::filesystem::write_file_bytes(
+        authorized.to_string_lossy().to_string(),
+        bytes,
+    )
 }
 
 #[tauri::command(async)]
@@ -260,13 +274,19 @@ fn desktop_runtime_info() -> DesktopRuntimeInfo {
 }
 
 #[tauri::command(async)]
-fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    potools_engine::services::filesystem::read_file_bytes(path)
+fn read_file_bytes(grants: tauri::State<'_, PathGrants>, path: String) -> Result<Vec<u8>, String> {
+    let authorized = grants.require_read(&path)?;
+    potools_engine::services::filesystem::read_file_bytes(authorized.to_string_lossy().to_string())
 }
 
 #[tauri::command(async)]
-fn read_file_binary(path: String) -> Result<tauri::ipc::Response, String> {
-    potools_engine::services::filesystem::read_file_bytes(path).map(tauri::ipc::Response::new)
+fn read_file_binary(
+    grants: tauri::State<'_, PathGrants>,
+    path: String,
+) -> Result<tauri::ipc::Response, String> {
+    let authorized = grants.require_read(&path)?;
+    potools_engine::services::filesystem::read_file_bytes(authorized.to_string_lossy().to_string())
+        .map(tauri::ipc::Response::new)
 }
 
 #[tauri::command(async)]
@@ -275,7 +295,10 @@ fn browse_directories(path: Option<String>) -> Result<DirectoryListing, String> 
 }
 
 #[tauri::command(async)]
-fn stage_job_artifact_binary(request: tauri::ipc::Request<'_>) -> Result<StagedArtifact, String> {
+fn stage_job_artifact_binary(
+    grants: tauri::State<'_, PathGrants>,
+    request: tauri::ipc::Request<'_>,
+) -> Result<StagedArtifact, String> {
     let header = |name: &str| -> Result<String, String> {
         request
             .headers()
@@ -291,6 +314,13 @@ fn stage_job_artifact_binary(request: tauri::ipc::Request<'_>) -> Result<StagedA
     let output_dir = header("x-potools-output-dir")
         .ok()
         .filter(|value| !value.is_empty());
+    // The staging target is `<temp_root>/jobs/<job>`, so checking that path
+    // accepts only temp roots the app actually granted (`<root>/jobs`).
+    let staging = format!("{temp_root}/jobs/{job_id}");
+    grants.require_write(&staging)?;
+    if let Some(dir) = output_dir.as_ref() {
+        grants.require_write(dir)?;
+    }
     let bytes = match request.body() {
         tauri::ipc::InvokeBody::Raw(bytes) => bytes,
         tauri::ipc::InvokeBody::Json(_) => {
@@ -301,28 +331,66 @@ fn stage_job_artifact_binary(request: tauri::ipc::Request<'_>) -> Result<StagedA
 }
 
 #[tauri::command(async)]
-fn write_output_file(dir: String, name: String, bytes: Vec<u8>) -> Result<WrittenFile, String> {
-    potools_engine::services::filesystem::write_output_file(dir, name, bytes)
+fn write_output_file(
+    grants: tauri::State<'_, PathGrants>,
+    dir: String,
+    name: String,
+    bytes: Vec<u8>,
+) -> Result<WrittenFile, String> {
+    let authorized = grants.require_write(&dir)?;
+    let written = potools_engine::services::filesystem::write_output_file(
+        authorized.to_string_lossy().to_string(),
+        name,
+        bytes,
+    )?;
+    // Reading back a file this process just wrote is what keeps the "reveal the
+    // saved file" affordance working without granting reads on the whole
+    // (user-configurable, script-settable) output directory.
+    grants.grant_file(std::path::Path::new(&written.path));
+    Ok(written)
 }
 
 #[tauri::command(async)]
 fn copy_staged_artifact(
+    grants: tauri::State<'_, PathGrants>,
     from: String,
     dir: String,
     name: String,
     temp_root: String,
 ) -> Result<String, String> {
-    potools_engine::services::filesystem::copy_staged_artifact(from, dir, name, temp_root)
+    let source = grants.require_read(&from)?;
+    let destination = grants.require_write(&dir)?;
+    let root =
+        potools_engine::services::filesystem::validate_absolute_path(&temp_root, "临时目录")?;
+    let copied = potools_engine::services::filesystem::copy_staged_artifact(
+        source.to_string_lossy().to_string(),
+        destination.to_string_lossy().to_string(),
+        name,
+        root.to_string_lossy().to_string(),
+    )?;
+    grants.grant_file(std::path::Path::new(&copied));
+    Ok(copied)
 }
 
 #[tauri::command(async)]
-fn open_path(path: String, _reveal: Option<bool>) -> Result<(), String> {
-    potools_engine::services::shell::open_path(path, _reveal)
+fn open_path(
+    grants: tauri::State<'_, PathGrants>,
+    path: String,
+    _reveal: Option<bool>,
+) -> Result<(), String> {
+    // Handing a path to the OS handler is a launch primitive, so it is gated the
+    // same way as a read.
+    let authorized = grants.require_read(&path)?;
+    potools_engine::services::shell::open_path(authorized.to_string_lossy().to_string(), _reveal)
 }
 
 #[tauri::command(async)]
-fn print_file(path: String) -> Result<serde_json::Value, String> {
-    potools_engine::services::shell::print_file(path)
+fn print_file(
+    grants: tauri::State<'_, PathGrants>,
+    path: String,
+) -> Result<serde_json::Value, String> {
+    let authorized = grants.require_read(&path)?;
+    potools_engine::services::shell::print_file(authorized.to_string_lossy().to_string())
 }
 
 #[tauri::command]
@@ -330,9 +398,141 @@ fn exit_app(app: AppHandle) {
     app.exit(0);
 }
 
+#[derive(serde::Deserialize)]
+struct DialogFilter {
+    name: String,
+    extensions: Vec<String>,
+}
+
+/// Show the native open dialog **from Rust** and grant what the user picked.
+///
+/// This has to happen here rather than in the frontend: a dialog driven from JS
+/// would leave Rust unable to tell a user's choice from a script's claim, and any
+/// "grant this path" command would simply be invoked by the script itself.
+#[tauri::command(async)]
+fn pick_files(
+    app: AppHandle,
+    grants: tauri::State<'_, PathGrants>,
+    filters: Vec<DialogFilter>,
+    multiple: bool,
+) -> Vec<String> {
+    let mut dialog = app.dialog().file();
+    for filter in filters {
+        let extensions: Vec<&str> = filter.extensions.iter().map(String::as_str).collect();
+        dialog = dialog.add_filter(&filter.name, &extensions);
+    }
+    let picked = if multiple {
+        dialog.blocking_pick_files()
+    } else {
+        dialog.blocking_pick_file().map(|file| vec![file])
+    };
+    picked
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|file| {
+            let path = file.into_path().ok()?;
+            grants.grant_path(&path);
+            Some(path.to_string_lossy().to_string())
+        })
+        .collect()
+}
+
+#[tauri::command(async)]
+fn pick_directory(
+    app: AppHandle,
+    grants: tauri::State<'_, PathGrants>,
+) -> Result<Option<String>, String> {
+    Ok(app
+        .dialog()
+        .file()
+        .blocking_pick_folder()
+        .and_then(|folder| {
+            let path = folder.into_path().ok()?;
+            grants.grant_dir(&path);
+            Some(path.to_string_lossy().to_string())
+        }))
+}
+
+#[tauri::command(async)]
+fn save_as(
+    app: AppHandle,
+    grants: tauri::State<'_, PathGrants>,
+    name: String,
+) -> Result<Option<String>, String> {
+    Ok(app
+        .dialog()
+        .file()
+        .set_file_name(&name)
+        .blocking_save_file()
+        .and_then(|file| {
+            let path = file.into_path().ok()?;
+            grants.grant_file(&path);
+            Some(path.to_string_lossy().to_string())
+        }))
+}
+
+/// Point the staging area at the user's configured temp directory.
+///
+/// The setting is visible and persisted, so honouring it is expected; only its
+/// app-owned `jobs/` and `inbox/` subdirectories are granted, which is what stops
+/// a script from aiming the setting at a sensitive directory and reading it.
+#[tauri::command(async)]
+fn set_temp_dir(grants: tauri::State<'_, PathGrants>, dir: Option<String>) -> Result<(), String> {
+    let Some(dir) = dir.filter(|value| !value.trim().is_empty()) else {
+        grants.grant_temp_root(&std::env::temp_dir());
+        return Ok(());
+    };
+    let root = potools_engine::services::filesystem::validate_absolute_path(&dir, "临时目录")?;
+    if !root.is_dir() {
+        return Err(format!("临时目录不存在：{dir}"));
+    }
+    grants.grant_temp_root(&root);
+    Ok(())
+}
+
+/// Grant the configured output directory for **writes only**.
+#[tauri::command(async)]
+fn set_output_dir(grants: tauri::State<'_, PathGrants>, dir: Option<String>) -> Result<(), String> {
+    let Some(dir) = dir.filter(|value| !value.trim().is_empty()) else {
+        return Ok(());
+    };
+    let root = potools_engine::services::filesystem::validate_absolute_path(&dir, "输出目录")?;
+    if !root.is_dir() {
+        return Err(format!("输出目录不存在：{dir}"));
+    }
+    grants.grant_write_dir(&root);
+    Ok(())
+}
+
+/// Diagnostics for the grant set, so a missing grant is visible instead of
+/// mysterious. Contains only paths the user themselves chose or configured.
+#[tauri::command(async)]
+fn path_grants(grants: tauri::State<'_, PathGrants>) -> String {
+    grants.describe()
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(PathGrants::new())
+        .setup(|app| {
+            // Artifacts get staged before the frontend can report a configured
+            // temp directory, so the platform default is granted up front;
+            // `set_temp_dir` swaps it when the user changes the setting.
+            app.state::<PathGrants>()
+                .grant_temp_root(&std::env::temp_dir());
+            Ok(())
+        })
+        .on_window_event(|window, event| {
+            // An OS drop is a real user gesture, so it grants. The frontend's own
+            // drag-drop listener only drives the drop-zone UI.
+            if let tauri::WindowEvent::DragDrop(tauri::DragDropEvent::Drop { paths, .. }) = event {
+                let grants = window.app_handle().state::<PathGrants>();
+                for path in paths {
+                    grants.grant_path(path);
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             engine_run_text_tool,
             engine_run_file_tool,
@@ -357,7 +557,13 @@ pub fn run() {
             invoice_undo,
             open_path,
             print_file,
-            exit_app
+            exit_app,
+            pick_files,
+            pick_directory,
+            save_as,
+            set_temp_dir,
+            set_output_dir,
+            path_grants
         ])
         .build(tauri::generate_context!())
         .expect("error while building PoTools")

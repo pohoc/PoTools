@@ -3,7 +3,7 @@ import type { ResolvedInput } from './engine-types.ts';
 import { callEmbeddedRpc, cancelEmbeddedFileJob } from './embedded-engine.ts';
 import { contentInsetsRuntimeData, removeBlankInkRuntimeData } from './pdf-content-insets.ts';
 import { markupNeedsUnicodeFont, markdownRuntimeData, ofdRuntimeData, systemFontRuntimeData } from './file-runtime-data.ts';
-import { engineBridge, isTauri } from './tauri.ts';
+import { authorizeOutputDir, authorizeTempDir, engineBridge, isTauri } from './tauri.ts';
 import {
   decodeBase64,
   encodeBase64,
@@ -171,6 +171,7 @@ export class EmbeddedJobRunner {
     const tempRoot = this.artifactRoots.get(artifactKey);
     if (!staged) return undefined;
     const bridge = await engineBridge();
+    await authorizeOutputDir(dir);
     const path = await bridge.invoke<string>('copy_staged_artifact', {
       from: staged,
       dir,
@@ -369,6 +370,10 @@ export class EmbeddedJobRunner {
           const snapshotArtifact = final.artifacts[index];
           if (!artifact || !snapshotArtifact) continue;
           const bytes = artifact.bytes.slice().buffer as ArrayBuffer;
+          // Both the staging root and the auto-save directory travel in headers,
+          // so both are authorized immediately before use.
+          await authorizeTempDir(tempRoot);
+          await authorizeOutputDir(request.output?.dir);
           const staged = await bridge.invoke<{ stagedPath: string; outputPath?: string; name: string }>(
             'stage_job_artifact_binary',
             bytes,

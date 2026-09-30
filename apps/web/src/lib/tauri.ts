@@ -55,32 +55,59 @@ function filtersFor(kind: AcceptKind): { name: string; extensions: string[] }[] 
   return self;
 }
 
-/** Native open dialog; returns absolute paths. */
+/**
+ * Native open dialog; returns absolute paths.
+ *
+ * The dialog is shown by the Rust host rather than from here: the host can only
+ * authorize file access against a gesture the WebView cannot forge, and a dialog
+ * driven from JavaScript tells it nothing about what the user chose. See
+ * `apps/desktop/src/access.rs`.
+ */
 export async function nativePickFiles(kind: AcceptKind, multiple: boolean): Promise<string[]> {
   if (!isTauri()) return [];
-  const { open } = await import('@tauri-apps/plugin-dialog');
-  const filters = filtersFor(kind);
-  const selected = await open({ multiple, directory: false, ...(filters.length ? { filters } : {}) });
-  if (!selected) return [];
-  return Array.isArray(selected) ? selected : [selected];
+  return invoke<string[]>('pick_files', { filters: filtersFor(kind), multiple });
 }
 
 export async function nativePickDirectory(): Promise<string | null> {
   if (!isTauri()) return null;
-  const { open } = await import('@tauri-apps/plugin-dialog');
-  const selected = await open({ directory: true, multiple: false });
-  return typeof selected === 'string' ? selected : null;
+  return (await invoke<string | null>('pick_directory')) ?? null;
 }
 
 export async function nativeSaveAs(name: string, bytes?: Uint8Array): Promise<string | null> {
   if (!isTauri()) return null;
-  const { save } = await import('@tauri-apps/plugin-dialog');
-  const target = await save({ defaultPath: name });
+  const target = await invoke<string | null>('save_as', { name });
   if (!target) return null;
   if (bytes) {
     await invoke('write_file_bytes', { path: target, bytes: Array.from(bytes) });
   }
   return target;
+}
+
+/**
+ * Report the configured output/temp directories to the host.
+ *
+ * These two settings are visible and persisted, so the host grants them without
+ * a native gesture — but only for writes (output) and only for the app's own
+ * `jobs/`+`inbox/` subdirectories (temp), so pointing a setting at a sensitive
+ * directory does not turn into a read capability. Failures are ignored: the
+ * operation that follows reports its own, clearer denial.
+ */
+export async function authorizeOutputDir(dir: string | null | undefined): Promise<void> {
+  if (!isTauri()) return;
+  try {
+    await invoke('set_output_dir', { dir: dir && dir.trim() ? dir : null });
+  } catch {
+    /* the write that follows reports the denial */
+  }
+}
+
+export async function authorizeTempDir(dir: string | null | undefined): Promise<void> {
+  if (!isTauri()) return;
+  try {
+    await invoke('set_temp_dir', { dir: dir && dir.trim() ? dir : null });
+  } catch {
+    /* the staging call that follows reports the denial */
+  }
 }
 
 export async function nativeOpenPath(path: string, reveal = false): Promise<void> {

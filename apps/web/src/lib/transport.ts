@@ -4,7 +4,7 @@ import type { ResolvedInput } from './engine-types.ts';
 import { callEmbeddedRpc, configureEmbeddedWorkerPool, embeddedWorkerCount, shutdownEmbeddedWorkerPool } from './embedded-engine.ts';
 import { EmbeddedJobRunner, textToolRuntimeData } from './embedded-jobs.ts';
 import { scanInvoices as scanInvoicesInWeb } from './invoice-scan.ts';
-import { engineBridge, isTauri } from './tauri.ts';
+import { authorizeOutputDir, authorizeTempDir, engineBridge, isTauri } from './tauri.ts';
 import { BaseTransport, decodeBase64, encodeBase64, RpcError, type Transport } from './transport-shared.ts';
 import { APP_VERSION } from './version.ts';
 
@@ -132,6 +132,7 @@ class TauriTransport extends BaseTransport {
     }
     if (method === 'engine.setTempDir') {
       this.tempDir = typeof params.dir === 'string' && params.dir.trim() ? params.dir.trim() : null;
+      await authorizeTempDir(this.tempDir);
       if (this.info) this.info = { ...this.info, tempDir: this.tempDir ?? this.info.defaultTempDir };
       return { tempDir: this.tempDir ?? this.info?.defaultTempDir ?? '' } as T;
     }
@@ -219,6 +220,7 @@ class TauriTransport extends BaseTransport {
       }
       const bytes = decodeBase64(params.dataBase64);
       const bridge = await this.requireNativeHost();
+      await authorizeOutputDir(String(params.dir ?? ''));
       return bridge.invoke<T>('write_output_file', {
         dir: String(params.dir ?? ''),
         name: String(params.name ?? 'output.txt'),
