@@ -180,30 +180,40 @@ async function renderPdfThumbs(input: { id: string; bytes: Uint8Array }, params:
       cursor += 1;
       if (index >= pages.length) return;
       const pageNumber = pages[index] as number;
-      const tGetPage = now();
-      const page = await document.getPage(pageNumber);
-      phase.getPage += now() - tGetPage;
-      const baseViewport = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: width / Math.max(1, baseViewport.width) });
-      const canvas = new OffscreenCanvas(Math.max(1, Math.ceil(viewport.width)), Math.max(1, Math.ceil(viewport.height)));
-      const context = canvas.getContext('2d', { alpha: false });
-      if (!context) throw new Error('PoTools: 2D context unavailable for page rendering');
-      context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      const tRender = now();
-      await page.render({ canvasContext: context as unknown as CanvasRenderingContext2D, viewport, background: '#ffffff' }).promise;
-      phase.render += now() - tRender;
-      const tEncode = now();
-      const blob = await canvas.convertToBlob({ type: options.mime, quality: options.quality / 100 });
-      rendered[index] = {
-        page: pageNumber,
-        dataUrl: `data:${options.mime};base64,${encodeBase64(new Uint8Array(await blob.arrayBuffer()))}`,
-        width: canvas.width,
-        height: canvas.height,
-        rotation: 0,
-      };
-      phase.encode += now() - tEncode;
-      page.cleanup();
+      // One unrenderable page must not cost the whole batch: without this the
+      // batch rejected, the caller reported nothing, and every tile in it stayed
+      // on "generating preview" forever — which reads as an incomplete preview.
+      try {
+        const tGetPage = now();
+        const page = await document.getPage(pageNumber);
+        phase.getPage += now() - tGetPage;
+        try {
+          const baseViewport = page.getViewport({ scale: 1 });
+          const viewport = page.getViewport({ scale: width / Math.max(1, baseViewport.width) });
+          const canvas = new OffscreenCanvas(Math.max(1, Math.ceil(viewport.width)), Math.max(1, Math.ceil(viewport.height)));
+          const context = canvas.getContext('2d', { alpha: false });
+          if (!context) throw new Error('PoTools: 2D context unavailable for page rendering');
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          const tRender = now();
+          await page.render({ canvasContext: context as unknown as CanvasRenderingContext2D, viewport, background: '#ffffff' }).promise;
+          phase.render += now() - tRender;
+          const tEncode = now();
+          const blob = await canvas.convertToBlob({ type: options.mime, quality: options.quality / 100 });
+          rendered[index] = {
+            page: pageNumber,
+            dataUrl: `data:${options.mime};base64,${encodeBase64(new Uint8Array(await blob.arrayBuffer()))}`,
+            width: canvas.width,
+            height: canvas.height,
+            rotation: 0,
+          };
+          phase.encode += now() - tEncode;
+        } finally {
+          page.cleanup();
+        }
+      } catch (error) {
+        console.warn('PoTools: page render failed; the remaining pages continue', { page: pageNumber, error });
+      }
     }
   };
   const startedAt = now();
