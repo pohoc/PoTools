@@ -24,7 +24,9 @@ pub(super) type Decoded = (DynamicImage, bool, bool);
 /// Decodes a raster input: `(image, container is JPEG, EXIF orientation is
 /// identity)`. The browser applies EXIF orientation, so it is baked in here.
 pub(super) fn decode(bytes: &[u8]) -> Option<Decoded> {
-    let reader = ImageReader::new(Cursor::new(bytes)).with_guessed_format().ok()?;
+    let reader = ImageReader::new(Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?;
     let container_jpeg = reader.format() == Some(ImageFormat::Jpeg);
     let mut decoder = reader.into_decoder().ok()?;
     let (width, height) = decoder.dimensions();
@@ -34,7 +36,11 @@ pub(super) fn decode(bytes: &[u8]) -> Option<Decoded> {
     let orientation = decoder.orientation().unwrap_or(Orientation::NoTransforms);
     let mut image = DynamicImage::from_decoder(decoder).ok()?;
     image.apply_orientation(orientation);
-    Some((image, container_jpeg, orientation == Orientation::NoTransforms))
+    Some((
+        image,
+        container_jpeg,
+        orientation == Orientation::NoTransforms,
+    ))
 }
 
 pub(super) struct PagePlan {
@@ -76,7 +82,11 @@ pub(super) fn plan_page(
             (595.28, 841.89)
         };
         let landscape = orientation == "landscape" || (orientation == "auto" && landscape_source);
-        if landscape { (preset.1, preset.0) } else { preset }
+        if landscape {
+            (preset.1, preset.0)
+        } else {
+            preset
+        }
     };
     let available_width = box_width - margin * 2.0;
     let available_height = box_height - margin * 2.0;
@@ -172,7 +182,12 @@ pub(super) fn prepare(
     let rgb = flattened.to_rgb8();
     let mut output = Cursor::new(Vec::new());
     image::codecs::jpeg::JpegEncoder::new_with_quality(&mut output, quality)
-        .encode(rgb.as_raw(), rgb.width(), rgb.height(), ExtendedColorType::Rgb8)
+        .encode(
+            rgb.as_raw(),
+            rgb.width(),
+            rgb.height(),
+            ExtendedColorType::Rgb8,
+        )
         .ok()?;
     Some(Prepared::Jpeg {
         bytes: output.into_inner(),
@@ -198,11 +213,21 @@ fn cover_crop(source: &DynamicImage, aspect: f64) -> Option<DynamicImage> {
     }
     let width = source.width() as f64;
     let height = source.height() as f64;
-    let target_width = MAX_COVER_WIDTH.min(width.max(height * aspect).round()).max(1.0);
+    let target_width = MAX_COVER_WIDTH
+        .min(width.max(height * aspect).round())
+        .max(1.0);
     let target_height = (target_width / aspect).round().max(1.0);
     let source_aspect = width / height;
-    let crop_width = if source_aspect > aspect { height * aspect } else { width };
-    let crop_height = if source_aspect > aspect { height } else { width / aspect };
+    let crop_width = if source_aspect > aspect {
+        height * aspect
+    } else {
+        width
+    };
+    let crop_height = if source_aspect > aspect {
+        height
+    } else {
+        width / aspect
+    };
     let source_x = ((width - crop_width) / 2.0).round();
     let source_y = ((height - crop_height) / 2.0).round();
     let crop_w = (crop_width.round() as u32).clamp(1, source.width());
@@ -210,8 +235,11 @@ fn cover_crop(source: &DynamicImage, aspect: f64) -> Option<DynamicImage> {
     let crop_x = (source_x as i64).clamp(0, source.width() as i64 - crop_w as i64) as u32;
     let crop_y = (source_y as i64).clamp(0, source.height() as i64 - crop_h as i64) as u32;
     let cropped = imageops::crop_imm(&source.to_rgba8(), crop_x, crop_y, crop_w, crop_h).to_image();
-    let resized = DynamicImage::ImageRgba8(cropped)
-        .resize_exact(target_width as u32, target_height as u32, imageops::FilterType::Lanczos3);
+    let resized = DynamicImage::ImageRgba8(cropped).resize_exact(
+        target_width as u32,
+        target_height as u32,
+        imageops::FilterType::Lanczos3,
+    );
     let mut canvas = RgbaImage::from_pixel(
         target_width as u32,
         target_height as u32,
@@ -230,7 +258,12 @@ fn flatten(source: &DynamicImage, color: Rgba<u8>) -> DynamicImage {
 
 pub(super) fn embed(document: &mut Document, prepared: &Prepared) -> EngineResult<ObjectId> {
     match prepared {
-        Prepared::Jpeg { bytes, width, height, components } => {
+        Prepared::Jpeg {
+            bytes,
+            width,
+            height,
+            components,
+        } => {
             let color_space = match components {
                 1 => "DeviceGray",
                 4 => "DeviceCMYK",
@@ -245,7 +278,12 @@ pub(super) fn embed(document: &mut Document, prepared: &Prepared) -> EngineResul
                 bytes.clone(),
             ))))
         }
-        Prepared::Rgba { rgb, alpha, width, height } => {
+        Prepared::Rgba {
+            rgb,
+            alpha,
+            width,
+            height,
+        } => {
             let mut smask = Stream::new(
                 dictionary! {
                     "Type" => "XObject", "Subtype" => "Image",

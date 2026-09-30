@@ -79,7 +79,10 @@ pub(crate) fn write_ofd(input: &OfdInput<'_>) -> Result<Vec<u8>, EngineError> {
         .compression_method(CompressionMethod::Deflated)
         .compression_level(Some(6));
     let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
-    let add = |zip: &mut ZipWriter<Cursor<Vec<u8>>>, name: &str, content: &[u8]| -> Result<(), EngineError> {
+    let add = |zip: &mut ZipWriter<Cursor<Vec<u8>>>,
+               name: &str,
+               content: &[u8]|
+     -> Result<(), EngineError> {
         zip.start_file(name, options).map_err(failed)?;
         zip.write_all(content)
             .map_err(|error| EngineError::new("write_failed", format!("无法生成 OFD：{error}")))
@@ -106,7 +109,11 @@ pub(crate) fn write_ofd(input: &OfdInput<'_>) -> Result<Vec<u8>, EngineError> {
         .as_bytes(),
     )?;
 
-    let font_id = if input.font.is_some() { ids(&mut next_id) } else { 0 };
+    let font_id = if input.font.is_some() {
+        ids(&mut next_id)
+    } else {
+        0
+    };
     let mut media_ids: Vec<(String, u64)> = Vec::new();
     for page in &input.pages {
         for image in &page.images {
@@ -116,7 +123,12 @@ pub(crate) fn write_ofd(input: &OfdInput<'_>) -> Result<Vec<u8>, EngineError> {
             }
         }
     }
-    let media_id_of = |name: &str| media_ids.iter().find(|(key, _)| key == name).map(|(_, id)| *id);
+    let media_id_of = |name: &str| {
+        media_ids
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, id)| *id)
+    };
 
     // MaxUnitID snapshots nextId + 10 at this point (after font + media ids,
     // before the per-page object ids), exactly like the TS evaluation order.
@@ -181,14 +193,20 @@ pub(crate) fn write_ofd(input: &OfdInput<'_>) -> Result<Vec<u8>, EngineError> {
     }
     for page in &input.pages {
         for image in &page.images {
-            add(&mut zip, &format!("Doc_0/Res/Imgs/{}", image.name), image.bytes)?;
+            add(
+                &mut zip,
+                &format!("Doc_0/Res/Imgs/{}", image.name),
+                image.bytes,
+            )?;
         }
     }
 
     for (index, page) in input.pages.iter().enumerate() {
         let mut objects = String::new();
         for image in &page.images {
-            let Some(id) = media_id_of(&image.name) else { continue };
+            let Some(id) = media_id_of(&image.name) else {
+                continue;
+            };
             let object_id = ids(&mut next_id);
             objects.push_str(&format!(
                 "<ofd:ImageObject ID=\"{object_id}\" CTM=\"{} 0 0 {}\" BBox=\"{} {} {} {}\" ResourceID=\"{id}\"/>",

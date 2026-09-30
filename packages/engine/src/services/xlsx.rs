@@ -65,7 +65,10 @@ pub fn unique_sheet_name(base: &str, taken: &mut std::collections::HashSet<Strin
     let mut suffix = 2;
     loop {
         let marker = format!(" ({suffix})");
-        let truncated: String = base.chars().take(31usize.saturating_sub(marker.len())).collect();
+        let truncated: String = base
+            .chars()
+            .take(31usize.saturating_sub(marker.len()))
+            .collect();
         candidate = format!("{truncated}{marker}");
         if !taken.contains(&candidate.to_lowercase()) {
             taken.insert(candidate.to_lowercase());
@@ -131,12 +134,14 @@ pub fn write_xlsx(sheets: &[Sheet]) -> Result<Vec<u8>, EngineError> {
     let workbook_sheets: String = names
         .iter()
         .enumerate()
-        .map(|(index, name)| format!(
-            "<sheet name=\"{}\" sheetId=\"{}\" r:id=\"rId{}\"/>",
-            xml(name),
-            index + 1,
-            index + 1
-        ))
+        .map(|(index, name)| {
+            format!(
+                "<sheet name=\"{}\" sheetId=\"{}\" r:id=\"rId{}\"/>",
+                xml(name),
+                index + 1,
+                index + 1
+            )
+        })
         .collect();
     add_file(&mut zip, options, "xl/workbook.xml", &format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>{workbook_sheets}</sheets></workbook>"
@@ -147,7 +152,12 @@ pub fn write_xlsx(sheets: &[Sheet]) -> Result<Vec<u8>, EngineError> {
         sheets.len() + 1
     ))?;
     for (index, sheet) in sheets.iter().enumerate() {
-        add_file(&mut zip, options, &format!("xl/worksheets/sheet{}.xml", index + 1), &sheet_xml(sheet))?;
+        add_file(
+            &mut zip,
+            options,
+            &format!("xl/worksheets/sheet{}.xml", index + 1),
+            &sheet_xml(sheet),
+        )?;
     }
     zip.finish()
         .map_err(|error| EngineError::new("write_failed", format!("无法生成 XLSX：{error}")))
@@ -167,12 +177,14 @@ fn sheet_xml(sheet: &Sheet) -> String {
     let cols: String = widths
         .iter()
         .enumerate()
-        .map(|(column, width)| format!(
-            "<col min=\"{}\" max=\"{}\" width=\"{}\" customWidth=\"1\"/>",
-            column + 1,
-            column + 1,
-            width
-        ))
+        .map(|(column, width)| {
+            format!(
+                "<col min=\"{}\" max=\"{}\" width=\"{}\" customWidth=\"1\"/>",
+                column + 1,
+                column + 1,
+                width
+            )
+        })
         .collect();
     let rows: String = sheet
         .rows
@@ -182,13 +194,15 @@ fn sheet_xml(sheet: &Sheet) -> String {
             let cells: String = row
                 .iter()
                 .enumerate()
-                .map(|(column, cell)| format!(
+                .map(|(column, cell)| {
+                    format!(
                     "<c r=\"{}{}\" t=\"inlineStr\"{}><is><t xml:space=\"preserve\">{}</t></is></c>",
                     column_name(column + 1),
                     row_index + 1,
                     if row_index == 0 { " s=\"1\"" } else { "" },
                     xml(cell)
-                ))
+                )
+                })
                 .collect();
             format!("<row r=\"{}\">{}</row>", row_index + 1, cells)
         })

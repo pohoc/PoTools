@@ -251,7 +251,11 @@ fn compact(v: &[u32]) -> String {
         while j + 1 < v.len() && v[j + 1] == v[j] + 1 {
             j += 1;
         }
-        out.push(if i == j { v[i].to_string() } else { format!("{}-{}", v[i], v[j]) });
+        out.push(if i == j {
+            v[i].to_string()
+        } else {
+            format!("{}-{}", v[i], v[j])
+        });
         i = j + 1;
     }
     out.join(",")

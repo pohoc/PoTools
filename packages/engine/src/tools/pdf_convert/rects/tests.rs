@@ -46,10 +46,22 @@ q -100 0 0 -50 30 40 cm /Im Do Q \
 #[test]
 fn visual_rect_rotations_match_ts() {
     let r = rect(10.0, 20.0, 100.0, 50.0);
-    assert_eq!(to_visual_rect(r, 612.0, 792.0, 0), rect(10.0, 722.0, 100.0, 50.0));
-    assert_eq!(to_visual_rect(r, 612.0, 792.0, 90), rect(20.0, 502.0, 50.0, 100.0));
-    assert_eq!(to_visual_rect(r, 612.0, 792.0, 180), rect(502.0, 722.0, 100.0, 50.0));
-    assert_eq!(to_visual_rect(r, 612.0, 792.0, 270), rect(722.0, 10.0, 50.0, 100.0));
+    assert_eq!(
+        to_visual_rect(r, 612.0, 792.0, 0),
+        rect(10.0, 722.0, 100.0, 50.0)
+    );
+    assert_eq!(
+        to_visual_rect(r, 612.0, 792.0, 90),
+        rect(20.0, 502.0, 50.0, 100.0)
+    );
+    assert_eq!(
+        to_visual_rect(r, 612.0, 792.0, 180),
+        rect(502.0, 722.0, 100.0, 50.0)
+    );
+    assert_eq!(
+        to_visual_rect(r, 612.0, 792.0, 270),
+        rect(722.0, 10.0, 50.0, 100.0)
+    );
 }
 
 #[test]

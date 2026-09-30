@@ -107,7 +107,8 @@ mod tests {
     }
     #[test]
     fn date_diff_matches_product_framing() {
-        let options = serde_json::json!({"from":"2026-01-05","to":"2026-03-08","timezone":"Asia/Shanghai"});
+        let options =
+            serde_json::json!({"from":"2026-01-05","to":"2026-03-08","timezone":"Asia/Shanghai"});
         let result = super::date_diff::run(&ctx("date-diff", &options)).unwrap();
         let text = result.text.unwrap();
         assert!(text.starts_with("── 结果 ─"));

@@ -4,11 +4,13 @@
 use super::calendar::add_calendar;
 use super::common::{err, local, resolve_local};
 use super::fmt::{
-    is_zh, msg, offset_label, pad, DAY_MS, DAY_TALLY_CAP, HOUR_MS, MIN_MS, SEC_MS,
-    MONTHS_EN_SHORT, WEEKDAYS_EN, WEEKDAYS_EN_SHORT, WEEKDAYS_ZH, epoch_date,
+    epoch_date, is_zh, msg, offset_label, pad, DAY_MS, DAY_TALLY_CAP, HOUR_MS, MIN_MS,
+    MONTHS_EN_SHORT, SEC_MS, WEEKDAYS_EN, WEEKDAYS_EN_SHORT, WEEKDAYS_ZH,
 };
 use crate::EngineError;
-use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc};
+use chrono::{
+    DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc,
+};
 use chrono_tz::Tz;
 use std::collections::BTreeMap;
 
@@ -22,7 +24,11 @@ pub fn iso_week_of(year: i32, month: u32, day: u32) -> (i32, u32, u32) {
 }
 
 pub fn days_in_month(year: i32, month: u32) -> u32 {
-    let (next_year, next_month) = if month == 12 { (year + 1, 1) } else { (year, month + 1) };
+    let (next_year, next_month) = if month == 12 {
+        (year + 1, 1)
+    } else {
+        (year, month + 1)
+    };
     NaiveDate::from_ymd_opt(next_year, next_month, 1)
         .unwrap_or_else(epoch_date)
         .pred_opt()
@@ -91,7 +97,11 @@ pub fn tally_day_range(
             holiday_days += 1;
         }
         if (off || holiday.is_some()) && rest_list.len() < 8 {
-            rest_list.push(DayCell { index: cell.index, key: cell.key, weekday: cell.weekday });
+            rest_list.push(DayCell {
+                index: cell.index,
+                key: cell.key,
+                weekday: cell.weekday,
+            });
         }
     }
     let rest_days = weekend_days + holiday_days;
@@ -132,7 +142,11 @@ pub fn parse_weekend_set(raw: &str, ui_locale: &str) -> Result<Vec<u32>, EngineE
 }
 
 /// holidays raw lines -> ordered map of local ISO day -> raw input text.
-pub fn parse_holiday_map(raw: &str, tz: Tz, ui_locale: &str) -> Result<BTreeMap<String, String>, EngineError> {
+pub fn parse_holiday_map(
+    raw: &str,
+    tz: Tz,
+    ui_locale: &str,
+) -> Result<BTreeMap<String, String>, EngineError> {
     let mut map = BTreeMap::new();
     for line in raw.lines().map(str::trim).filter(|l| !l.is_empty()) {
         let instant = super::common::parse_at(line, tz).map_err(|error| {
@@ -150,7 +164,12 @@ pub fn parse_holiday_map(raw: &str, tz: Tz, ui_locale: &str) -> Result<BTreeMap<
         })?;
         let p = local(instant, tz);
         map.insert(
-            format!("{}-{}-{}", pad(p.year(), 4), pad(p.month(), 2), pad(p.day(), 2)),
+            format!(
+                "{}-{}-{}",
+                pad(p.year(), 4),
+                pad(p.month(), 2),
+                pad(p.day(), 2)
+            ),
             line.to_string(),
         );
     }
@@ -181,8 +200,11 @@ pub fn roll_to_working_day(
 /// chrono-Tz stand-in for the engine's `resolveWallTime`: returns epoch ms plus
 /// whether the wall clock had to shift (DST gap/overlap).
 pub fn resolve_wall_time(tz: Tz, wall: NaiveDateTime) -> (DateTime<Utc>, bool) {
-    let resolved = resolve_local(tz, wall)
-        .unwrap_or_else(|_| Utc.timestamp_millis_opt(0).single().unwrap_or_else(|| Utc::now()));
+    let resolved = resolve_local(tz, wall).unwrap_or_else(|_| {
+        Utc.timestamp_millis_opt(0)
+            .single()
+            .unwrap_or_else(|| Utc::now())
+    });
     let back = local(resolved, tz);
     let same = back.date_naive() == wall.date()
         && back.hour() == wall.hour()
@@ -216,7 +238,12 @@ pub fn shift_calendar(
     let clamped = target_day != p.day() && total_months != 0;
     let whole = NaiveDate::from_ymd_opt(target_year, target_month, target_day)
         .ok_or_else(|| err("Date out of range"))?
-        .and_hms_milli_opt(p.hour(), p.minute(), p.second(), p.timestamp_subsec_millis())
+        .and_hms_milli_opt(
+            p.hour(),
+            p.minute(),
+            p.second(),
+            p.timestamp_subsec_millis(),
+        )
         .ok_or_else(|| err("Date out of range"))?;
     let (whole_ms, whole_adjusted) = resolve_wall_time(tz, whole);
     let calendar_days = weeks * 7 + days;
@@ -224,7 +251,12 @@ pub fn shift_calendar(
     let back = local(shifted, tz);
     let reanchored_wall = back
         .date_naive()
-        .and_hms_milli_opt(back.hour(), back.minute(), back.second(), back.timestamp_subsec_millis())
+        .and_hms_milli_opt(
+            back.hour(),
+            back.minute(),
+            back.second(),
+            back.timestamp_subsec_millis(),
+        )
         .ok_or_else(|| err("Date out of range"))?;
     let (reanchored, reanchored_adjusted) = resolve_wall_time(tz, reanchored_wall);
     let clock = hours * HOUR_MS + minutes * MIN_MS + seconds * SEC_MS;
@@ -327,7 +359,11 @@ pub fn span_text(span: &CalendarSpan, en: bool) -> String {
     push(span.seconds, names[6]);
     push(span.milliseconds, names[7]);
     let text = if pieces.is_empty() {
-        if en { "0s".into() } else { "0秒".into() }
+        if en {
+            "0s".into()
+        } else {
+            "0秒".into()
+        }
     } else {
         pieces.join(" ")
     };
@@ -337,7 +373,6 @@ pub fn span_text(span: &CalendarSpan, en: bool) -> String {
         text
     }
 }
-
 
 pub fn weekday_pair(weekday: u32, ui_locale: &str) -> String {
     let index = (weekday % 7) as usize;
@@ -392,7 +427,9 @@ pub fn chinese_date(at: DateTime<Utc>, tz: Tz) -> String {
 
 /// Intl.DateTimeFormat('en', { dateStyle: 'long', timeStyle: 'medium' }).
 pub fn long_date_en(at: DateTime<Utc>, tz: Tz) -> String {
-    local(at, tz).format("%B %-d, %Y at %-I:%M:%S %p").to_string()
+    local(at, tz)
+        .format("%B %-d, %Y at %-I:%M:%S %p")
+        .to_string()
 }
 
 pub fn long_date(at: DateTime<Utc>, tz: Tz, ui_locale: &str) -> String {
@@ -415,7 +452,11 @@ pub fn rfc2822(at: DateTime<Utc>, tz: Tz) -> String {
         pad(p.hour(), 2),
         pad(p.minute(), 2),
         pad(p.second(), 2),
-        if minutes == 0 { "GMT".to_string() } else { offset_label(minutes, false) }
+        if minutes == 0 {
+            "GMT".to_string()
+        } else {
+            offset_label(minutes, false)
+        }
     )
 }
 
@@ -475,8 +516,16 @@ pub fn zone_line(tz: Tz, at: DateTime<Utc>, ui_locale: &str) -> String {
     let abbrev = zone_abbrev(tz, at);
     let state = msg(
         ui_locale,
-        if is_dst_active(at, tz) { "夏令时" } else { "标准时" },
-        if is_dst_active(at, tz) { "Daylight time" } else { "Standard time" },
+        if is_dst_active(at, tz) {
+            "夏令时"
+        } else {
+            "标准时"
+        },
+        if is_dst_active(at, tz) {
+            "Daylight time"
+        } else {
+            "Standard time"
+        },
     );
     format!(
         "{} · UTC{} · {} {}",
@@ -491,9 +540,16 @@ pub fn instant_line(tz: Tz, at: DateTime<Utc>, ui_locale: &str) -> String {
     let abbrev = zone_abbrev(tz, at);
     let state = msg(
         ui_locale,
-        if is_dst_active(at, tz) { " 夏令时" } else { " 标准时" },
-        if is_dst_active(at, tz) { " daylight time" } else { " standard time" },
+        if is_dst_active(at, tz) {
+            " 夏令时"
+        } else {
+            " 标准时"
+        },
+        if is_dst_active(at, tz) {
+            " daylight time"
+        } else {
+            " standard time"
+        },
     );
     format!("{abbrev}{state}")
 }
-

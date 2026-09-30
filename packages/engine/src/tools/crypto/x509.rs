@@ -80,10 +80,18 @@ fn spki_der_of(cert_der: &[u8]) -> Vec<u8> {
 
 fn rsa_bit_length(key_data: &[u8]) -> u32 {
     // keyData = 0x00 || SEQUENCE { INTEGER modulus, INTEGER exponent }
-    let body = if key_data.first() == Some(&0x00) { &key_data[1..] } else { key_data };
+    let body = if key_data.first() == Some(&0x00) {
+        &key_data[1..]
+    } else {
+        key_data
+    };
     let mut at = 1; // skip SEQUENCE tag
     let first = *body.get(at).unwrap_or(&0) as usize;
-    at += if first & 0x80 == 0 { 1 } else { 1 + (first & 0x7f) };
+    at += if first & 0x80 == 0 {
+        1
+    } else {
+        1 + (first & 0x7f)
+    };
     if body.get(at) != Some(&0x02) {
         return (body.len() * 8) as u32;
     }
@@ -101,7 +109,11 @@ fn rsa_bit_length(key_data: &[u8]) -> u32 {
     };
     at += header;
     let modulus = &body[at..(at + length).min(body.len())];
-    let stripped = modulus.iter().skip_while(|b| **b == 0).copied().collect::<Vec<_>>();
+    let stripped = modulus
+        .iter()
+        .skip_while(|b| **b == 0)
+        .copied()
+        .collect::<Vec<_>>();
     if stripped.is_empty() {
         return 0;
     }
@@ -241,7 +253,11 @@ fn parse(der: Vec<u8>) -> Result<CertInfo, String> {
         .replace(':', "")
         .trim_start_matches('0')
         .to_ascii_uppercase();
-    let serial = if serial.is_empty() { "0".into() } else { serial };
+    let serial = if serial.is_empty() {
+        "0".into()
+    } else {
+        serial
+    };
     let version = cert.version().0 + 1;
     let sig_alg_oid = cert.signature_algorithm.algorithm.to_id_string();
     let sig_alg = SIGNATURE_ALG_NAMES

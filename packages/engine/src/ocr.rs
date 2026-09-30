@@ -228,8 +228,14 @@ pub fn table_rows(lines: &[OcrLine], width: f64) -> Vec<Vec<String>> {
         let line_center = (line.top + line.bottom) / 2.0;
         let line_height = line.bottom - line.top;
         let target = rows.iter().position(|row| {
-            let top = row.iter().map(|cell| cell.top).fold(f64::INFINITY, f64::min);
-            let bottom = row.iter().map(|cell| cell.bottom).fold(f64::NEG_INFINITY, f64::max);
+            let top = row
+                .iter()
+                .map(|cell| cell.top)
+                .fold(f64::INFINITY, f64::min);
+            let bottom = row
+                .iter()
+                .map(|cell| cell.bottom)
+                .fold(f64::NEG_INFINITY, f64::max);
             let height = line_height.max(bottom - top);
             (line_center - (top + bottom) / 2.0).abs() <= height * 0.55
         });
@@ -239,13 +245,20 @@ pub fn table_rows(lines: &[OcrLine], width: f64) -> Vec<Vec<String>> {
         }
     }
     rows.sort_by(|a, b| {
-        let min = |row: &Vec<PositionedLine>| row.iter().map(|cell| cell.top).fold(f64::INFINITY, f64::min);
+        let min = |row: &Vec<PositionedLine>| {
+            row.iter()
+                .map(|cell| cell.top)
+                .fold(f64::INFINITY, f64::min)
+        };
         asc(&min(a), &min(b))
     });
     let threshold = 18.0f64.max(width * 0.018);
     let mut anchors: Vec<f64> = Vec::new();
     for left in lefts {
-        match anchors.iter().position(|anchor| (*anchor - left).abs() <= threshold) {
+        match anchors
+            .iter()
+            .position(|anchor| (*anchor - left).abs() <= threshold)
+        {
             Some(index) => anchors[index] = (anchors[index] + left) / 2.0,
             None => anchors.push(left),
         }
@@ -307,7 +320,10 @@ pub fn ocr_text_artifacts(request: &OcrTextRequest) -> OcrTextReply {
                 if request.page_markers && input.pages.len() > 1 {
                     format!(
                         "{}\n{}",
-                        interpolate(ocr_message(&request.locale, OcrMessage::Page), &[("page", page.page.to_string())]),
+                        interpolate(
+                            ocr_message(&request.locale, OcrMessage::Page),
+                            &[("page", page.page.to_string())]
+                        ),
                         body
                     )
                 } else {
@@ -465,7 +481,10 @@ pub fn decode_image_rgba(bytes: &[u8], max_pixels: u64) -> Result<DecodedImage, 
         // units so the standard 20e6 budget renders as 2000 万像素.
         return Err(EngineError::new(
             "unsupported",
-            format!("页面尺寸超过 OCR 上限（{} 万像素）", max_pixels as f64 / 1e4),
+            format!(
+                "页面尺寸超过 OCR 上限（{} 万像素）",
+                max_pixels as f64 / 1e4
+            ),
         ));
     }
     let orientation = decoder.orientation().unwrap_or(Orientation::NoTransforms);

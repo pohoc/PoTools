@@ -55,7 +55,10 @@ mod tests {
     #[test]
     fn lookup_falls_back_to_first_preset() {
         assert_eq!(get_id_photo_size(None).id, id_photo_sizes()[0].id);
-        assert_eq!(get_id_photo_size(Some("no-such-preset")).id, id_photo_sizes()[0].id);
+        assert_eq!(
+            get_id_photo_size(Some("no-such-preset")).id,
+            id_photo_sizes()[0].id
+        );
         assert_eq!(get_id_photo_size(Some("one-inch")).id, "one-inch");
     }
 

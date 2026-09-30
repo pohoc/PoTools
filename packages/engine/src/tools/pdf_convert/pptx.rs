@@ -61,11 +61,13 @@ pub(crate) fn write_pptx(input: &PptxInput<'_>) -> EngineResult<Vec<u8>> {
         .compression_method(CompressionMethod::Deflated)
         .compression_level(Some(6));
     let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
-    let add = |zip: &mut ZipWriter<Cursor<Vec<u8>>>, name: &str, content: &str| -> EngineResult<()> {
-        zip.start_file(name, options).map_err(failed)?;
-        zip.write_all(content.as_bytes())
-            .map_err(|error| EngineError::new("write_failed", format!("无法生成 PPTX：{error}")))
-    };
+    let add =
+        |zip: &mut ZipWriter<Cursor<Vec<u8>>>, name: &str, content: &str| -> EngineResult<()> {
+            zip.start_file(name, options).map_err(failed)?;
+            zip.write_all(content.as_bytes()).map_err(|error| {
+                EngineError::new("write_failed", format!("无法生成 PPTX：{error}"))
+            })
+        };
 
     let slide_overrides: String = (0..input.slides.len())
         .map(|index| format!(
@@ -117,10 +119,19 @@ xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\
         .map(|slide| (slide.width_in, slide.height_in))
         .unwrap_or((10.0, 7.5));
     let slide_ids: String = (0..input.slides.len())
-        .map(|index| format!("<p:sldId id=\"{}\" r:id=\"rId{}\"/>", 256 + index, index + 2))
+        .map(|index| {
+            format!(
+                "<p:sldId id=\"{}\" r:id=\"rId{}\"/>",
+                256 + index,
+                index + 2
+            )
+        })
         .collect();
-    add(&mut zip, "ppt/presentation.xml", &format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\
+    add(
+        &mut zip,
+        "ppt/presentation.xml",
+        &format!(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\
 <p:presentation xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" \
 xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" \
 xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" saveSubsetFonts=\"1\">\
@@ -128,9 +139,10 @@ xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" saveSubse
 <p:sldIdLst>{slide_ids}</p:sldIdLst>\
 <p:sldSz cx=\"{}\" cy=\"{}\" type=\"custom\"/>\
 <p:notesSz cx=\"6858000\" cy=\"9144000\"/></p:presentation>",
-        emu(layout_w),
-        emu(layout_h)
-    ))?;
+            emu(layout_w),
+            emu(layout_h)
+        ),
+    )?;
     let presentation_rels: String = (0..input.slides.len())
         .map(|index| format!(
             "<Relationship Id=\"rId{}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide\" Target=\"slides/slide{}.xml\"/>",

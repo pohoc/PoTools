@@ -20,7 +20,10 @@ pub(super) fn run_duration(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
             "value (duration) is required. Enter a plain number only; the unit comes from unit. Example: 3735, 90, 1.5, -45.",
         )));
     }
-    let cleaned: String = raw.chars().filter(|c| !c.is_whitespace() && *c != '_').collect();
+    let cleaned: String = raw
+        .chars()
+        .filter(|c| !c.is_whitespace() && *c != '_')
+        .collect();
     if !valid_decimal_number(&cleaned) {
         return Err(err(fmt::msg(
             ui,
@@ -53,7 +56,11 @@ pub(super) fn run_duration(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
             _ => "human",
         },
     };
-    let style = if string(ctx, "style", "human") == "all" { "all" } else { style };
+    let style = if string(ctx, "style", "human") == "all" {
+        "all"
+    } else {
+        style
+    };
     let year_length = match string(ctx, "yearLength", "365.25") {
         "365" => "365",
         "366" => "366",
@@ -68,7 +75,12 @@ pub(super) fn run_duration(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
     let minutes = (abs_ms % fmt::HOUR_MS) / fmt::MIN_MS;
     let seconds = (abs_ms % fmt::MIN_MS) / fmt::SEC_MS;
     let millis = abs_ms % fmt::SEC_MS;
-    let hhmmss = format!("{}:{}:{}", fmt::pad(total_hours, 2), fmt::pad(minutes, 2), fmt::pad(seconds, 2));
+    let hhmmss = format!(
+        "{}:{}:{}",
+        fmt::pad(total_hours, 2),
+        fmt::pad(minutes, 2),
+        fmt::pad(seconds, 2)
+    );
     let iso = iso_duration(total_ms);
     let unit_label = fmt::unit_name(unit, ui);
 
@@ -117,16 +129,26 @@ pub(super) fn run_duration(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
     let mut hhmmss_rows = vec![row("HH:MM:SS", format!("{sign}{hhmmss}"))];
     hhmmss_rows.push(row(
         fmt::msg(ui, "含自然日", "With calendar days"),
-        format!("{sign}{}", with_days(days, hours, minutes, seconds, millis, ui)),
+        format!(
+            "{sign}{}",
+            with_days(days, hours, minutes, seconds, millis, ui)
+        ),
     ));
     hhmmss_rows.push(row(
         fmt::msg(ui, "仅时:分", "Hours:minutes only"),
-        format!("{sign}{}:{}", fmt::pad(total_hours, 2), fmt::pad(minutes, 2)),
+        format!(
+            "{sign}{}:{}",
+            fmt::pad(total_hours, 2),
+            fmt::pad(minutes, 2)
+        ),
     ));
     let mut iso_rows = vec![row("ISO 8601", iso.clone())];
     iso_rows.push(row(
         fmt::msg(ui, "ISO 8601（单一单位）", "ISO 8601 (single unit)"),
-        format!("{sign}PT{}H", decimal_trim(abs_ms as f64 / fmt::HOUR_MS as f64, 2)),
+        format!(
+            "{sign}PT{}H",
+            decimal_trim(abs_ms as f64 / fmt::HOUR_MS as f64, 2)
+        ),
     ));
 
     let days_per_year: f64 = year_length.parse().unwrap_or(365.25);
@@ -360,7 +382,11 @@ pub(super) fn iso_duration(total_ms: i64) -> String {
     let seconds = (abs % fmt::MIN_MS) / fmt::SEC_MS;
     let millis = abs % fmt::SEC_MS;
     let fraction = fraction_of_millis(millis);
-    let date_part = if days == 0 { String::new() } else { format!("{days}D") };
+    let date_part = if days == 0 {
+        String::new()
+    } else {
+        format!("{days}D")
+    };
     let mut time_part = String::new();
     if hours > 0 {
         time_part.push_str(&format!("{hours}H"));
@@ -375,7 +401,11 @@ pub(super) fn iso_duration(total_ms: i64) -> String {
         "{}P{}{}",
         if total_ms < 0 { "-" } else { "" },
         date_part,
-        if time_part.is_empty() { String::new() } else { format!("T{time_part}") }
+        if time_part.is_empty() {
+            String::new()
+        } else {
+            format!("T{time_part}")
+        }
     )
 }
 
@@ -390,34 +420,66 @@ fn word_duration(total_ms: i64, ui: &str, gap: &str) -> String {
     let plural = |value: i64| if value == 1 { "" } else { "s" };
     let mut pieces = Vec::new();
     if days > 0 {
-        pieces.push(if zh { format!("{days}天") } else { format!("{days} day{}", plural(days)) });
+        pieces.push(if zh {
+            format!("{days}天")
+        } else {
+            format!("{days} day{}", plural(days))
+        });
     }
     if hours > 0 {
-        pieces.push(if zh { format!("{hours}小时") } else { format!("{hours} hour{}", plural(hours)) });
+        pieces.push(if zh {
+            format!("{hours}小时")
+        } else {
+            format!("{hours} hour{}", plural(hours))
+        });
     }
     if minutes > 0 {
-        pieces.push(if zh { format!("{minutes}分") } else { format!("{minutes} minute{}", plural(minutes)) });
+        pieces.push(if zh {
+            format!("{minutes}分")
+        } else {
+            format!("{minutes} minute{}", plural(minutes))
+        });
     }
     if seconds > 0 {
-        pieces.push(if zh { format!("{seconds}秒") } else { format!("{seconds} seconds") });
+        pieces.push(if zh {
+            format!("{seconds}秒")
+        } else {
+            format!("{seconds} seconds")
+        });
     }
     if millis > 0 {
-        pieces.push(if zh { format!("{millis}毫秒") } else { format!("{millis} millisecond{}", plural(millis)) });
+        pieces.push(if zh {
+            format!("{millis}毫秒")
+        } else {
+            format!("{millis} millisecond{}", plural(millis))
+        });
     }
     let joiner = if gap.is_empty() {
-        if zh { "" } else { ", " }
+        if zh {
+            ""
+        } else {
+            ", "
+        }
     } else {
         gap
     };
     let body = if pieces.is_empty() {
-        if zh { "0秒".to_string() } else { "0 seconds".to_string() }
+        if zh {
+            "0秒".to_string()
+        } else {
+            "0 seconds".to_string()
+        }
     } else {
         pieces.join(joiner)
     };
     format!(
         "{}{}",
         if total_ms < 0 {
-            if zh { "负 " } else { "-" }
+            if zh {
+                "负 "
+            } else {
+                "-"
+            }
         } else {
             ""
         },

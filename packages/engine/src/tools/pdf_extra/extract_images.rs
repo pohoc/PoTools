@@ -11,7 +11,11 @@
 use super::pages::{inherited, parse_pages};
 use super::{base_name, load, number, string, EngineError, EngineResult};
 use crate::{Artifact, InputFile, RunContext, ToolResult};
-use image::{codecs::jpeg::JpegEncoder, DynamicImage, ExtendedColorType, ImageDecoder, ImageFormat, ImageReader};use lopdf::{Dictionary, Document, Object, ObjectId};
+use image::{
+    codecs::jpeg::JpegEncoder, DynamicImage, ExtendedColorType, ImageDecoder, ImageFormat,
+    ImageReader,
+};
+use lopdf::{Dictionary, Document, Object, ObjectId};
 use serde_json::json;
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -30,8 +34,10 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
     for input in ctx.inputs {
         let document = load(input)?;
         let stem = base_name(&input.name);
-        let selection =
-            parse_pages(&string(ctx.options, "pages", "all"), document.get_pages().len())?;
+        let selection = parse_pages(
+            &string(ctx.options, "pages", "all"),
+            document.get_pages().len(),
+        )?;
         let mut seen = HashSet::new();
         let mut counter = 0usize;
         let pages = document.get_pages();
@@ -77,7 +83,9 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
             }
         }
         if counter == 0 {
-            result.warnings.push(format!("{stem}：未找到符合条件的图片"));
+            result
+                .warnings
+                .push(format!("{stem}：未找到符合条件的图片"));
         }
     }
     if emitted == 0 {
@@ -247,7 +255,12 @@ fn encode(image: &DynamicImage, format: ImageFormat) -> Option<Vec<u8>> {
         ImageFormat::Jpeg => {
             let rgb = image.to_rgb8();
             JpegEncoder::new_with_quality(&mut output, CONVERT_QUALITY)
-                .encode(rgb.as_raw(), rgb.width(), rgb.height(), ExtendedColorType::Rgb8)
+                .encode(
+                    rgb.as_raw(),
+                    rgb.width(),
+                    rgb.height(),
+                    ExtendedColorType::Rgb8,
+                )
                 .ok()?;
         }
         _ => image.write_to(&mut output, format).ok()?,
@@ -276,7 +289,12 @@ mod tests {
         let rgb = image.to_rgb8();
         let mut output = Cursor::new(Vec::new());
         image::codecs::jpeg::JpegEncoder::new_with_quality(&mut output, 90)
-            .encode(rgb.as_raw(), rgb.width(), rgb.height(), image::ExtendedColorType::Rgb8)
+            .encode(
+                rgb.as_raw(),
+                rgb.width(),
+                rgb.height(),
+                image::ExtendedColorType::Rgb8,
+            )
             .unwrap();
         output.into_inner()
     }
@@ -381,13 +399,21 @@ mod tests {
     }
 
     fn input(name: &str, bytes: Vec<u8>) -> InputFile {
-        InputFile { id: "in-1".into(), name: name.into(), path: None, bytes }
+        InputFile {
+            id: "in-1".into(),
+            name: name.into(),
+            path: None,
+            bytes,
+        }
     }
 
     #[test]
     fn extracts_original_streams_with_padded_names() {
         let bytes = jpeg_bytes();
-        let inputs = [input("Sample.PDF", pdf_with_image(bytes.clone(), 4, 3, "DCTDecode"))];
+        let inputs = [input(
+            "Sample.PDF",
+            pdf_with_image(bytes.clone(), 4, 3, "DCTDecode"),
+        )];
         let result = invoke(json!({ "format": "original", "pages": "all" }), &inputs).unwrap();
         assert_eq!(result.artifacts.len(), 1);
         let artifact = &result.artifacts[0];
@@ -402,7 +428,10 @@ mod tests {
     #[test]
     fn converts_jpeg_to_target_format_and_falls_back_otherwise() {
         // A DCT stream re-encodes to the requested format.
-        let inputs = [input("doc.pdf", pdf_with_image(jpeg_bytes(), 4, 3, "DCTDecode"))];
+        let inputs = [input(
+            "doc.pdf",
+            pdf_with_image(jpeg_bytes(), 4, 3, "DCTDecode"),
+        )];
         let result = invoke(json!({ "format": "png" }), &inputs).unwrap();
         assert_eq!(result.artifacts[0].name, "doc-img01.png");
         assert_eq!(
@@ -410,7 +439,10 @@ mod tests {
             image::ImageFormat::Png
         );
         // Garbage in a DCT stream fails to decode and keeps the original bytes.
-        let inputs = [input("doc.pdf", pdf_with_image(vec![1, 2, 3, 4], 4, 3, "DCTDecode"))];
+        let inputs = [input(
+            "doc.pdf",
+            pdf_with_image(vec![1, 2, 3, 4], 4, 3, "DCTDecode"),
+        )];
         let result = invoke(json!({ "format": "png" }), &inputs).unwrap();
         assert_eq!(result.artifacts[0].name, "doc-img01.jpg");
         assert_eq!(result.artifacts[0].bytes, vec![1, 2, 3, 4]);
@@ -424,7 +456,10 @@ mod tests {
         ];
         let result = invoke(json!({ "format": "original", "pages": "all" }), &inputs).unwrap();
         assert_eq!(result.artifacts.len(), 1);
-        assert_eq!(result.warnings, vec!["none：未找到符合条件的图片".to_owned()]);
+        assert_eq!(
+            result.warnings,
+            vec!["none：未找到符合条件的图片".to_owned()]
+        );
         assert_eq!(result.extra["images"], json!(1));
 
         // Nothing qualifying anywhere fails the whole run, like the browser.

@@ -63,17 +63,13 @@ pub(crate) fn flow_to_markdown(
             }
         }
     }
-    format!(
-        "{}\n",
-        js_trim(&collapse_blank_lines(&lines.join("\n")))
-    )
+    format!("{}\n", js_trim(&collapse_blank_lines(&lines.join("\n"))))
 }
 
 /// The TS `.replace(/\n{3,}/g, '\n\n')` blank-line collapse.
 fn collapse_blank_lines(value: &str) -> String {
     static RUNS: OnceLock<Regex> = OnceLock::new();
-    RUNS
-        .get_or_init(|| Regex::new(r"\n{3,}").expect("blank line pattern is valid"))
+    RUNS.get_or_init(|| Regex::new(r"\n{3,}").expect("blank line pattern is valid"))
         .replace_all(value, "\n\n")
         .into_owned()
 }
@@ -273,18 +269,41 @@ mod tests {
     #[test]
     fn markdown_renders_headings_lists_and_breaks() {
         let flow = vec![
-            FlowBlock::Heading { level: 1, text: "T".into(), page: 1 },
-            FlowBlock::List { ordered: true, items: vec!["x".into()], page: 1 },
+            FlowBlock::Heading {
+                level: 1,
+                text: "T".into(),
+                page: 1,
+            },
+            FlowBlock::List {
+                ordered: true,
+                items: vec!["x".into()],
+                page: 1,
+            },
             FlowBlock::PageBreak,
         ];
-        assert_eq!(flow_to_markdown(&flow, &mut |_| None), "# T\n\n1. x\n\n---\n");
+        assert_eq!(
+            flow_to_markdown(&flow, &mut |_| None),
+            "# T\n\n1. x\n\n---\n"
+        );
     }
 
     #[test]
     fn markdown_images_reference_paths_by_ordinal() {
         let flow = vec![
-            FlowBlock::Image { page: 1, width_pt: 10.0, height_pt: 10.0, source: ImageSource::Region { page: 1, index: 0 }, src: None },
-            FlowBlock::Image { page: 2, width_pt: 10.0, height_pt: 10.0, source: ImageSource::Region { page: 2, index: 0 }, src: None },
+            FlowBlock::Image {
+                page: 1,
+                width_pt: 10.0,
+                height_pt: 10.0,
+                source: ImageSource::Region { page: 1, index: 0 },
+                src: None,
+            },
+            FlowBlock::Image {
+                page: 2,
+                width_pt: 10.0,
+                height_pt: 10.0,
+                source: ImageSource::Region { page: 2, index: 0 },
+                src: None,
+            },
         ];
         let markdown = flow_to_markdown(&flow, &mut |ordinal| {
             (ordinal == 1).then(|| "a-p1-01.png".to_owned())
@@ -294,11 +313,18 @@ mod tests {
 
     #[test]
     fn html_embeds_figures_with_page_alt() {
-        let flow = vec![
-            FlowBlock::Image { page: 3, width_pt: 10.0, height_pt: 10.0, source: ImageSource::Region { page: 3, index: 0 }, src: None },
-        ];
-        let html = flow_to_html(&flow, "doc", &mut |_| Some("data:image/png;base64,AAA".into()));
-        assert!(html.contains("<figure><img src=\"data:image/png;base64,AAA\" alt=\"第 3 页\"></figure>"));
+        let flow = vec![FlowBlock::Image {
+            page: 3,
+            width_pt: 10.0,
+            height_pt: 10.0,
+            source: ImageSource::Region { page: 3, index: 0 },
+            src: None,
+        }];
+        let html = flow_to_html(&flow, "doc", &mut |_| {
+            Some("data:image/png;base64,AAA".into())
+        });
+        assert!(html
+            .contains("<figure><img src=\"data:image/png;base64,AAA\" alt=\"第 3 页\"></figure>"));
     }
 
     #[test]

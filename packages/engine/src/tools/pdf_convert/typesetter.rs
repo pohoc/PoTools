@@ -12,7 +12,7 @@ use super::pdfdoc::PdfDoc;
 use super::std14::StdFace;
 use super::text::is_js_space;
 use crate::tools::pdf_extra::markup::font::{
-    content_code_points, face_count, face_covers, covering_host_font, HostFont,
+    content_code_points, covering_host_font, face_count, face_covers, HostFont,
 };
 use crate::EngineError;
 use std::collections::HashMap;
@@ -185,7 +185,9 @@ impl<'a> Typesetter<'a> {
         match self.source.clone() {
             FontSource::Configured(bytes) => {
                 let code_points = content_code_points(text);
-                match (0..face_count(&bytes) as u32).find(|index| face_covers(&bytes, *index, &code_points)) {
+                match (0..face_count(&bytes) as u32)
+                    .find(|index| face_covers(&bytes, *index, &code_points))
+                {
                     Some(face_index) => self
                         .doc
                         .register_embedded("Markdown", &bytes, face_index, text)
@@ -239,7 +241,10 @@ impl<'a> Typesetter<'a> {
             let units: Vec<String> = if is_typeset_cjk(&run.text) {
                 run.text.chars().map(String::from).collect()
             } else {
-                wrap_units(&run.text).into_iter().map(str::to_owned).collect()
+                wrap_units(&run.text)
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect()
             };
             for unit in units {
                 let piece = self.doc.font_width(font, &unit) * size / 1000.0;
@@ -289,7 +294,11 @@ impl<'a> Typesetter<'a> {
                     // Grows embedded subsets so the drawn text encodes; a
                     // missing glyph fails the job, as the TS draw does.
                     self.doc.font_extend(font, drawn, false)?;
-                    let color = if run.style.code { CODE_COLOR } else { TEXT_COLOR };
+                    let color = if run.style.code {
+                        CODE_COLOR
+                    } else {
+                        TEXT_COLOR
+                    };
                     self.doc.draw_text(font, size, color, x, self.y, drawn)?;
                 }
                 x += self.doc.font_width(font, &run.text) * size / 1000.0;
@@ -315,7 +324,8 @@ impl<'a> Typesetter<'a> {
                 self.ensure(height + 10.0);
                 self.y -= height;
                 let name = self.doc.add_image(image_id);
-                self.doc.draw_image(&name, self.margin, self.y, width, height);
+                self.doc
+                    .draw_image(&name, self.margin, self.y, width, height);
                 self.y -= 10.0;
                 Ok(())
             }
@@ -412,7 +422,8 @@ mod tests {
             heading_gap: 12.0,
             indent: 18.0,
         };
-        let size_of = |level: usize| (style.size * (1.75 - level.min(6) as f64 * 0.13)).max(style.size);
+        let size_of =
+            |level: usize| (style.size * (1.75 - level.min(6) as f64 * 0.13)).max(style.size);
         assert!((size_of(1) - 17.82).abs() < 1e-9);
         assert!((size_of(6) - 11.0).abs() < 1e-9);
     }

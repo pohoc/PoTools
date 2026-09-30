@@ -17,10 +17,17 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
     };
     let component = boolean(ctx, "component", true);
     let form = boolean(ctx, "form", false);
-    let scope = enc::t(en, "component（encodeURIComponent）", "component (encodeURIComponent)");
+    let scope = enc::t(
+        en,
+        "component（encodeURIComponent）",
+        "component (encodeURIComponent)",
+    );
     let mut extra = serde_json::Map::new();
     extra.insert("mode".into(), json!(mode));
-    extra.insert("component".into(), json!(if component { "component" } else { "url" }));
+    extra.insert(
+        "component".into(),
+        json!(if component { "component" } else { "url" }),
+    );
     let mut blocks: Vec<String> = Vec::new();
     let mut notes: Vec<String> = Vec::new();
     if mode == "encode" {
@@ -35,26 +42,46 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
         let mut escapes = 0usize;
         let mut index = 0usize;
         while index + 2 < bytes.len() {
-            if bytes[index] == b'%' && bytes[index + 1].is_ascii_hexdigit() && bytes[index + 2].is_ascii_hexdigit() {
+            if bytes[index] == b'%'
+                && bytes[index + 1].is_ascii_hexdigit()
+                && bytes[index + 2].is_ascii_hexdigit()
+            {
                 escapes += 1;
                 index += 3;
             } else {
                 index += 1;
             }
         }
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(raw).to_string()),
-            row(enc::t(en, "输出字符", "Output characters"), encoded.len().to_string()),
-            row(enc::t(en, "%XX 片段", "%XX fragments"), escapes.to_string()),
-            row(
-                enc::t(en, "未转义字符", "Left unescaped"),
-                enc::t(
-                    en,
-                    if component { "! ' ( ) * - . _ ~ 字母数字" } else { "额外保留 : / ? # [ ] @ & = + $ ," },
-                    if component { "! ' ( ) * - . _ ~ letters and digits" } else { "also kept: : / ? # [ ] @ & = + $ ," },
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "输入字符", "Input characters"),
+                    enc::code_points(raw).to_string(),
                 ),
-            ),
-        ]);
+                row(
+                    enc::t(en, "输出字符", "Output characters"),
+                    encoded.len().to_string(),
+                ),
+                row(enc::t(en, "%XX 片段", "%XX fragments"), escapes.to_string()),
+                row(
+                    enc::t(en, "未转义字符", "Left unescaped"),
+                    enc::t(
+                        en,
+                        if component {
+                            "! ' ( ) * - . _ ~ 字母数字"
+                        } else {
+                            "额外保留 : / ? # [ ] @ & = + $ ,"
+                        },
+                        if component {
+                            "! ' ( ) * - . _ ~ letters and digits"
+                        } else {
+                            "also kept: : / ? # [ ] @ & = + $ ,"
+                        },
+                    ),
+                ),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         notes.push(
@@ -77,27 +104,40 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
         blocks.push(decoded.clone());
         let restored = raw.matches('%').count();
         let pluses = raw.matches('+').count();
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(raw).to_string()),
-            row(enc::t(en, "输出字符", "Output characters"), enc::code_points(&decoded).to_string()),
-            row(enc::t(en, "还原 %XX", "%XX restored"), restored.to_string()),
-            row(
-                enc::t(en, "加号转空格", "Plus to space"),
-                if pluses > 0 {
-                    if en { format!("Yes ({pluses} places)") } else { format!("是（{pluses} 处）") }
-                } else {
-                    enc::t(en, "无加号", "no plus sign").to_string()
-                },
-            ),
-            row(
-                enc::t(en, "再编码一致", "Re-encode matches"),
-                if percent_encode(&decoded, component, false) == raw {
-                    enc::t(en, "是", "Yes").to_string()
-                } else {
-                    enc::t(en, "否", "No").to_string()
-                },
-            ),
-        ]);
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "输入字符", "Input characters"),
+                    enc::code_points(raw).to_string(),
+                ),
+                row(
+                    enc::t(en, "输出字符", "Output characters"),
+                    enc::code_points(&decoded).to_string(),
+                ),
+                row(enc::t(en, "还原 %XX", "%XX restored"), restored.to_string()),
+                row(
+                    enc::t(en, "加号转空格", "Plus to space"),
+                    if pluses > 0 {
+                        if en {
+                            format!("Yes ({pluses} places)")
+                        } else {
+                            format!("是（{pluses} 处）")
+                        }
+                    } else {
+                        enc::t(en, "无加号", "no plus sign").to_string()
+                    },
+                ),
+                row(
+                    enc::t(en, "再编码一致", "Re-encode matches"),
+                    if percent_encode(&decoded, component, false) == raw {
+                        enc::t(en, "是", "Yes").to_string()
+                    } else {
+                        enc::t(en, "否", "No").to_string()
+                    },
+                ),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         notes.push(enc::t(en, "· 解码把 + 还原为空格；若原文里的 + 是字面量，请确认它已写成 %2B。", "- Decoding turns + into a space; if a literal + belongs to the source, make sure it was written as %2B.").to_string());
@@ -105,7 +145,12 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
         extra.insert("outputChars".into(), json!(enc::code_points(&decoded)));
     } else if mode == "parse" {
         let (base, query, fragment, had_fragment, had_query) = split_url(raw);
-        let effective_query = if query.is_empty() && !had_query && raw.contains('=') && !raw.contains("://") { raw } else { query };
+        let effective_query =
+            if query.is_empty() && !had_query && raw.contains('=') && !raw.contains("://") {
+                raw
+            } else {
+                query
+            };
         let pairs = parse_pairs(effective_query)?;
         blocks.push(section(&format!(
             "{}{}{}",
@@ -115,12 +160,30 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
         )));
         let mut detail_rows = vec![
             row(enc::t(en, "输入", "Input"), enc::preview(en, raw, 96)),
-            row(enc::t(en, "基础地址", "Base URL"), if base.is_empty() { enc::t(en, "(未给出)", "(not given)").to_string() } else { base.to_string() }),
-            row(enc::t(en, "查询串", "Query string"), if query.is_empty() { enc::t(en, "(空)", "(empty)").to_string() } else { query.to_string() }),
+            row(
+                enc::t(en, "基础地址", "Base URL"),
+                if base.is_empty() {
+                    enc::t(en, "(未给出)", "(not given)").to_string()
+                } else {
+                    base.to_string()
+                },
+            ),
+            row(
+                enc::t(en, "查询串", "Query string"),
+                if query.is_empty() {
+                    enc::t(en, "(空)", "(empty)").to_string()
+                } else {
+                    query.to_string()
+                },
+            ),
             row(
                 enc::t(en, "片段", "Fragment"),
                 if had_fragment {
-                    if fragment.is_empty() { enc::t(en, "(空片段)", "(empty fragment)").to_string() } else { fragment.to_string() }
+                    if fragment.is_empty() {
+                        enc::t(en, "(空片段)", "(empty fragment)").to_string()
+                    } else {
+                        fragment.to_string()
+                    }
                 } else {
                     enc::t(en, "无", "None").to_string()
                 },
@@ -129,7 +192,11 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
         let mut repeated: Vec<String> = Vec::new();
         for (index, pair) in pairs.iter().enumerate() {
             let count = pairs.iter().filter(|other| other.key == pair.key).count();
-            if count > 1 && !repeated.iter().any(|existing| existing.starts_with(&format!("{index} "))) {
+            if count > 1
+                && !repeated
+                    .iter()
+                    .any(|existing| existing.starts_with(&format!("{index} ")))
+            {
                 repeated.push(format!("{index} {}×{count}", pair.key));
             }
         }
@@ -138,7 +205,11 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
             if repeated.is_empty() {
                 enc::t(en, "无", "None").to_string()
             } else {
-                repeated.iter().map(|entry| entry.split_once(' ').unwrap_or((entry, "")).1.to_string()).collect::<Vec<_>>().join(if en { ", " } else { "、" })
+                repeated
+                    .iter()
+                    .map(|entry| entry.split_once(' ').unwrap_or((entry, "")).1.to_string())
+                    .collect::<Vec<_>>()
+                    .join(if en { ", " } else { "、" })
             },
         ));
         let (head, rows_text) = stats_section(en, &detail_rows);
@@ -152,16 +223,34 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
                 .iter()
                 .enumerate()
                 .map(|(index, pair)| {
-                    let key = if pair.has_value { pair.key.clone() } else { format!("{}{}", pair.key, enc::t(en, "（无 =）", " (no =)")) };
+                    let key = if pair.has_value {
+                        pair.key.clone()
+                    } else {
+                        format!("{}{}", pair.key, enc::t(en, "（无 =）", " (no =)"))
+                    };
                     row(format!("{}. {}", index + 1, key), pair.value.clone()).1
                 })
                 .collect::<Vec<_>>()
                 .join("\n")
         });
         notes.push(enc::t(en, "· component=true：键与值都按 encodeURIComponent 规则还原（含 + → 空格）。", "- component=true: keys and values are restored with the encodeURIComponent rules (including + to space).").to_string());
-        notes.push(enc::t(en, "· 重复键逐行保留，不做合并。", "- Repeated keys are kept row by row and never merged.").to_string());
+        notes.push(
+            enc::t(
+                en,
+                "· 重复键逐行保留，不做合并。",
+                "- Repeated keys are kept row by row and never merged.",
+            )
+            .to_string(),
+        );
         if pairs.is_empty() {
-            notes.push(enc::t(en, "· 若只是想还原整条 URL，请改用 mode=decode。", "- To restore a whole URL instead, switch to mode=decode.").to_string());
+            notes.push(
+                enc::t(
+                    en,
+                    "· 若只是想还原整条 URL，请改用 mode=decode。",
+                    "- To restore a whole URL instead, switch to mode=decode.",
+                )
+                .to_string(),
+            );
         }
         extra.insert("params".into(), json!(pairs.len()));
     } else {
@@ -171,34 +260,67 @@ pub(super) fn url_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, 
             enc::t(en, "查询串组装 · ", "Query string assembly - ")
         )));
         blocks.push(query.clone());
-        let lines: Vec<&str> = raw.split(['\r', '\n']).map(str::trim).filter(|l| !l.is_empty()).collect();
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "参数行数", "Parameter lines"), lines.len().to_string()),
-            row(enc::t(en, "查询串长度", "Query string length"), query.len().to_string()),
-            row(enc::t(en, "解析回来", "Parses back"), {
-                let back = parse_pairs(&query).map(|pairs| pairs.len()).unwrap_or(0);
-                if back == lines.len() {
-                    enc::t(en, "一致", "consistent").to_string()
-                } else {
-                    enc::t(en, "需检查输入中的 & 与 =", "check the & and = in the input").to_string()
-                }
-            }),
-        ]);
+        let lines: Vec<&str> = raw
+            .split(['\r', '\n'])
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .collect();
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "参数行数", "Parameter lines"),
+                    lines.len().to_string(),
+                ),
+                row(
+                    enc::t(en, "查询串长度", "Query string length"),
+                    query.len().to_string(),
+                ),
+                row(enc::t(en, "解析回来", "Parses back"), {
+                    let back = parse_pairs(&query).map(|pairs| pairs.len()).unwrap_or(0);
+                    if back == lines.len() {
+                        enc::t(en, "一致", "consistent").to_string()
+                    } else {
+                        enc::t(
+                            en,
+                            "需检查输入中的 & 与 =",
+                            "check the & and = in the input",
+                        )
+                        .to_string()
+                    }
+                }),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         notes.push(enc::t(en, "· 每行一个 key=value，值里的 = 之后的内容整段视为值。", "- One key=value per line; everything after the first = in a line counts as the value.").to_string());
-        notes.push(enc::t(en, "· component=true：键与值全部转义，& = + # 都写成 %XX。", "- component=true: keys and values are fully escaped, & = + # all become %XX.").to_string());
+        notes.push(
+            enc::t(
+                en,
+                "· component=true：键与值全部转义，& = + # 都写成 %XX。",
+                "- component=true: keys and values are fully escaped, & = + # all become %XX.",
+            )
+            .to_string(),
+        );
         extra.insert("params".into(), json!(lines.len()));
         extra.insert("queryLength".into(), json!(query.len()));
     }
     blocks.push(section(enc::t(en, "说明", "Notes")));
     blocks.push(notes.join("\n"));
-    Ok(emit("url-codec.txt", join_blocks(blocks.iter().map(String::as_str)), extra))
+    Ok(emit(
+        "url-codec.txt",
+        join_blocks(blocks.iter().map(String::as_str)),
+        extra,
+    ))
 }
 
 pub(super) fn unicode_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineError> {
     let en = enc::is_en(ctx);
-    let mode = if string(ctx, "mode", "encode") == "decode" { "decode" } else { "encode" };
+    let mode = if string(ctx, "mode", "encode") == "decode" {
+        "decode"
+    } else {
+        "encode"
+    };
     let style = string(ctx, "style", "unicode");
     let style_label = match style {
         "json" => enc::t(en, "JSON 字符串", "JSON string"),
@@ -224,13 +346,31 @@ pub(super) fn unicode_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResu
         } else {
             unicode_escape_count(&output)
         };
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(raw).to_string()),
-            row(enc::t(en, "输出字符", "Output characters"), enc::code_points(&output).to_string()),
-            row(enc::t(en, "非 ASCII", "Non-ASCII"), enc::fill(en, enc::Tmpl::Pieces, non_ascii)),
-            row(enc::t(en, "转义片段", "Escape fragments"), fragments.to_string()),
-            row(enc::t(en, "UTF-8 字节", "UTF-8 bytes"), raw.len().to_string()),
-        ]);
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "输入字符", "Input characters"),
+                    enc::code_points(raw).to_string(),
+                ),
+                row(
+                    enc::t(en, "输出字符", "Output characters"),
+                    enc::code_points(&output).to_string(),
+                ),
+                row(
+                    enc::t(en, "非 ASCII", "Non-ASCII"),
+                    enc::fill(en, enc::Tmpl::Pieces, non_ascii),
+                ),
+                row(
+                    enc::t(en, "转义片段", "Escape fragments"),
+                    fragments.to_string(),
+                ),
+                row(
+                    enc::t(en, "UTF-8 字节", "UTF-8 bytes"),
+                    raw.len().to_string(),
+                ),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         match style {
@@ -255,10 +395,22 @@ pub(super) fn unicode_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResu
         blocks.push(decoded.clone());
         let non_ascii = decoded.chars().filter(|c| *c as u32 > 0x7e).count();
         let mut rows = vec![
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(raw).to_string()),
-            row(enc::t(en, "输出字符", "Output characters"), enc::code_points(&decoded).to_string()),
-            row(enc::t(en, "非 ASCII", "Non-ASCII"), enc::fill(en, enc::Tmpl::Pieces, non_ascii)),
-            row(enc::t(en, "UTF-8 字节", "UTF-8 bytes"), decoded.len().to_string()),
+            row(
+                enc::t(en, "输入字符", "Input characters"),
+                enc::code_points(raw).to_string(),
+            ),
+            row(
+                enc::t(en, "输出字符", "Output characters"),
+                enc::code_points(&decoded).to_string(),
+            ),
+            row(
+                enc::t(en, "非 ASCII", "Non-ASCII"),
+                enc::fill(en, enc::Tmpl::Pieces, non_ascii),
+            ),
+            row(
+                enc::t(en, "UTF-8 字节", "UTF-8 bytes"),
+                decoded.len().to_string(),
+            ),
         ];
         let stable = re_encoded == raw || (style == "json" && re_encoded == raw.trim());
         rows.push(row(
@@ -286,15 +438,30 @@ pub(super) fn unicode_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResu
         extra.insert("inputChars".into(), json!(enc::code_points(raw)));
         extra.insert("outputChars".into(), json!(enc::code_points(&decoded)));
         extra.insert("unknownEntities".into(), json!(unknown));
-        let mut result = emit("unicode-escape.txt", join_blocks(blocks.iter().map(String::as_str)), extra);
+        let mut result = emit(
+            "unicode-escape.txt",
+            join_blocks(blocks.iter().map(String::as_str)),
+            extra,
+        );
         if unknown > 0 {
-            result.warnings.push(enc::t(en, "未知具名实体已按原文保留。", "Unknown named entities were left as written.").to_string());
+            result.warnings.push(
+                enc::t(
+                    en,
+                    "未知具名实体已按原文保留。",
+                    "Unknown named entities were left as written.",
+                )
+                .to_string(),
+            );
         }
         return Ok(result);
     }
     blocks.push(section(enc::t(en, "说明", "Notes")));
     blocks.push(notes.join("\n"));
-    Ok(emit("unicode-escape.txt", join_blocks(blocks.iter().map(String::as_str)), extra))
+    Ok(emit(
+        "unicode-escape.txt",
+        join_blocks(blocks.iter().map(String::as_str)),
+        extra,
+    ))
 }
 
 fn unicode_escape_count(text: &str) -> usize {
@@ -302,7 +469,12 @@ fn unicode_escape_count(text: &str) -> usize {
     let mut count = 0;
     let mut index = 0;
     while index + 6 <= bytes.len() {
-        if bytes[index] == b'\\' && bytes[index + 1] == b'u' && bytes[index + 2..index + 6].iter().all(|b| b.is_ascii_hexdigit()) {
+        if bytes[index] == b'\\'
+            && bytes[index + 1] == b'u'
+            && bytes[index + 2..index + 6]
+                .iter()
+                .all(|b| b.is_ascii_hexdigit())
+        {
             count += 1;
             index += 6;
         } else {

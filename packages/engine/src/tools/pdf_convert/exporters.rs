@@ -114,10 +114,7 @@ pub(super) fn run_excel(ctx: &RunContext<'_>) -> RunResult {
         } else {
             vec![Sheet {
                 name: sheet_name(stem, 1),
-                rows: pages
-                    .iter()
-                    .flat_map(|page| rows_of(page, gap))
-                    .collect(),
+                rows: pages.iter().flat_map(|page| rows_of(page, gap)).collect(),
             }]
         };
         let populated: Vec<Sheet> = sheets
@@ -184,7 +181,11 @@ pub(super) fn run_markdown(ctx: &RunContext<'_>) -> RunResult {
             for block in flow.iter_mut() {
                 let FlowBlock::Image {
                     page,
-                    source: ImageSource::Region { page: source_page, index },
+                    source:
+                        ImageSource::Region {
+                            page: source_page,
+                            index,
+                        },
                     ..
                 } = block
                 else {

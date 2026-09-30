@@ -204,9 +204,21 @@ mod tests {
     #[test]
     fn block_page_covers_all_non_break_blocks() {
         let blocks = vec![
-            FlowBlock::Heading { level: 1, text: "t".into(), page: 3 },
-            FlowBlock::Paragraph { text: "p".into(), page: 4, bold: false },
-            FlowBlock::List { ordered: false, items: vec![], page: 5 },
+            FlowBlock::Heading {
+                level: 1,
+                text: "t".into(),
+                page: 3,
+            },
+            FlowBlock::Paragraph {
+                text: "p".into(),
+                page: 4,
+                bold: false,
+            },
+            FlowBlock::List {
+                ordered: false,
+                items: vec![],
+                page: 5,
+            },
             FlowBlock::Image {
                 page: 6,
                 width_pt: 1.0,

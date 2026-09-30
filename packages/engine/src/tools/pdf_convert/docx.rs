@@ -157,9 +157,7 @@ pub(crate) fn write_docx(input: &DocxInput<'_>) -> EngineResult<Vec<u8>> {
         zip.write_all(bytes)
             .map_err(|error| EngineError::new("write_failed", format!("无法生成 DOCX：{error}")))?;
     }
-    zip.finish()
-        .map_err(failed)
-        .map(Cursor::into_inner)
+    zip.finish().map_err(failed).map(Cursor::into_inner)
 }
 
 /// Relationship ids: rId1 styles, rId2 numbering, images from rId10 up.
@@ -172,10 +170,12 @@ fn rel_id(ordinal: usize) -> usize {
 fn text_run(text: &str, bold: bool) -> String {
     let properties = if bold { "<w:rPr><w:b/></w:rPr>" } else { "" };
     text.split('\n')
-        .map(|segment| format!(
-            "<w:r>{properties}<w:t xml:space=\"preserve\">{}</w:t></w:r>",
-            escape_html(segment)
-        ))
+        .map(|segment| {
+            format!(
+                "<w:r>{properties}<w:t xml:space=\"preserve\">{}</w:t></w:r>",
+                escape_html(segment)
+            )
+        })
         .collect::<Vec<_>>()
         .join("<w:r><w:br/></w:r>")
 }
@@ -242,11 +242,13 @@ fn numbering_xml() -> String {
 
 /// Heading styles so `pStyle` references render like the `docx` defaults.
 fn styles_xml() -> String {
-    let style = |id: &str, name: &str, size: u32, outline: u32| format!(
+    let style = |id: &str, name: &str, size: u32, outline: u32| {
+        format!(
         "<w:style w:type=\"paragraph\" w:styleId=\"{id}\"><w:name w:val=\"{name}\"/><w:basedOn w:val=\"Normal\"/>\
 <w:next w:val=\"Normal\"/><w:pPr><w:outlineLvl w:val=\"{outline}\"/><w:spacing w:after=\"120\"/></w:pPr>\
 <w:rPr><w:b/><w:sz w:val=\"{size}\"/></w:rPr></w:style>"
-    );
+    )
+    };
     format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\
 <w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">\

@@ -51,12 +51,22 @@ fn dow_run_names(v: &BTreeSet<u32>, en: bool) -> String {
 
 fn field_values_rows(plan: &Plan, en: bool) -> Vec<(String, String)> {
     let week = match &plan.dow {
-        DayRule::All => if en { "all 7 values".into() } else { "全部 7 个取值".into() },
+        DayRule::All => {
+            if en {
+                "all 7 values".into()
+            } else {
+                "全部 7 个取值".into()
+            }
+        }
         rule => match special(rule, en) {
             Some(text) => text,
             None => match rule {
                 DayRule::Values(v) if v.len() == 7 => {
-                    if en { "all 7 values".into() } else { "全部 7 个取值".into() }
+                    if en {
+                        "all 7 values".into()
+                    } else {
+                        "全部 7 个取值".into()
+                    }
                 }
                 DayRule::Values(v) => {
                     let nums = values(v, 0, 6);
@@ -78,7 +88,13 @@ fn field_values_rows(plan: &Plan, en: bool) -> Vec<(String, String)> {
         (
             label("day", en),
             match &plan.dom {
-                DayRule::All => if en { "all 31 values".into() } else { "全部 31 个取值".into() },
+                DayRule::All => {
+                    if en {
+                        "all 31 values".into()
+                    } else {
+                        "全部 31 个取值".into()
+                    }
+                }
                 DayRule::Values(v) => expand(v, en),
                 rule => special(rule, en).unwrap_or_default(),
             },
@@ -262,7 +278,11 @@ pub(super) fn render(
         sentence.clone()
     };
     let sentence_label = if canonical != expression {
-        if en { "Macro" } else { "宏展开" }
+        if en {
+            "Macro"
+        } else {
+            "宏展开"
+        }
     } else {
         &*label("sentence", en)
     };

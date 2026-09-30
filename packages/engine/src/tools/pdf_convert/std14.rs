@@ -35,14 +35,16 @@ impl StdFace {
     pub(crate) fn width(self, character: char) -> Option<f64> {
         if matches!(self, StdFace::Courier) {
             return (is_latin1(character)
-                || WINANSI_SPECIALS
-                    .iter()
-                    .any(|(c, _, _, _)| *c == character))
+                || WINANSI_SPECIALS.iter().any(|(c, _, _, _)| *c == character))
             .then_some(600.0);
         }
         let code = character as u32;
         if (0x20..=0x7e).contains(&code) {
-            let table: &[u16; 95] = if self.bold() { &BOLD_WIDTHS } else { &REGULAR_WIDTHS };
+            let table: &[u16; 95] = if self.bold() {
+                &BOLD_WIDTHS
+            } else {
+                &REGULAR_WIDTHS
+            };
             return Some(table[code as usize - 32] as f64);
         }
         if (0xa0..=0xff).contains(&code) {
@@ -86,35 +88,35 @@ impl StdFace {
             return self.ascii_width(base);
         }
         let width: f64 = match byte {
-            0xa0 => 278.0,        // nbsp
-            0xa1 => 333.0,        // exclamdown
-            0xa2..=0xa6 => 556.0, // cent currency sterling yen brokenbar(260/280)
-            0xa7 => 556.0,        // section
-            0xa8 => 278.0,        // dieresis
-            0xa9 => 737.0,        // copyright
-            0xaa => 370.0,        // ordfeminine
-            0xab => 556.0,        // guillemotleft
-            0xac => 584.0,        // logicalnot
-            0xad => 333.0,        // softhyphen
-            0xae => 737.0,        // registered
-            0xaf => 556.0,        // macron
-            0xb0 => 400.0,        // degree
-            0xb1 => 584.0,        // plusminus
-            0xb2 | 0xb3 => 333.0, // twosuperior threesuperior
-            0xb4 => 278.0,        // acute
-            0xb5 => 556.0,        // mu
-            0xb6 => 537.0,        // paragraph
-            0xb7 => 278.0,        // periodcentered
-            0xb8 => 278.0,        // cedilla
-            0xb9 => 333.0,        // onesuperior
-            0xba => 365.0,        // ordmasculine
-            0xbb => 556.0,        // guillemotright
-            0xbc..=0xbe => 834.0, // onequarter onehalf threequarters
-            0xbf => 611.0,        // questiondown
-            0xc6 => 1000.0,       // AE
-            0xd7 => 584.0,        // multiply
-            0xe6 => 889.0,        // ae
-            0xf7 => 584.0,        // divide
+            0xa0 => 278.0,              // nbsp
+            0xa1 => 333.0,              // exclamdown
+            0xa2..=0xa6 => 556.0,       // cent currency sterling yen brokenbar(260/280)
+            0xa7 => 556.0,              // section
+            0xa8 => 278.0,              // dieresis
+            0xa9 => 737.0,              // copyright
+            0xaa => 370.0,              // ordfeminine
+            0xab => 556.0,              // guillemotleft
+            0xac => 584.0,              // logicalnot
+            0xad => 333.0,              // softhyphen
+            0xae => 737.0,              // registered
+            0xaf => 556.0,              // macron
+            0xb0 => 400.0,              // degree
+            0xb1 => 584.0,              // plusminus
+            0xb2 | 0xb3 => 333.0,       // twosuperior threesuperior
+            0xb4 => 278.0,              // acute
+            0xb5 => 556.0,              // mu
+            0xb6 => 537.0,              // paragraph
+            0xb7 => 278.0,              // periodcentered
+            0xb8 => 278.0,              // cedilla
+            0xb9 => 333.0,              // onesuperior
+            0xba => 365.0,              // ordmasculine
+            0xbb => 556.0,              // guillemotright
+            0xbc..=0xbe => 834.0,       // onequarter onehalf threequarters
+            0xbf => 611.0,              // questiondown
+            0xc6 => 1000.0,             // AE
+            0xd7 => 584.0,              // multiply
+            0xe6 => 889.0,              // ae
+            0xf7 => 584.0,              // divide
             _ => self.ascii_width('y'), // ydieresis (0xff handled by base above)
         };
         let _ = self.bold();
@@ -126,7 +128,11 @@ impl StdFace {
         if !(0x20..=0x7e).contains(&code) {
             return 500.0;
         }
-        let table: &[u16; 95] = if self.bold() { &BOLD_WIDTHS } else { &REGULAR_WIDTHS };
+        let table: &[u16; 95] = if self.bold() {
+            &BOLD_WIDTHS
+        } else {
+            &REGULAR_WIDTHS
+        };
         table[code - 32] as f64
     }
 
@@ -145,7 +151,8 @@ impl StdFace {
     /// Whether every character can be drawn with the face (the
     /// `helvetica.encodeText` capability check in the TS oracles).
     pub(crate) fn can_encode(self, text: &str) -> bool {
-        text.chars().all(|character| self.encode(character).is_some())
+        text.chars()
+            .all(|character| self.encode(character).is_some())
     }
 }
 

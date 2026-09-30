@@ -227,8 +227,16 @@ fn hash_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
         requested.to_string()
     };
     let form_label = match form {
-        "hex" => enc::t(en, "十六进制串（先解码为字节）", "Hex string (decoded to bytes first)"),
-        "base64" => enc::t(en, "Base64 串（先解码为字节）", "Base64 string (decoded to bytes first)"),
+        "hex" => enc::t(
+            en,
+            "十六进制串（先解码为字节）",
+            "Hex string (decoded to bytes first)",
+        ),
+        "base64" => enc::t(
+            en,
+            "Base64 串（先解码为字节）",
+            "Base64 string (decoded to bytes first)",
+        ),
         _ => enc::t(en, "普通文本（UTF-8 取字节）", "Plain text (UTF-8 bytes)"),
     };
     let mut blocks = vec![
@@ -244,10 +252,17 @@ fn hash_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
                 enc::t(en, "输入字节", "Input bytes"),
                 fill(en, Tmpl::Bytes, bytes.len()),
             ),
-            row(enc::t(en, "输入预览", "Input preview"), enc::preview(en, raw, 72)),
+            row(
+                enc::t(en, "输入预览", "Input preview"),
+                enc::preview(en, raw, 72),
+            ),
             row(
                 enc::t(en, "输出大小写", "Output case"),
-                enc::t(en, if upper { "大写" } else { "小写" }, if upper { "uppercase" } else { "lowercase" }),
+                enc::t(
+                    en,
+                    if upper { "大写" } else { "小写" },
+                    if upper { "uppercase" } else { "lowercase" },
+                ),
             ),
         ]),
     ];
@@ -281,7 +296,10 @@ fn hash_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     blocks.push(section(enc::t(en, "说明", "Notes")));
     blocks.push(notes.join("\n"));
     // emitText convention: one trailing newline in both text and artifact.
-    let body = format!("{}\n", join_blocks(blocks.iter().map(String::as_str)).trim_end());
+    let body = format!(
+        "{}\n",
+        join_blocks(blocks.iter().map(String::as_str)).trim_end()
+    );
     Ok(artifact("hash.txt", body, extra))
 }
 
@@ -358,7 +376,16 @@ fn hmac_tool(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     extra.insert("format".into(), json!(format));
     extra.insert("algorithms".into(), json!(1));
     extra.insert("signature".into(), json!(primary));
-    let text = hmac_report(ctx, algo, &primary, &alternative, alt_label, format, secret, message);
+    let text = hmac_report(
+        ctx,
+        algo,
+        &primary,
+        &alternative,
+        alt_label,
+        format,
+        secret,
+        message,
+    );
     Ok(artifact("hmac.txt", text, extra))
 }
 
@@ -434,7 +461,10 @@ fn hmac_report(
         .join("\n"),
     ];
     // emitText convention: one trailing newline.
-    format!("{}\n", join_blocks(blocks.iter().map(String::as_str)).trim_end())
+    format!(
+        "{}\n",
+        join_blocks(blocks.iter().map(String::as_str)).trim_end()
+    )
 }
 
 #[cfg(test)]
@@ -471,7 +501,9 @@ mod tests {
         let result = run(&ctx("hmac", &options)).unwrap().unwrap();
         let text = result.text.unwrap();
         assert!(text.starts_with("── 签名结果 ─"));
-        assert!(text.contains("  sha256  9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b"));
+        assert!(text.contains(
+            "  sha256  9307b3b915efb5171ff14d8cb55fbcc798c6c0ef1456d66ded1a6aa723a58b7b"
+        ));
         assert!(text.contains("── 等价表示 · base64 ─"));
         assert!(text.contains("  密钥        ••••（3 字符）"));
     }

@@ -80,7 +80,11 @@ pub(crate) fn chapterize(flow: &[FlowBlock], by: ChapterBy) -> Vec<EpubChapter> 
             ChapterBy::Page => {
                 let page = block_page(block);
                 if chapters.is_empty() || page != last_page(&chapters) {
-                    let label = if page == 0 { chapters.len() + 1 } else { page as usize };
+                    let label = if page == 0 {
+                        chapters.len() + 1
+                    } else {
+                        page as usize
+                    };
                     chapters.push(EpubChapter {
                         title: format!("第 {label} 页"),
                         blocks: Vec::new(),
@@ -88,7 +92,11 @@ pub(crate) fn chapterize(flow: &[FlowBlock], by: ChapterBy) -> Vec<EpubChapter> 
                 }
             }
         }
-        chapters.last_mut().expect("chapter exists").blocks.push(block.clone());
+        chapters
+            .last_mut()
+            .expect("chapter exists")
+            .blocks
+            .push(block.clone());
     }
     if chapters.is_empty() {
         chapters.push(EpubChapter {
@@ -269,11 +277,13 @@ pub(crate) fn write_epub(input: &EpubInput<'_>) -> EngineResult<Vec<u8>> {
         .images
         .iter()
         .enumerate()
-        .map(|(index, image)| format!(
-            "<item id=\"img{index}\" href=\"images/{}\" media-type=\"{}\"/>",
-            escape_html(&image.name),
-            media_type(&image.name)
-        ))
+        .map(|(index, image)| {
+            format!(
+                "<item id=\"img{index}\" href=\"images/{}\" media-type=\"{}\"/>",
+                escape_html(&image.name),
+                media_type(&image.name)
+            )
+        })
         .collect();
     let spine: String = chapters
         .iter()
@@ -352,11 +362,13 @@ pub(crate) fn write_epub(input: &EpubInput<'_>) -> EngineResult<Vec<u8>> {
         )?;
     }
     for image in &input.images {
-        add(&format!("OEBPS/images/{}", image.name), deflated, &image.bytes)?;
+        add(
+            &format!("OEBPS/images/{}", image.name),
+            deflated,
+            &image.bytes,
+        )?;
     }
-    zip.finish()
-        .map_err(failed)
-        .map(Cursor::into_inner)
+    zip.finish().map_err(failed).map(Cursor::into_inner)
 }
 
 #[cfg(test)]
@@ -375,25 +387,43 @@ mod tests {
     fn heading_mode_consumes_top_headings_and_defaults_to_body() {
         let flow = vec![
             heading(1, "第一章"),
-            FlowBlock::Paragraph { text: "a".into(), page: 1, bold: false },
+            FlowBlock::Paragraph {
+                text: "a".into(),
+                page: 1,
+                bold: false,
+            },
             heading(3, "小节"),
         ];
         let chapters = chapterize(&flow, ChapterBy::Heading);
         assert_eq!(chapters.len(), 1);
         assert_eq!(chapters[0].title, "第一章");
         assert!(matches!(chapters[0].blocks[0], FlowBlock::Paragraph { .. }));
-        assert!(matches!(chapters[0].blocks[1], FlowBlock::Heading { level: 3, .. }));
+        assert!(matches!(
+            chapters[0].blocks[1],
+            FlowBlock::Heading { level: 3, .. }
+        ));
     }
 
     #[test]
     fn page_mode_titles_and_empty_fallback() {
         let flow = vec![
-            FlowBlock::Paragraph { text: "a".into(), page: 1, bold: false },
-            FlowBlock::Paragraph { text: "b".into(), page: 2, bold: false },
+            FlowBlock::Paragraph {
+                text: "a".into(),
+                page: 1,
+                bold: false,
+            },
+            FlowBlock::Paragraph {
+                text: "b".into(),
+                page: 2,
+                bold: false,
+            },
         ];
         let chapters = chapterize(&flow, ChapterBy::Page);
         assert_eq!(
-            chapters.iter().map(|c| c.title.as_str()).collect::<Vec<_>>(),
+            chapters
+                .iter()
+                .map(|c| c.title.as_str())
+                .collect::<Vec<_>>(),
             vec!["第 1 页", "第 2 页"]
         );
         let fallback = chapterize(&[], ChapterBy::Page);
@@ -405,7 +435,9 @@ mod tests {
     fn uid_base36_matches_js_shape() {
         let uid = timestamp_base36();
         assert!(!uid.is_empty());
-        assert!(uid.chars().all(|c| c.is_ascii_digit() || ('a'..='z').contains(&c)));
+        assert!(uid
+            .chars()
+            .all(|c| c.is_ascii_digit() || ('a'..='z').contains(&c)));
     }
 
     #[test]

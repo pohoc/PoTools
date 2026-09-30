@@ -6,10 +6,10 @@
 //! surfaces here as a real `unsupported` error — the browser fallback path
 //! no longer exists for this tool.
 
+use super::emit;
 use super::layout::pages_for;
 use super::model::{font_resources, ofd_font, pdf_page_images};
 use super::ofd::{pt_to_mm, write_ofd, OfdFont, OfdImage, OfdInput, OfdPage, OfdText};
-use super::emit;
 use crate::services::naming::base_name;
 use crate::tools::pdf_extra::markup::font::{covering_host_font, HostFont};
 use crate::{EngineError, RunContext, ToolResult};
@@ -79,12 +79,16 @@ pub(super) fn run(ctx: &RunContext<'_>) -> RunResult {
                     if !oversize_warned {
                         oversize_warned = true;
                         result.warnings.push(
-                            "字体体积过大，OFD 内只登记字体名，请用装有该字体的阅读器打开".to_owned(),
+                            "字体体积过大，OFD 内只登记字体名，请用装有该字体的阅读器打开"
+                                .to_owned(),
                         );
                     }
                     OfdFont { name, bytes: None }
                 } else {
-                    OfdFont { name, bytes: Some(bytes) }
+                    OfdFont {
+                        name,
+                        bytes: Some(bytes),
+                    }
                 }
             })
         } else {
@@ -145,11 +149,13 @@ pub(super) fn run(ctx: &RunContext<'_>) -> RunResult {
             });
         }
         if ofd_pages.is_empty() {
-            return Err(
-                EngineError::new("no_rasterizer", "没有可导出的页面").with_hint("error.noRasterizer")
-            );
+            return Err(EngineError::new("no_rasterizer", "没有可导出的页面")
+                .with_hint("error.noRasterizer"));
         }
-        let bytes = write_ofd(&OfdInput { font, pages: ofd_pages })?;
+        let bytes = write_ofd(&OfdInput {
+            font,
+            pages: ofd_pages,
+        })?;
         emit(ctx, &mut result, input, "ofd", "ofd", "ofd", bytes);
         produced += 1;
     }
@@ -259,13 +265,16 @@ mod end_to_end {
 
     #[test]
     fn text_mode_without_a_covering_font_is_a_hard_error() {
-        let ctx = setup(json!({}), json!({
-            "pdfText": { "f1": [
-                { "page": 1, "width": 595.0, "height": 842.0, "runs": [
-                    { "text": "中文", "x": 0.0, "y": 0.0, "w": 10.0, "h": 10.0, "size": 10.0 }
+        let ctx = setup(
+            json!({}),
+            json!({
+                "pdfText": { "f1": [
+                    { "page": 1, "width": 595.0, "height": 842.0, "runs": [
+                        { "text": "中文", "x": 0.0, "y": 0.0, "w": 10.0, "h": 10.0, "size": 10.0 }
+                    ] }
                 ] }
-            ] }
-        }));
+            }),
+        );
         let error = run(&ctx).unwrap_err();
         assert_eq!(error.code, "unsupported");
         assert_eq!(
@@ -288,7 +297,8 @@ mod end_to_end {
             }),
         );
         let result = run(&ctx).unwrap();
-        let mut archive = ZipArchive::new(std::io::Cursor::new(&result.artifacts[0].bytes)).unwrap();
+        let mut archive =
+            ZipArchive::new(std::io::Cursor::new(&result.artifacts[0].bytes)).unwrap();
         assert!(archive.by_name("Doc_0/Res/Imgs/样例-p1.png").is_ok());
         let mut content = String::new();
         archive

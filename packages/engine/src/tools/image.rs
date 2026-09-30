@@ -301,7 +301,9 @@ pub fn run(context: &RunContext<'_>) -> Result<Option<ToolResult>, EngineError> 
         let mut result = ToolResult::default();
         // Fixed product name (matches the original engine); downstream
         // dedupe appends the (2)-style suffix when needed.
-        result.artifacts.push(Artifact::new("image-info.json", "json", data));
+        result
+            .artifacts
+            .push(Artifact::new("image-info.json", "json", data));
         result.extra.insert("images".into(), json!(rows.len()));
         return Ok(Some(result));
     }
@@ -361,14 +363,20 @@ fn run_tiff(context: &RunContext<'_>) -> Result<Option<ToolResult>, EngineError>
         let bytes = encode(
             image.clone(),
             format,
-            option_number(context.options, "quality", 85.0).round().clamp(20.0, 100.0) as u8,
+            option_number(context.options, "quality", 85.0)
+                .round()
+                .clamp(20.0, 100.0) as u8,
             background(context.options),
         )?;
         emit(
             &mut result,
             &input.id,
             &input.name,
-            if context.tool == "tiff-preview" { "preview" } else { "converted" },
+            if context.tool == "tiff-preview" {
+                "preview"
+            } else {
+                "converted"
+            },
             format,
             bytes,
             context.name_pattern,
@@ -376,7 +384,9 @@ fn run_tiff(context: &RunContext<'_>) -> Result<Option<ToolResult>, EngineError>
             context.inputs.len(),
         );
     }
-    result.extra.insert("images".into(), json!(context.inputs.len()));
+    result
+        .extra
+        .insert("images".into(), json!(context.inputs.len()));
     Ok(Some(result))
 }
 

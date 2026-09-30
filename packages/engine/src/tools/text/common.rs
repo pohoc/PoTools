@@ -9,7 +9,6 @@ use chrono_tz::Tz;
 use serde_json::{Map, Value};
 use std::str::FromStr;
 
-
 fn opt<'a>(ctx: &'a RunContext<'_>, key: &str) -> Option<&'a Value> {
     ctx.options.get(key)
 }

@@ -21,7 +21,11 @@ fn local_time(ms: i64, en: bool) -> String {
 
 fn offset_label(offset: i64, en: bool) -> String {
     let value = if offset == 0 {
-        if en { " 0 (current)".to_string() } else { " 0（当前）".to_string() }
+        if en {
+            " 0 (current)".to_string()
+        } else {
+            " 0（当前）".to_string()
+        }
     } else if offset > 0 {
         format!("+{offset}")
     } else {
@@ -268,15 +272,29 @@ fn verify_report(
     let en = en(ctx);
     let candidate = code_arg.replace([' ', '\t', '\r', '\n', '-', '_'], "");
     if candidate.is_empty() {
-        return Err(invalid("code", "mode=verify requires the one-time code", "", ctx));
+        return Err(invalid(
+            "code",
+            "mode=verify requires the one-time code",
+            "",
+            ctx,
+        ));
     }
     if !candidate.chars().all(|c| c.is_ascii_digit()) {
-        return Err(invalid("code", "the code may only contain digits", "123456", ctx));
+        return Err(invalid(
+            "code",
+            "the code may only contain digits",
+            "123456",
+            ctx,
+        ));
     }
     let normalized = if candidate.len() == digits as usize {
         candidate.clone()
     } else {
-        format!("{:0>width$}", &candidate[candidate.len().saturating_sub(digits as usize)..], width = digits as usize)
+        format!(
+            "{:0>width$}",
+            &candidate[candidate.len().saturating_sub(digits as usize)..],
+            width = digits as usize
+        )
     };
     let mut table = Vec::new();
     let mut hits = Vec::new();
@@ -296,7 +314,14 @@ fn verify_report(
         }
         table.push(row(
             offset_label(offset, en),
-            format!("{value} · T={step}{}", if hit { sec(en, "  ✓ 命中", "  matched") } else { "" }),
+            format!(
+                "{value} · T={step}{}",
+                if hit {
+                    sec(en, "  ✓ 命中", "  matched")
+                } else {
+                    ""
+                }
+            ),
         ));
     }
     let mut blocks = vec![
@@ -330,7 +355,12 @@ fn verify_report(
                         format!("✓ matched at offset {offset} (T={step})")
                     }
                     Some((offset, step, _)) => format!("✓ 命中（偏移 {offset} 步 · T={step}）"),
-                    None => sec(en, "✗ 未在窗口内命中任何步长", "no step inside the window matched").to_string(),
+                    None => sec(
+                        en,
+                        "✗ 未在窗口内命中任何步长",
+                        "no step inside the window matched",
+                    )
+                    .to_string(),
                 },
             ),
         ]),
@@ -350,7 +380,12 @@ fn verify_report(
                         "已失效".to_string()
                     }
                 } else {
-                    sec(en, "未来步长（时钟可能超前）", "future step (the local clock may run ahead)").to_string()
+                    sec(
+                        en,
+                        "未来步长（时钟可能超前）",
+                        "future step (the local clock may run ahead)",
+                    )
+                    .to_string()
                 };
                 row(
                     offset_label(*offset, en),
@@ -378,7 +413,10 @@ fn verify_report(
         if en {
             format!("- code = truncation of HMAC-{}(key, 8-byte big-endian counter) mod 10^{digits}, leading zeroes kept.", algo.to_uppercase())
         } else {
-            format!("· 口令 = HMAC-{}(密钥, 8 字节大端计数器) 动态截断后 mod 10^{digits}，前导零保留。", algo.to_uppercase())
+            format!(
+                "· 口令 = HMAC-{}(密钥, 8 字节大端计数器) 动态截断后 mod 10^{digits}，前导零保留。",
+                algo.to_uppercase()
+            )
         },
         if uri {
             if en {
@@ -389,7 +427,11 @@ fn verify_report(
             } else {
                 format!(
                     "· 输入为 otpauth URI，query 参数优先于表单字段：{}。",
-                    if overrides_text.is_empty() { "无覆盖" } else { &overrides_text }
+                    if overrides_text.is_empty() {
+                        "无覆盖"
+                    } else {
+                        &overrides_text
+                    }
                 )
             }
         } else {
@@ -410,22 +452,37 @@ fn verify_report(
     blocks.append(&mut notes_to_block(&mut notes));
     let mut extra = serde_json::Map::new();
     extra.insert("mode".into(), json!("verify"));
-    extra.insert("ok".into(), json!(if hits.is_empty() { "no" } else { "yes" }));
+    extra.insert(
+        "ok".into(),
+        json!(if hits.is_empty() { "no" } else { "yes" }),
+    );
     extra.insert(
         "matchedStep".into(),
-        json!(hits.first().map(|x| x.1.to_string()).unwrap_or_else(|| "none".into())),
+        json!(hits
+            .first()
+            .map(|x| x.1.to_string())
+            .unwrap_or_else(|| "none".into())),
     );
     extra.insert(
         "offset".into(),
-        json!(hits.first().map(|x| x.0.to_string()).unwrap_or_else(|| "none".into())),
+        json!(hits
+            .first()
+            .map(|x| x.0.to_string())
+            .unwrap_or_else(|| "none".into())),
     );
     extra.insert("digits".into(), json!(digits));
     extra.insert("period".into(), json!(period));
     extra.insert("algorithm".into(), json!(algo));
     extra.insert("counter".into(), json!(counter));
-    let body = format!("{}\n", join_blocks(blocks.iter().map(String::as_str)).trim_end());
+    let body = format!(
+        "{}\n",
+        join_blocks(blocks.iter().map(String::as_str)).trim_end()
+    );
     let result = artifact("totp.txt", body.clone(), extra);
-    Ok(ToolResult { text: Some(body), ..result })
+    Ok(ToolResult {
+        text: Some(body),
+        ..result
+    })
 }
 
 fn sec(en: bool, zh: &'static str, english: &'static str) -> &'static str {

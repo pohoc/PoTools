@@ -30,7 +30,12 @@ fn dow_short(weekday: u32, ui: &str) -> &'static str {
 fn board_cell(style: &str, tz: chrono_tz::Tz, at: chrono::DateTime<Utc>) -> String {
     let p = local(at, tz);
     match style {
-        "date" => format!("{}-{}-{}", p.year(), fmt::pad(p.month(), 2), fmt::pad(p.day(), 2)),
+        "date" => format!(
+            "{}-{}-{}",
+            p.year(),
+            fmt::pad(p.month(), 2),
+            fmt::pad(p.day(), 2)
+        ),
         "datetime" => p.format("%Y-%m-%d %H:%M").to_string(),
         _ => fmt::format_in_zone(at, tz),
     }
@@ -77,10 +82,7 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
     let show_offset_delta = boolean(ctx, "showOffsetDelta", true);
     let at_raw = string(ctx, "at", "now").trim();
     let at_raw = if at_raw.is_empty() { "now" } else { at_raw };
-    let (reference, reference_zone) = valid
-        .first()
-        .copied()
-        .unwrap_or(("UTC", chrono_tz::UTC));
+    let (reference, reference_zone) = valid.first().copied().unwrap_or(("UTC", chrono_tz::UTC));
     let at = parse_at(at_raw, reference_zone)?;
     let epoch = at;
     let reference_day = fmt::day_index_of_instant(epoch, reference_zone);
@@ -122,8 +124,16 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
             fmt::zone_abbrev(*tz, epoch),
             fmt::msg(
                 ui,
-                if fmt::is_dst_active(epoch, *tz) { "生效" } else { "未生效" },
-                if fmt::is_dst_active(epoch, *tz) { "Active" } else { "Not active" },
+                if fmt::is_dst_active(epoch, *tz) {
+                    "生效"
+                } else {
+                    "未生效"
+                },
+                if fmt::is_dst_active(epoch, *tz) {
+                    "Active"
+                } else {
+                    "Not active"
+                },
             )
             .to_string(),
         ];
@@ -160,7 +170,9 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
         .enumerate()
         .map(|(column, title)| {
             rows.iter()
-                .map(|values| fmt::display_width(values.get(column).map(String::as_str).unwrap_or("")))
+                .map(|values| {
+                    fmt::display_width(values.get(column).map(String::as_str).unwrap_or(""))
+                })
                 .max()
                 .unwrap_or(0)
                 .max(fmt::display_width(title))
@@ -171,7 +183,13 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
             .iter()
             .enumerate()
             .map(|(column, cell)| {
-                fmt::pad_to(cell, widths.get(column).copied().unwrap_or(fmt::display_width(cell)))
+                fmt::pad_to(
+                    cell,
+                    widths
+                        .get(column)
+                        .copied()
+                        .unwrap_or(fmt::display_width(cell)),
+                )
             })
             .collect::<Vec<_>>()
             .join("  ");
@@ -207,7 +225,11 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
                 format!(
                     "{}{}",
                     reference,
-                    fmt::msg(ui, "（列表首个有效时区）", " (first valid zone in the list)")
+                    fmt::msg(
+                        ui,
+                        "（列表首个有效时区）",
+                        " (first valid zone in the list)"
+                    )
                 ),
             ),
             row(fmt::msg(ui, "样式", "Style"), style_label(style, ui)),
@@ -302,7 +324,11 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
     put(&mut extra, "style", style);
     put(&mut extra, "reference", reference);
     put(&mut extra, "at", fmt::iso_in_zone(epoch, chrono_tz::UTC));
-    put(&mut extra, "utc", fmt::format_in_zone(epoch, chrono_tz::UTC));
+    put(
+        &mut extra,
+        "utc",
+        fmt::format_in_zone(epoch, chrono_tz::UTC),
+    );
     Ok(output(
         "timezone-board.txt",
         fmt::join_blocks(blocks.iter().map(String::as_str)),

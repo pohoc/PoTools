@@ -15,10 +15,10 @@ pub mod jwt;
 pub mod password;
 pub mod rsa;
 pub mod totp;
-mod x509_report;
 pub mod unicode;
 pub mod url;
 pub mod x509;
+mod x509_report;
 
 type RunResult = Result<Option<ToolResult>, EngineError>;
 

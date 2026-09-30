@@ -131,7 +131,12 @@ impl PdfDoc {
 
     /// Grows an embedded subset so `text` becomes encodable (`notdef` maps
     /// missing glyphs to gid 0, as the pdf-lib subset paths rely on).
-    pub(crate) fn font_extend(&mut self, index: usize, text: &str, notdef: bool) -> EngineResult<()> {
+    pub(crate) fn font_extend(
+        &mut self,
+        index: usize,
+        text: &str,
+        notdef: bool,
+    ) -> EngineResult<()> {
         if let FontKind::Embedded(font) = &mut self.fonts[index].kind {
             font.extend(&mut self.document, text, notdef)?;
         }
@@ -176,9 +181,8 @@ impl PdfDoc {
 
     /// Appends one image placement (`q w 0 0 h x y cm /Name Do Q`).
     pub(crate) fn draw_image(&mut self, name: &str, x: f64, y: f64, width: f64, height: f64) {
-        self.content.push_str(&format!(
-            "q {width} 0 0 {height} {x} {y} cm /{name} Do Q\n"
-        ));
+        self.content
+            .push_str(&format!("q {width} 0 0 {height} {x} {y} cm /{name} Do Q\n"));
     }
 
     /// Starts a new page content buffer with the given MediaBox size. The
@@ -201,9 +205,10 @@ impl PdfDoc {
             .iter()
             .map(|font| (font.resource.clone(), font.reference))
             .collect();
-        let content_id = self
-            .document
-            .add_object(Stream::new(Dictionary::new(), self.content.as_bytes().to_vec()));
+        let content_id = self.document.add_object(Stream::new(
+            Dictionary::new(),
+            self.content.as_bytes().to_vec(),
+        ));
         let (width, height) = self.page_box;
         let page_id = self.document.add_object(Object::Dictionary(dictionary! {
             "Type" => "Page",

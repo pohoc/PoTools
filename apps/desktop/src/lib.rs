@@ -1,9 +1,5 @@
-#[cfg(test)]
-use std::fs;
 use std::path::PathBuf;
 use std::time::Instant;
-#[cfg(test)]
-use uuid::Uuid;
 
 use tauri::AppHandle;
 

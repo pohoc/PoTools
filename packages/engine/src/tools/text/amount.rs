@@ -133,7 +133,11 @@ pub(super) fn amount_number(input: &str) -> Result<String, EngineError> {
         if c == '整' {
             continue;
         }
-        if c == '零' && chars.peek().is_some_and(|next| chinese_digit(*next).is_some()) {
+        if c == '零'
+            && chars
+                .peek()
+                .is_some_and(|next| chinese_digit(*next).is_some())
+        {
             continue;
         }
         if c == '角' {
@@ -211,7 +215,11 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
 pub(super) fn run_amount(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let input = string(ctx, "input", "").trim();
     if input.is_empty() {
-        return Err(err(if is_en(ctx) { "Enter an amount to convert." } else { "请输入要转换的金额。" }));
+        return Err(err(if is_en(ctx) {
+            "Enter an amount to convert."
+        } else {
+            "请输入要转换的金额。"
+        }));
     }
     let dir = string(ctx, "direction", "to-uppercase");
     let converted = (if dir == "to-number" {

@@ -9,9 +9,9 @@ use super::imgpdf;
 use super::model::font_resources;
 use super::ofd::mm_to_pt;
 use super::ofd_read::read_ofd;
-use super::text::utf16_slice;
 use super::pdfdoc::PdfDoc;
 use super::std14::StdFace;
+use super::text::utf16_slice;
 use crate::services::naming::{base_name, render_name, NameContext};
 use crate::tools::pdf_extra::markup::font::{covering_host_font, HostFont};
 use crate::{Artifact, EngineError, RunContext, ToolResult};
@@ -28,7 +28,9 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
     for input in ctx.inputs {
         pages_out += convert_one(ctx, input, &mut result)?;
     }
-    result.extra.insert("__pageCountOut".into(), json!(pages_out));
+    result
+        .extra
+        .insert("__pageCountOut".into(), json!(pages_out));
     Ok(result)
 }
 
@@ -118,7 +120,8 @@ fn convert_one(
                     if out.font_can_encode(helvetica, &line.text) {
                         helvetica
                     } else {
-                        let Some((resource, face_index)) = covering_host_font(&host_fonts, &line.text)
+                        let Some((resource, face_index)) =
+                            covering_host_font(&host_fonts, &line.text)
                         else {
                             return Err(EngineError::new(
                                 "unsupported",
@@ -180,14 +183,16 @@ fn convert_one(
 #[cfg(test)]
 mod end_to_end {
     use super::*;
-    use crate::InputFile;
     use crate::tools::pdf_convert::ofd::{write_ofd, OfdImage, OfdInput, OfdPage, OfdText};
+    use crate::InputFile;
     use image::RgbImage;
     use lopdf::{Document, Object};
     use std::io::Cursor;
 
     fn png_bytes() -> Vec<u8> {
-        let image = RgbImage::from_fn(8, 6, |x, y| image::Rgb([(x * 20) as u8, (y * 30) as u8, 90]));
+        let image = RgbImage::from_fn(8, 6, |x, y| {
+            image::Rgb([(x * 20) as u8, (y * 30) as u8, 90])
+        });
         let mut bytes = Cursor::new(Vec::new());
         image.write_to(&mut bytes, image::ImageFormat::Png).unwrap();
         bytes.into_inner()
@@ -267,7 +272,8 @@ mod end_to_end {
             .values()
             .find_map(|object| match object {
                 Object::Stream(stream)
-                    if stream.dict.get(b"Length").is_ok() && stream.dict.get(b"Subtype").is_err() =>
+                    if stream.dict.get(b"Length").is_ok()
+                        && stream.dict.get(b"Subtype").is_err() =>
                 {
                     String::from_utf8(stream.content.clone()).ok()
                 }

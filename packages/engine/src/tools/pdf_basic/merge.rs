@@ -34,7 +34,9 @@ pub(super) fn run_merge(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         bytes,
         None,
     );
-    result.extra.insert("__pageCountIn".into(), json!(page_count));
+    result
+        .extra
+        .insert("__pageCountIn".into(), json!(page_count));
     result
         .extra
         .insert("__pageCountOut".into(), json!(page_count));

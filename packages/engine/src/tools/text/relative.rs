@@ -15,7 +15,10 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let tz = zone(ctx)?;
     let locale: fmt::LocaleCode = if !fmt::is_zh(ui) {
         fmt::EN_US
-    } else if string(ctx, "locale", "zh-CN").to_lowercase().starts_with('e') {
+    } else if string(ctx, "locale", "zh-CN")
+        .to_lowercase()
+        .starts_with('e')
+    {
         fmt::EN_US
     } else {
         fmt::ZH_CN
@@ -34,7 +37,11 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let delta = target_ms - base_ms;
     let span = fmt::calendar_breakdown(base_ms, target_ms, tz)?;
     let phrase = fmt::relative_phrase(delta, locale, numeric_auto);
-    let other: fmt::LocaleCode = if locale == fmt::ZH_CN { fmt::EN_US } else { fmt::ZH_CN };
+    let other: fmt::LocaleCode = if locale == fmt::ZH_CN {
+        fmt::EN_US
+    } else {
+        fmt::ZH_CN
+    };
     let alt_locale: fmt::LocaleCode = if !fmt::is_zh(ui) { locale } else { other };
     let alt_auto = if !fmt::is_zh(ui) {
         !numeric_auto
@@ -105,7 +112,10 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
                 fmt::weekday_spelled(target_p.weekday().num_days_from_sunday(), ui)
             ),
         ),
-        row(fmt::msg(ui, "基准绝对值", "Base absolute"), fmt::iso_in_zone(base, tz)),
+        row(
+            fmt::msg(ui, "基准绝对值", "Base absolute"),
+            fmt::iso_in_zone(base, tz),
+        ),
         row(
             fmt::msg(ui, "总时长", "Total length"),
             if ui_en {

@@ -50,10 +50,25 @@ pub(super) fn save(document: &mut Document) -> EngineResult<Vec<u8>> {
     Ok(output.into_inner())
 }
 
-pub(super) fn option_name(name: &str, suffix: &str, pattern: Option<&str>, index: usize, total: usize, range: Option<&str>) -> String {
-    crate::services::naming::render_name(pattern, crate::services::naming::NameContext {
-        name: base_name(name), tool: suffix, index: Some(index), total: Some(total), range,
-    }, "pdf")
+pub(super) fn option_name(
+    name: &str,
+    suffix: &str,
+    pattern: Option<&str>,
+    index: usize,
+    total: usize,
+    range: Option<&str>,
+) -> String {
+    crate::services::naming::render_name(
+        pattern,
+        crate::services::naming::NameContext {
+            name: base_name(name),
+            tool: suffix,
+            index: Some(index),
+            total: Some(total),
+            range,
+        },
+        "pdf",
+    )
 }
 
 fn base_name(name: &str) -> &str {

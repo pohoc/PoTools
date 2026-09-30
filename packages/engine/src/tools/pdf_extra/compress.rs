@@ -134,7 +134,9 @@ fn save_with_object_streams(document: &mut Document) -> EngineResult<Vec<u8>> {
     let mut output = Vec::new();
     document
         .save_with_options(&mut output, options)
-        .map_err(|error| EngineError::new("internal", format!("PDF object stream 写入失败：{error}")))?;
+        .map_err(|error| {
+            EngineError::new("internal", format!("PDF object stream 写入失败：{error}"))
+        })?;
     Ok(output)
 }
 

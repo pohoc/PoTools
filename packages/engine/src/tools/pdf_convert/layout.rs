@@ -102,14 +102,15 @@ pub(crate) fn pages_from_model(model_pages: &[PdfTextPage]) -> Vec<Page> {
 fn group_runs(runs: Vec<Run>) -> Vec<Vec<Run>> {
     let mut sorted: Vec<Run> = runs;
     sorted.sort_by(|a, b| {
-        a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal)
+        a.y.partial_cmp(&b.y)
+            .unwrap_or(Ordering::Equal)
             .then(a.x.partial_cmp(&b.x).unwrap_or(Ordering::Equal))
     });
     let mut rows: Vec<Vec<Run>> = Vec::new();
     for run in sorted {
-        let anchor = rows.iter_mut().find(|items| {
-            (items[0].y - run.y).abs() < (items[0].h.min(run.h) * 0.55).max(2.0)
-        });
+        let anchor = rows
+            .iter_mut()
+            .find(|items| (items[0].y - run.y).abs() < (items[0].h.min(run.h) * 0.55).max(2.0));
         match anchor {
             Some(row) => row.push(run),
             None => rows.push(vec![run]),
@@ -131,9 +132,7 @@ fn merge_runs(pieces: &[Run], index: usize, rows: &[Vec<Run>]) -> Line {
     for prior in (0..index).rev() {
         let previous_row = &rows[prior];
         let current_row = &rows[prior + 1];
-        if current_row[0].y - previous_row[0].y
-            > current_row[0].h.max(previous_row[0].h) * 1.45
-        {
+        if current_row[0].y - previous_row[0].y > current_row[0].h.max(previous_row[0].h) * 1.45 {
             block += 1;
         }
     }
@@ -425,7 +424,10 @@ mod tests {
 
     #[test]
     fn merge_counts_block_gaps_and_inserts_space_by_gap() {
-        let rows = vec![vec![run("a", 0.0, 0.0, 5.0)], vec![run("b", 0.0, 20.0, 5.0)]];
+        let rows = vec![
+            vec![run("a", 0.0, 0.0, 5.0)],
+            vec![run("b", 0.0, 20.0, 5.0)],
+        ];
         assert_eq!(merge_runs(&rows[1], 1, &rows).block, 1);
         let tight = vec![run("a", 0.0, 0.0, 5.0), run("b", 5.2, 0.0, 5.0)];
         assert_eq!(merge_runs(&tight, 0, &[]).text, "ab");
@@ -443,7 +445,10 @@ mod tests {
     #[test]
     fn flow_headings_use_size_ratio_and_body_fallback() {
         let model_page = page(
-            vec![line("Title", 24.0, "normal", 0), line("body text here", 10.0, "normal", 1)],
+            vec![
+                line("Title", 24.0, "normal", 0),
+                line("body text here", 10.0, "normal", 1),
+            ],
             Vec::new(),
         );
         let flow = pages_to_flow(&[model_page], false);
@@ -461,16 +466,42 @@ mod tests {
             Vec::new(),
         );
         let flow = pages_to_flow(&[model_page], false);
-        assert!(matches!(&flow[0], FlowBlock::List { ordered: true, items, .. } if items[0] == "first"));
+        assert!(
+            matches!(&flow[0], FlowBlock::List { ordered: true, items, .. } if items[0] == "first")
+        );
     }
 
     #[test]
     fn image_blocks_append_after_page_text_sorted_by_index() {
         let images = vec![
-            PdfImagePlacement { page: 1, index: 1, width_pt: 30.0, height_pt: 20.0, bytes: vec![] },
-            PdfImagePlacement { page: 1, index: 0, width_pt: 0.0, height_pt: 50.0, bytes: vec![] },
-            PdfImagePlacement { page: 1, index: 2, width_pt: 10.0, height_pt: 10.0, bytes: vec![] },
-            PdfImagePlacement { page: 2, index: 0, width_pt: 40.0, height_pt: 40.0, bytes: vec![] },
+            PdfImagePlacement {
+                page: 1,
+                index: 1,
+                width_pt: 30.0,
+                height_pt: 20.0,
+                bytes: vec![],
+            },
+            PdfImagePlacement {
+                page: 1,
+                index: 0,
+                width_pt: 0.0,
+                height_pt: 50.0,
+                bytes: vec![],
+            },
+            PdfImagePlacement {
+                page: 1,
+                index: 2,
+                width_pt: 10.0,
+                height_pt: 10.0,
+                bytes: vec![],
+            },
+            PdfImagePlacement {
+                page: 2,
+                index: 0,
+                width_pt: 40.0,
+                height_pt: 40.0,
+                bytes: vec![],
+            },
         ];
         let flow = pages_to_flow_with_images(&[page(vec![], Vec::new())], false, &images);
         let placed: Vec<(u32, f64)> = flow

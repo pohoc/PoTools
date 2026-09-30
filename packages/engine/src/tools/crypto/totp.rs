@@ -211,7 +211,12 @@ fn at_ms(raw: &str, ctx: &RunContext<'_>) -> Result<(i64, String), EngineError> 
     if s.is_empty() || s.eq_ignore_ascii_case("now") {
         return Ok((
             Utc::now().timestamp_millis(),
-            if en(ctx) { "now (this very moment)" } else { "now（当前时刻）" }.into(),
+            if en(ctx) {
+                "now (this very moment)"
+            } else {
+                "now（当前时刻）"
+            }
+            .into(),
         ));
     }
     if let Ok(n) = s.parse::<f64>() {

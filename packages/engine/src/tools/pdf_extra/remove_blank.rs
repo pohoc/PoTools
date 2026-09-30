@@ -7,8 +7,8 @@
 //! TypeScript reference implementation's outputs.
 
 use super::{
-    base_name, dedupe, json_artifact, load, render_name, root_id, save, truthy, NameContext,
-    EngineError, EngineResult,
+    base_name, dedupe, json_artifact, load, render_name, root_id, save, truthy, EngineError,
+    EngineResult, NameContext,
 };
 use crate::{Artifact, InputFile, RunContext, ToolResult};
 use lopdf::{Object, ObjectId};
@@ -121,9 +121,9 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         let Some(ratios) = ink_ratios(ctx.runtime_data, &input.id) else {
             // Degraded path: the adapter could not render this document.
             // Keep every page (copy through unchanged) instead of guessing.
-            result
-                .warnings
-                .push(format!("{stem}：无法检测空白页（缺少渲染数据），已保留全部页面"));
+            result.warnings.push(format!(
+                "{stem}：无法检测空白页（缺少渲染数据），已保留全部页面"
+            ));
             if !report_only {
                 let mut copy = document.clone();
                 let bytes = save(&mut copy)?;
@@ -152,9 +152,10 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
             );
             artifact.source_file_id = Some(input.id.clone());
             result.artifacts.push(artifact);
-            result
-                .warnings
-                .push(format!("{stem}：检测到 {} 个空白页（{label}）", blank.len()));
+            result.warnings.push(format!(
+                "{stem}：检测到 {} 个空白页（{label}）",
+                blank.len()
+            ));
             continue;
         }
         if blank.len() >= page_count {
@@ -169,9 +170,10 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
             .collect();
         let bytes = rebuild_without_blank(&document, &keep)?;
         emit_pdf(ctx, &mut result, input, bytes);
-        result
-            .warnings
-            .push(format!("{stem}：已删除 {} 个空白页（{label}）", blank.len()));
+        result.warnings.push(format!(
+            "{stem}：已删除 {} 个空白页（{label}）",
+            blank.len()
+        ));
     }
     result.extra.insert("blankPages".into(), json!(blank_total));
     Ok(result)

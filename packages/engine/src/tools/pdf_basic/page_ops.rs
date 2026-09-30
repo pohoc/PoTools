@@ -95,14 +95,25 @@ pub(super) fn run_split(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         emit_selected(
             &doc,
             &selected,
-            option_name(&input.name, "split", ctx.name_pattern, index + 1, groups.len(), Some(&potools_core::pages::format_page_ranges(&group.iter().map(|page| *page as usize).collect::<Vec<_>>()))),
+            option_name(
+                &input.name,
+                "split",
+                ctx.name_pattern,
+                index + 1,
+                groups.len(),
+                Some(&potools_core::pages::format_page_ranges(
+                    &group.iter().map(|page| *page as usize).collect::<Vec<_>>(),
+                )),
+            ),
             Some(&input.id),
             &mut result,
         )?;
         pages_out += group.len();
     }
     result.extra.insert("__pageCountIn".into(), json!(total));
-    result.extra.insert("__pageCountOut".into(), json!(pages_out));
+    result
+        .extra
+        .insert("__pageCountOut".into(), json!(pages_out));
     result.extra.insert("files".into(), json!(groups.len()));
     Ok(result)
 }
@@ -135,7 +146,14 @@ pub(super) fn run_rotate(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         emit_selected(
             &doc,
             &selected,
-            option_name(&input.name, "rotated", ctx.name_pattern, result.artifacts.len() + 1, ctx.inputs.len(), None),
+            option_name(
+                &input.name,
+                "rotated",
+                ctx.name_pattern,
+                result.artifacts.len() + 1,
+                ctx.inputs.len(),
+                None,
+            ),
             Some(&input.id),
             &mut result,
         )?;
@@ -143,7 +161,9 @@ pub(super) fn run_rotate(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         total_out += pages.len();
     }
     result.extra.insert("__pageCountIn".into(), json!(total_in));
-    result.extra.insert("__pageCountOut".into(), json!(total_out));
+    result
+        .extra
+        .insert("__pageCountOut".into(), json!(total_out));
     result.extra.insert("angle".into(), json!(angle));
     Ok(result)
 }
@@ -179,7 +199,16 @@ pub(super) fn run_extract(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
             emit_selected(
                 &doc,
                 &selected,
-                option_name(&input.name, "extract", ctx.name_pattern, index + 1, groups.len(), Some(&potools_core::pages::format_page_ranges(&group.iter().map(|page| *page as usize).collect::<Vec<_>>()))),
+                option_name(
+                    &input.name,
+                    "extract",
+                    ctx.name_pattern,
+                    index + 1,
+                    groups.len(),
+                    Some(&potools_core::pages::format_page_ranges(
+                        &group.iter().map(|page| *page as usize).collect::<Vec<_>>(),
+                    )),
+                ),
                 Some(&input.id),
                 &mut result,
             )?;
@@ -216,7 +245,14 @@ pub(super) fn run_delete(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         emit_selected(
             &doc,
             &selected,
-            option_name(&input.name, "trimmed", ctx.name_pattern, result.artifacts.len() + 1, 1, None),
+            option_name(
+                &input.name,
+                "trimmed",
+                ctx.name_pattern,
+                result.artifacts.len() + 1,
+                1,
+                None,
+            ),
             Some(&input.id),
             &mut result,
         )?;
@@ -282,7 +318,9 @@ pub(super) fn run_organize(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         None,
         &mut result,
     )?;
-    result.extra.insert("__pageCountIn".into(), json!(plan.len()));
+    result
+        .extra
+        .insert("__pageCountIn".into(), json!(plan.len()));
     result.extra.insert(
         "__pageCountOut".into(),
         json!(result

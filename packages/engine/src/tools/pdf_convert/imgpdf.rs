@@ -43,7 +43,9 @@ fn color_space(components: u8) -> &'static str {
 /// Decodes any non-JPEG raster through the `image` crate. A JPEG that failed
 /// the SOF scan lands here too and re-embeds as decoded RGB.
 fn decode_rgba(bytes: &[u8]) -> Option<DynamicImage> {
-    let reader = ImageReader::new(Cursor::new(bytes)).with_guessed_format().ok()?;
+    let reader = ImageReader::new(Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?;
     DynamicImage::from_decoder(reader.into_decoder().ok()?).ok()
 }
 
@@ -79,7 +81,11 @@ fn embed_dynamic(document: &mut Document, image: &DynamicImage) -> Option<(Objec
         );
         image_stream.compress().ok()?;
         image_stream.dict.set("SMask", Object::Reference(smask_id));
-        return Some((document.add_object(Object::Stream(image_stream)), width, height));
+        return Some((
+            document.add_object(Object::Stream(image_stream)),
+            width,
+            height,
+        ));
     }
     let rgb = image.to_rgb8();
     let mut stream = Stream::new(
@@ -113,8 +119,10 @@ pub(crate) fn jpeg_sof(bytes: &[u8]) -> Option<(u32, u32, u8)> {
             return None;
         }
         if matches!(marker, 0xc0..=0xc3 | 0xc5..=0xc7 | 0xc9..=0xcb | 0xcd..=0xcf) {
-            let height = ((*bytes.get(offset + 5)? as usize) << 8) | *bytes.get(offset + 6)? as usize;
-            let width = ((*bytes.get(offset + 7)? as usize) << 8) | *bytes.get(offset + 8)? as usize;
+            let height =
+                ((*bytes.get(offset + 5)? as usize) << 8) | *bytes.get(offset + 6)? as usize;
+            let width =
+                ((*bytes.get(offset + 7)? as usize) << 8) | *bytes.get(offset + 8)? as usize;
             return Some((width as u32, height as u32, *bytes.get(offset + 9)?));
         }
         offset += 2 + length;
@@ -130,7 +138,9 @@ mod tests {
     fn sof_scan_reads_dimensions_and_components() {
         // Minimal SOF0: FF C0 len=8 precision=8 height=20 width=30 comps=3
         // (the segment length counts itself: 2 + 6 payload bytes).
-        let bytes = [0xff, 0xd8, 0xff, 0xc0, 0x00, 0x08, 0x08, 0x00, 0x14, 0x00, 0x1e, 0x03];
+        let bytes = [
+            0xff, 0xd8, 0xff, 0xc0, 0x00, 0x08, 0x08, 0x00, 0x14, 0x00, 0x1e, 0x03,
+        ];
         assert_eq!(jpeg_sof(&bytes), Some((30, 20, 3)));
         assert_eq!(jpeg_sof(&[0xff, 0xd8]), None);
     }

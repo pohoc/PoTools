@@ -123,15 +123,40 @@ pub fn is_valid_page_ranges(input: &str) -> bool {
     let mut has_token = false;
     for raw in text.split([',', ';', '，', '、']) {
         let token = raw.trim();
-        if token.is_empty() { continue; }
+        if token.is_empty() {
+            continue;
+        }
         has_token = true;
         if let Some((left, right)) = token.split_once('-') {
-            if right.contains('-') { return false; }
-            let from = if left.trim().is_empty() { Some(Some(1)) } else { left.trim().parse::<usize>().ok().filter(|value| *value > 0).map(Some) };
-            let to = if right.trim().is_empty() { Some(None) } else { right.trim().parse::<usize>().ok().filter(|value| *value > 0).map(Some) };
-            let (Some(from), Some(to)) = (from, to) else { return false; };
+            if right.contains('-') {
+                return false;
+            }
+            let from = if left.trim().is_empty() {
+                Some(Some(1))
+            } else {
+                left.trim()
+                    .parse::<usize>()
+                    .ok()
+                    .filter(|value| *value > 0)
+                    .map(Some)
+            };
+            let to = if right.trim().is_empty() {
+                Some(None)
+            } else {
+                right
+                    .trim()
+                    .parse::<usize>()
+                    .ok()
+                    .filter(|value| *value > 0)
+                    .map(Some)
+            };
+            let (Some(from), Some(to)) = (from, to) else {
+                return false;
+            };
             if let (Some(from), Some(to)) = (from, to) {
-                if from > to { return false; }
+                if from > to {
+                    return false;
+                }
             }
         } else {
             match token.parse::<usize>() {

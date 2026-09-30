@@ -84,7 +84,8 @@ fn element(node: Option<XmlNode>, name: &str) -> Option<XmlNode> {
 }
 
 fn text_of(node: Option<&XmlNode>) -> String {
-    node.map(|node| node.text.trim().to_owned()).unwrap_or_default()
+    node.map(|node| node.text.trim().to_owned())
+        .unwrap_or_default()
 }
 
 /// TS `boxOf`: whitespace split, numeric coercion, always four values.
@@ -151,7 +152,9 @@ fn attributes(start: &quick_xml::events::BytesStart<'_>) -> Vec<(String, String)
         .map(|attr| {
             (
                 attr.key.local_name().into_inner().to_owned(),
-                attr.normalized_value(XmlVersion::Implicit1_0).unwrap_or_default().to_string(),
+                attr.normalized_value(XmlVersion::Implicit1_0)
+                    .unwrap_or_default()
+                    .to_string(),
             )
         })
         .collect()
@@ -223,7 +226,11 @@ pub(crate) fn read_ofd(bytes: &[u8]) -> EngineResult<OfdDoc> {
     let body = root.as_ref().and_then(|ofd| ofd.child("DocBody"));
     let doc_root = {
         let value = text_of(body.and_then(|body| body.child("DocRoot")));
-        if value.is_empty() { "Document.xml".to_owned() } else { value }
+        if value.is_empty() {
+            "Document.xml".to_owned()
+        } else {
+            value
+        }
     };
     let base_path = match doc_root.rfind('/') {
         Some(index) => doc_root[..index].to_owned(),
@@ -284,7 +291,11 @@ pub(crate) fn read_ofd(bytes: &[u8]) -> EngineResult<OfdDoc> {
             // TS: text(@_BaseLoc) || 'content.xml'.
             let base = {
                 let value = page.attr("BaseLoc").unwrap_or("").trim().to_owned();
-                if value.is_empty() { "content.xml".to_owned() } else { value }
+                if value.is_empty() {
+                    "content.xml".to_owned()
+                } else {
+                    value
+                }
             };
             page_entries.push(base);
         }
@@ -325,7 +336,9 @@ pub(crate) fn read_ofd(bytes: &[u8]) -> EngineResult<OfdDoc> {
         if let Some(content) = page_xml.as_ref().and_then(|node| node.child("Content")) {
             for layer in content.children_of("Layer") {
                 for image in layer.children_of("ImageObject") {
-                    let Ok(resource_id) = image.attr("ResourceID").unwrap_or("").trim().parse::<u64>() else {
+                    let Ok(resource_id) =
+                        image.attr("ResourceID").unwrap_or("").trim().parse::<u64>()
+                    else {
                         continue;
                     };
                     let Some(file) = media.get(&resource_id) else {

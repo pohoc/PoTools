@@ -12,9 +12,17 @@ use std::sync::OnceLock;
 /// One flow block with page fixed at 0 (the TS markdown reader's value).
 #[derive(Clone, Debug)]
 pub(crate) enum MdBlock {
-    Heading { level: usize, text: String },
-    Paragraph { text: String },
-    List { ordered: bool, items: Vec<String> },
+    Heading {
+        level: usize,
+        text: String,
+    },
+    Paragraph {
+        text: String,
+    },
+    List {
+        ordered: bool,
+        items: Vec<String>,
+    },
     /// Full-line image: `![alt](src)`. `alt` completes the TS contract even
     /// though the typesetter consumes only `src`.
     Image {
@@ -57,20 +65,21 @@ pub(crate) fn parse_markdown(source: &str) -> MarkdownDoc {
     let mut paragraph: Vec<String> = Vec::new();
     let mut code: Option<Vec<String>> = None;
 
-    let flush_paragraph = |paragraph: &mut Vec<String>, blocks: &mut Vec<MdBlock>, title: &mut Option<String>| {
-        if paragraph.is_empty() {
-            return;
-        }
-        let joined = js_trim(&paragraph.join(" "));
-        paragraph.clear();
-        if joined.is_empty() {
-            return;
-        }
-        if title.is_none() {
-            *title = Some(utf16_slice(&joined, 80));
-        }
-        blocks.push(MdBlock::Paragraph { text: joined });
-    };
+    let flush_paragraph =
+        |paragraph: &mut Vec<String>, blocks: &mut Vec<MdBlock>, title: &mut Option<String>| {
+            if paragraph.is_empty() {
+                return;
+            }
+            let joined = js_trim(&paragraph.join(" "));
+            paragraph.clear();
+            if joined.is_empty() {
+                return;
+            }
+            if title.is_none() {
+                *title = Some(utf16_slice(&joined, 80));
+            }
+            blocks.push(MdBlock::Paragraph { text: joined });
+        };
     let flush_list = |list: &mut Option<(bool, Vec<String>)>, blocks: &mut Vec<MdBlock>| {
         if let Some((ordered, items)) = list.take() {
             blocks.push(MdBlock::List { ordered, items });
@@ -115,7 +124,10 @@ pub(crate) fn parse_markdown(source: &str) -> MarkdownDoc {
             if level == 1 && title.is_none() {
                 title = Some(text_value.clone());
             }
-            blocks.push(MdBlock::Heading { level, text: text_value });
+            blocks.push(MdBlock::Heading {
+                level,
+                text: text_value,
+            });
             continue;
         }
         if let Some(captures) = image_regex().captures(&trimmed) {
@@ -168,11 +180,29 @@ pub(crate) fn parse_inline(value: &str) -> Vec<InlineRun> {
             out.push(run_of(&value[cursor..whole.start()], MdStyle::default()));
         }
         if let Some(text) = captures.get(2).or_else(|| captures.get(4)) {
-            out.push(run_of(text.as_str(), MdStyle { bold: true, ..MdStyle::default() }));
+            out.push(run_of(
+                text.as_str(),
+                MdStyle {
+                    bold: true,
+                    ..MdStyle::default()
+                },
+            ));
         } else if let Some(text) = captures.get(6) {
-            out.push(run_of(text.as_str(), MdStyle { italic: true, ..MdStyle::default() }));
+            out.push(run_of(
+                text.as_str(),
+                MdStyle {
+                    italic: true,
+                    ..MdStyle::default()
+                },
+            ));
         } else if let Some(text) = captures.get(8) {
-            out.push(run_of(text.as_str(), MdStyle { code: true, ..MdStyle::default() }));
+            out.push(run_of(
+                text.as_str(),
+                MdStyle {
+                    code: true,
+                    ..MdStyle::default()
+                },
+            ));
         } else if let Some(text) = captures.get(10) {
             // Links draw their label text without styling.
             out.push(run_of(text.as_str(), MdStyle::default()));
@@ -206,7 +236,8 @@ impl Default for MdStyle {
 }
 
 /// JS `\s` as a regex class (the `regex` crate's `\s` differs).
-const WS: &str = r"[\t\n\v\f\r \u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]";
+const WS: &str =
+    r"[\t\n\v\f\r \u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]";
 
 fn fence_regex() -> &'static Regex {
     static FENCE: OnceLock<Regex> = OnceLock::new();
@@ -257,8 +288,10 @@ fn quote_regex() -> &'static Regex {
 fn inline_regex() -> &'static Regex {
     static INLINE: OnceLock<Regex> = OnceLock::new();
     INLINE.get_or_init(|| {
-        Regex::new(r"(\*\*([^*]+)\*\*)|(__([^_]+)__)|(\*([^*]+)\*)|(`([^`]+)`)|(\[([^\]]+)\]\(([^)]+)\))")
-            .expect("inline pattern is valid")
+        Regex::new(
+            r"(\*\*([^*]+)\*\*)|(__([^_]+)__)|(\*([^*]+)\*)|(`([^`]+)`)|(\[([^\]]+)\]\(([^)]+)\))",
+        )
+        .expect("inline pattern is valid")
     })
 }
 
@@ -272,7 +305,9 @@ mod tests {
         assert_eq!(doc.title.as_deref(), Some("标题"));
         assert!(matches!(doc.blocks[0], MdBlock::Heading { level: 1, .. }));
         assert!(matches!(doc.blocks[1], MdBlock::Paragraph { .. }));
-        assert!(matches!(&doc.blocks[2], MdBlock::List { ordered: false, items } if items.len() == 2));
+        assert!(
+            matches!(&doc.blocks[2], MdBlock::List { ordered: false, items } if items.len() == 2)
+        );
         assert!(matches!(doc.blocks[3], MdBlock::Paragraph { .. })); // fenced code
         assert!(matches!(&doc.blocks[4], MdBlock::Image { src, .. } if src == "a.png"));
         assert!(matches!(doc.blocks[5], MdBlock::PageBreak));
@@ -283,7 +318,10 @@ mod tests {
         let doc = parse_markdown("hello world");
         assert_eq!(doc.title.as_deref(), Some("hello world"));
         let long = parse_markdown(&"字".repeat(100));
-        assert_eq!(long.title.as_deref().map(str::chars).map(Iterator::count), Some(80));
+        assert_eq!(
+            long.title.as_deref().map(str::chars).map(Iterator::count),
+            Some(80)
+        );
     }
 
     #[test]

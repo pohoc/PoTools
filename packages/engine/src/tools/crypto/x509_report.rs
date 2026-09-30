@@ -119,8 +119,7 @@ fn key_usage_names(c: &CertInfo, en: bool) -> String {
         "encipherOnly",
         "decipherOnly",
     ];
-    KEYS
-        .iter()
+    KEYS.iter()
         .enumerate()
         .filter(|(index, _)| c.key_usage.iter().any(|name| name == KEYS[*index]))
         .map(|(index, _)| {
@@ -139,18 +138,36 @@ fn eku_names(c: &CertInfo, en: bool) -> String {
         ("serverAuth", "服务器认证 serverAuth", "serverAuth"),
         ("clientAuth", "客户端认证 clientAuth", "clientAuth"),
         ("codeSigning", "代码签名 codeSigning", "codeSigning"),
-        ("emailProtection", "邮件保护 emailProtection", "emailProtection"),
+        (
+            "emailProtection",
+            "邮件保护 emailProtection",
+            "emailProtection",
+        ),
         ("timeStamping", "时间戳 timeStamping", "timeStamping"),
         ("OCSPSigning", "安全电子邮件 secureEmail", "secureEmail"),
-        ("2.23.140.1.2.1", "DV 证书 domainValidated", "DV certificate domainValidated"),
-        ("2.23.140.1.2.2", "OV 证书 organizationValidated", "OV certificate organizationValidated"),
+        (
+            "2.23.140.1.2.1",
+            "DV 证书 domainValidated",
+            "DV certificate domainValidated",
+        ),
+        (
+            "2.23.140.1.2.2",
+            "OV 证书 organizationValidated",
+            "OV certificate organizationValidated",
+        ),
     ];
     c.eku
         .iter()
         .map(|name| {
             MAP.iter()
                 .find(|(key, _, _)| key == name)
-                .map(|(_, zh, english)| if en { english.to_string() } else { zh.to_string() })
+                .map(|(_, zh, english)| {
+                    if en {
+                        english.to_string()
+                    } else {
+                        zh.to_string()
+                    }
+                })
                 .unwrap_or_else(|| name.clone())
         })
         .collect::<Vec<_>>()
@@ -173,7 +190,9 @@ pub(super) fn render(
             sec(en, "（叶证书）", " (leaf)")
         } else if c.subject == c.issuer {
             sec(en, "（自签根）", " (self-signed root)")
-        } else { sec(en, "（链上级）", " (chain issuer)") };
+        } else {
+            sec(en, "（链上级）", " (chain issuer)")
+        };
         let remaining_days = (c.to - now) as f64 / 86_400.0;
         let total_days = (c.to - c.from) as f64 / 86_400.0;
         let key_bits = if c.key_bits > 0 {
@@ -196,11 +215,17 @@ pub(super) fn render(
             format!(
                 "CA:{}{}{}",
                 if c.ca { "TRUE" } else { "FALSE" },
-                c.pathlen.map(|len| format!(", pathlen:{len}")).unwrap_or_default(),
+                c.pathlen
+                    .map(|len| format!(", pathlen:{len}"))
+                    .unwrap_or_default(),
                 if c.bc_critical { " · critical" } else { "" }
             )
         } else {
-            sec(en, "证书未包含该扩展", "the certificate has no such extension")
+            sec(
+                en,
+                "证书未包含该扩展",
+                "the certificate has no such extension",
+            )
         };
         let key_usage_value = if c.has_key_usage {
             let text = key_usage_names(c, en);
@@ -211,13 +236,33 @@ pub(super) fn render(
             };
             format!("{text}{}", if c.ku_critical { " · critical" } else { "" })
         } else {
-            sec(en, "证书未包含该扩展", "the certificate has no such extension")
+            sec(
+                en,
+                "证书未包含该扩展",
+                "the certificate has no such extension",
+            )
         };
-        let eku_value = if c.has_eku { eku_names(c, en) } else { sec(en, "证书未包含该扩展", "the certificate has no such extension") };
+        let eku_value = if c.has_eku {
+            eku_names(c, en)
+        } else {
+            sec(
+                en,
+                "证书未包含该扩展",
+                "the certificate has no such extension",
+            )
+        };
         let state = if now < c.from {
-            sec(en, "未生效（notBefore 未到）", "not yet valid (notBefore not reached)")
+            sec(
+                en,
+                "未生效（notBefore 未到）",
+                "not yet valid (notBefore not reached)",
+            )
         } else if now > c.to {
-            sec(en, "已过期（notAfter 已过）", "expired (notAfter has passed)")
+            sec(
+                en,
+                "已过期（notAfter 已过）",
+                "expired (notAfter has passed)",
+            )
         } else {
             sec(en, "有效期内", "within its validity period")
         };
@@ -249,19 +294,24 @@ pub(super) fn render(
                 ),
                 row(
                     sec(en, "证书 DER 长度", "Certificate DER length"),
-                    format!(
-                        "{}{}",
-                        c.der.len(),
-                        if en { " bytes" } else { " 字节" }
-                    ),
+                    format!("{}{}", c.der.len(), if en { " bytes" } else { " 字节" }),
                 ),
                 row(
                     sec(en, "公钥 SPKI SHA-256", "Public key SPKI SHA-256"),
                     fingerprint(&c.spki_der, "sha256"),
                 ),
-                row(sec(en, "指纹 SHA-1", "Fingerprint SHA-1"), fingerprint(&c.der, "sha1")),
-                row(sec(en, "指纹 SHA-256", "Fingerprint SHA-256"), fingerprint(&c.der, "sha256")),
-                row(sec(en, "指纹 SHA-512", "Fingerprint SHA-512"), fingerprint(&c.der, "sha512")),
+                row(
+                    sec(en, "指纹 SHA-1", "Fingerprint SHA-1"),
+                    fingerprint(&c.der, "sha1"),
+                ),
+                row(
+                    sec(en, "指纹 SHA-256", "Fingerprint SHA-256"),
+                    fingerprint(&c.der, "sha256"),
+                ),
+                row(
+                    sec(en, "指纹 SHA-512", "Fingerprint SHA-512"),
+                    fingerprint(&c.der, "sha512"),
+                ),
             ]),
             section(&sec(en, "主体（subject）", "Subject")),
             dn_rows(&c.subject),
@@ -290,13 +340,21 @@ pub(super) fn render(
                     if en {
                         format!(
                             "{} {:.2} days - {relative}",
-                            if remaining_days >= 0.0 { "valid for" } else { "overdue by" },
+                            if remaining_days >= 0.0 {
+                                "valid for"
+                            } else {
+                                "overdue by"
+                            },
                             remaining_days.abs()
                         )
                     } else {
                         format!(
                             "{} {:.2} 天 · {relative}",
-                            if remaining_days >= 0.0 { "还有" } else { "已过期" },
+                            if remaining_days >= 0.0 {
+                                "还有"
+                            } else {
+                                "已过期"
+                            },
                             remaining_days.abs()
                         )
                     },
@@ -308,7 +366,11 @@ pub(super) fn render(
                         total_days,
                         if en { " days" } else { " 天" },
                         if total_days > 398.0 {
-                            sec(en, "（超出浏览器信任上限 398 天）", " (above the 398-day browser trust limit)")
+                            sec(
+                                en,
+                                "（超出浏览器信任上限 398 天）",
+                                " (above the 398-day browser trust limit)",
+                            )
                         } else {
                             sec(en, "（在 398 天内）", " (within 398 days)")
                         }
@@ -316,7 +378,11 @@ pub(super) fn render(
                 ),
                 row(sec(en, "当前状态", "Current state"), state),
             ]),
-            section(&sec(en, "使用者备用名（SAN）", "Subject alternative name (SAN)")),
+            section(&sec(
+                en,
+                "使用者备用名（SAN）",
+                "Subject alternative name (SAN)",
+            )),
             if c.sans.is_empty() {
                 align_rows(&[row(
                     format!("  {}", sec(en, "结果", "Result")),
@@ -337,7 +403,10 @@ pub(super) fn render(
             section(&sec(en, "扩展与用途", "Extensions and usage")),
             align_rows(&[
                 row(sec(en, "版本", "Version"), format!("X.509 v{}", c.version)),
-                row(sec(en, "签名算法", "Signature algorithm"), c.sig_alg.clone()),
+                row(
+                    sec(en, "签名算法", "Signature algorithm"),
+                    c.sig_alg.clone(),
+                ),
                 row(
                     sec(en, "签名算法 OID", "Signature algorithm OID"),
                     c.sig_alg_oid.clone(),
@@ -349,10 +418,22 @@ pub(super) fn render(
                         "{}{}{ca}",
                         sec(
                             en,
-                            if c.ca { "CA 证书（可签发下级）" } else { "终端实体（不可签发下级）" },
-                            if c.ca { "CA certificate (may issue sub-certificates)" } else { "end entity (may not issue sub-certificates)" }
+                            if c.ca {
+                                "CA 证书（可签发下级）"
+                            } else {
+                                "终端实体（不可签发下级）"
+                            },
+                            if c.ca {
+                                "CA certificate (may issue sub-certificates)"
+                            } else {
+                                "end entity (may not issue sub-certificates)"
+                            }
                         ),
-                        if en { " - node ca property = " } else { " · node ca 属性 = " },
+                        if en {
+                            " - node ca property = "
+                        } else {
+                            " · node ca 属性 = "
+                        },
                         ca = c.ca
                     ),
                 ),
@@ -373,7 +454,11 @@ pub(super) fn render(
                     c.sans.len().to_string(),
                 ),
                 row(
-                    sec(en, "infoAccess（OCSP/CA Issuers）", "infoAccess (OCSP/CA Issuers)"),
+                    sec(
+                        en,
+                        "infoAccess（OCSP/CA Issuers）",
+                        "infoAccess (OCSP/CA Issuers)",
+                    ),
                     sec(en, "无", "None"),
                 ),
             ]),
@@ -392,11 +477,19 @@ pub(super) fn render(
                     if !c.has_basic_constraints {
                         format!(
                             "{}{false}",
-                            sec(en, "未声明，按 ca 属性判定：", "not declared, decided from the ca property: "),
+                            sec(
+                                en,
+                                "未声明，按 ca 属性判定：",
+                                "not declared, decided from the ca property: "
+                            ),
                             false = c.ca
                         )
                     } else if c.ca {
-                        sec(en, "是（basicConstraints CA:TRUE）", "yes (basicConstraints CA:TRUE)")
+                        sec(
+                            en,
+                            "是（basicConstraints CA:TRUE）",
+                            "yes (basicConstraints CA:TRUE)",
+                        )
                     } else {
                         sec(en, "否（CA:FALSE）", "no (CA:FALSE)")
                     },

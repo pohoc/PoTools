@@ -61,7 +61,11 @@ pub(super) fn base32_encode(bytes: &[u8], alphabet: &[u8], padded: bool) -> Stri
     }
     out
 }
-pub(super) fn base32_decode(raw: &str, alphabet: &[u8], crockford: bool) -> Result<Vec<u8>, EngineError> {
+pub(super) fn base32_decode(
+    raw: &str,
+    alphabet: &[u8],
+    crockford: bool,
+) -> Result<Vec<u8>, EngineError> {
     let compact: Vec<u8> = raw
         .bytes()
         .filter(|b| !b.is_ascii_whitespace() && *b != b'-' && *b != b'=')

@@ -1,9 +1,9 @@
 //! Workday scan primitives (rest-day reasons and the day-walk accumulator),
 //! split out of `workdays` to keep both files small.
 
-use super::fmt;
 #[allow(unused_imports)]
 use super::common::err;
+use super::fmt;
 use chrono::NaiveDate;
 
 pub(super) const LIST_CAP: usize = 120;
@@ -82,4 +82,3 @@ pub(super) struct Scan {
     pub(super) ranges: Vec<(i64, i64)>,
     pub(super) scan_cap_hit: bool,
 }
-

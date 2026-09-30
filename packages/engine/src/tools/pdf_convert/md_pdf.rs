@@ -48,8 +48,8 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
     let mut pages_out = 0usize;
     for input in ctx.inputs {
         // The TS decodes the first 8 bytes as UTF-8 and rejects PDF/zip magic.
-        let head: String = String::from_utf8_lossy(&input.bytes[..input.bytes.len().min(8)])
-            .into_owned();
+        let head: String =
+            String::from_utf8_lossy(&input.bytes[..input.bytes.len().min(8)]).into_owned();
         if head.starts_with("%PDF") || head.starts_with("PK") {
             return Err(EngineError::new(
                 "unreadable_file",
@@ -107,7 +107,9 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         emit(ctx, &mut result, input, "md-pdf", "pdf", "pdf", bytes);
         pages_out += pages;
     }
-    result.extra.insert("__pageCountOut".into(), json!(pages_out));
+    result
+        .extra
+        .insert("__pageCountOut".into(), json!(pages_out));
     Ok(result)
 }
 
@@ -129,7 +131,9 @@ mod end_to_end {
     use std::io::Cursor;
 
     fn png_bytes() -> Vec<u8> {
-        let image = RgbaImage::from_fn(8, 6, |x, y| image::Rgba([(x * 20) as u8, (y * 30) as u8, 90, 255]));
+        let image = RgbaImage::from_fn(8, 6, |x, y| {
+            image::Rgba([(x * 20) as u8, (y * 30) as u8, 90, 255])
+        });
         let mut bytes = Cursor::new(Vec::new());
         image.write_to(&mut bytes, image::ImageFormat::Png).unwrap();
         bytes.into_inner()
@@ -176,7 +180,8 @@ mod end_to_end {
             .values()
             .find_map(|object| match object {
                 Object::Stream(stream)
-                    if stream.dict.get(b"Length").is_ok() && stream.dict.get(b"Subtype").is_err() =>
+                    if stream.dict.get(b"Length").is_ok()
+                        && stream.dict.get(b"Subtype").is_err() =>
                 {
                     String::from_utf8(stream.content.clone()).ok()
                 }
@@ -189,9 +194,11 @@ mod end_to_end {
         let image_count = document
             .objects
             .values()
-            .filter(|object| matches!(object,
+            .filter(|object| {
+                matches!(object,
                 Object::Stream(stream) if stream.dict.get(b"Subtype").ok()
-                    .and_then(|o| o.as_name().ok()) == Some(b"Image".as_slice())))
+                    .and_then(|o| o.as_name().ok()) == Some(b"Image".as_slice()))
+            })
             .count();
         assert_eq!(image_count, 2); // RGB + SMask
     }
@@ -206,9 +213,11 @@ mod end_to_end {
         let images = document
             .objects
             .values()
-            .filter(|object| matches!(object,
+            .filter(|object| {
+                matches!(object,
                 Object::Stream(stream) if stream.dict.get(b"Subtype").ok()
-                    .and_then(|o| o.as_name().ok()) == Some(b"Image".as_slice())))
+                    .and_then(|o| o.as_name().ok()) == Some(b"Image".as_slice()))
+            })
             .count();
         assert_eq!(images, 0);
     }

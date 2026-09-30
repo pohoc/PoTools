@@ -41,9 +41,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
                 .use_xref_streams(false)
                 .build();
             let mut compact = Vec::new();
-            if document
-                .save_with_options(&mut compact, options)
-                .is_ok()
+            if document.save_with_options(&mut compact, options).is_ok()
                 && compact.len() < bytes.len()
             {
                 bytes = compact;

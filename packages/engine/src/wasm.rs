@@ -18,14 +18,16 @@ fn to_js_json<T: Serialize + ?Sized>(value: &T) -> Result<JsValue, JsValue> {
 /// exports whose payloads carry image pixels or XLSX bytes.
 fn to_js_payload<T: Serialize + ?Sized>(value: &T) -> Result<JsValue, JsValue> {
     value
-        .serialize(&serde_wasm_bindgen::Serializer::json_compatible().serialize_bytes_as_arrays(false))
+        .serialize(
+            &serde_wasm_bindgen::Serializer::json_compatible().serialize_bytes_as_arrays(false),
+        )
         .map_err(|error| JsValue::from_str(&error.to_string()))
 }
 
 #[wasm_bindgen(js_name = coreAllTools)]
 pub fn core_all_tools() -> Result<JsValue, JsValue> {
-    let tools = potools_core::tools::all_tools()
-        .map_err(|error| JsValue::from_str(&error.to_string()))?;
+    let tools =
+        potools_core::tools::all_tools().map_err(|error| JsValue::from_str(&error.to_string()))?;
     to_js_json(&tools)
 }
 
@@ -67,11 +69,30 @@ pub fn core_is_valid_page_ranges(input: &str) -> bool {
 
 #[wasm_bindgen(js_name = coreAssessPasswordStrength)]
 pub fn core_assess_password_strength(password: &str) -> Result<JsValue, JsValue> {
-    use potools_core::password_strength::{assess_password_strength, PasswordStrengthLevel as L, PasswordStrengthTip as T};
+    use potools_core::password_strength::{
+        assess_password_strength, PasswordStrengthLevel as L, PasswordStrengthTip as T,
+    };
     let assessment = assess_password_strength(password);
-    let level = match assessment.level { L::VeryWeak => "very-weak", L::Weak => "weak", L::Fair => "fair", L::Strong => "strong", L::VeryStrong => "very-strong" };
-    let tips: Vec<&str> = assessment.tips.iter().map(|tip| match tip { T::Length => "length", T::Variety => "variety", T::Common => "common", T::Repeated => "repeated" }).collect();
-    to_js_json(&serde_json::json!({ "level": level, "score": assessment.score, "length": assessment.length, "tips": tips }))
+    let level = match assessment.level {
+        L::VeryWeak => "very-weak",
+        L::Weak => "weak",
+        L::Fair => "fair",
+        L::Strong => "strong",
+        L::VeryStrong => "very-strong",
+    };
+    let tips: Vec<&str> = assessment
+        .tips
+        .iter()
+        .map(|tip| match tip {
+            T::Length => "length",
+            T::Variety => "variety",
+            T::Common => "common",
+            T::Repeated => "repeated",
+        })
+        .collect();
+    to_js_json(
+        &serde_json::json!({ "level": level, "score": assessment.score, "length": assessment.length, "tips": tips }),
+    )
 }
 
 #[wasm_bindgen(js_name = coreIdPhotoPrintSize)]
@@ -261,10 +282,22 @@ pub fn dispatch(request: JsValue) -> Result<JsValue, JsValue> {
         .collect();
     if matches!(request.tool.as_str(), "file.probe" | "page.list") {
         let reply = match inputs.first() {
-            None => RpcReply { handled: false, result: None, error: None },
+            None => RpcReply {
+                handled: false,
+                result: None,
+                error: None,
+            },
             Some(input) => match crate::tools::pdf_extra::inspect_rpc(&request.tool, input) {
-                Ok(Some(result)) => RpcReply { handled: true, result: Some(result), error: None },
-                Ok(None) => RpcReply { handled: false, result: None, error: None },
+                Ok(Some(result)) => RpcReply {
+                    handled: true,
+                    result: Some(result),
+                    error: None,
+                },
+                Ok(None) => RpcReply {
+                    handled: false,
+                    result: None,
+                    error: None,
+                },
                 Err(error) => RpcReply {
                     handled: true,
                     result: None,

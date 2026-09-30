@@ -26,7 +26,11 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
     let weekend = fmt::parse_weekend_set(string(ctx, "weekend", "0,6"), ui)?;
     let holidays = fmt::parse_holiday_map(string(ctx, "holidays", ""), tz, ui)?;
     let start_raw = string(ctx, "start", "today").trim();
-    let start_raw = if start_raw.is_empty() { "today" } else { start_raw };
+    let start_raw = if start_raw.is_empty() {
+        "today"
+    } else {
+        start_raw
+    };
     let start = parse_at(start_raw, tz)?;
     let start_p = local(start, tz);
     let start_index = fmt::day_index(start_p.year(), start_p.month(), start_p.day());
@@ -157,7 +161,11 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
                     fmt::msg(ui, "add · 向后推算", "add · counted forwards")
                 }
             } else {
-                fmt::msg(ui, "count · 统计区间内工作日", "count · workdays inside the range")
+                fmt::msg(
+                    ui,
+                    "count · 统计区间内工作日",
+                    "count · workdays inside the range",
+                )
             },
         ),
     ];
@@ -222,7 +230,12 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
         if holidays.is_empty() {
             fmt::msg(ui, "未填写", "not set").to_string()
         } else {
-            let list = holidays.keys().take(6).cloned().collect::<Vec<_>>().join(sep);
+            let list = holidays
+                .keys()
+                .take(6)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(sep);
             let more = if holidays.len() > 6 {
                 fmt::msg(ui, " …", " ...")
             } else {
@@ -230,7 +243,11 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
             };
             format!(
                 "{}{}{more}",
-                fmt::msg(ui, &format!("{} 天：", holidays.len()), &format!("{} listed: ", holidays.len())),
+                fmt::msg(
+                    ui,
+                    &format!("{} 天：", holidays.len()),
+                    &format!("{} listed: ", holidays.len())
+                ),
                 list
             )
         },
@@ -251,7 +268,10 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
                 fmt::format_zone_stamp(result_instant, tz),
             ),
             row("ISO 8601", fmt::iso_in_zone(result_instant, tz)),
-            row(fmt::msg(ui, "中文日期", "Date (long)"), fmt::long_date(result_instant, tz, ui)),
+            row(
+                fmt::msg(ui, "中文日期", "Date (long)"),
+                fmt::long_date(result_instant, tz, ui),
+            ),
             row(
                 fmt::msg(ui, "自然日跨度", "Calendar-day span"),
                 format!(
@@ -307,25 +327,43 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
             row(
                 fmt::msg(ui, "自然日", "Calendar days"),
                 if zh {
-                    format!("{} 天（含两端）", fmt::format_number((natural_days + 1) as f64))
+                    format!(
+                        "{} 天（含两端）",
+                        fmt::format_number((natural_days + 1) as f64)
+                    )
                 } else {
-                    format!("{} days (both ends included)", fmt::format_number((natural_days + 1) as f64))
+                    format!(
+                        "{} days (both ends included)",
+                        fmt::format_number((natural_days + 1) as f64)
+                    )
                 },
             ),
-        ] .into_iter()
-            .chain({
-                let lo = fmt::day_cell(start_index.min(scan.end_index));
-                let hi = fmt::day_cell(start_index.max(scan.end_index));
-                vec![
-                    row(fmt::msg(ui, "区间起点", "Range start"), format!("{} {}", lo.key, weekday_long(lo.weekday, spoken_en))),
-                    row(fmt::msg(ui, "区间终点", "Range end"), format!("{} {}", hi.key, weekday_long(hi.weekday, spoken_en))),
-                    row(
-                        fmt::msg(ui, "占比", "Share"),
-                        format!("{} %", fmt::format_number((scan.working as f64 / (natural_days as f64 + 1.0)) * 100.0)),
+        ]
+        .into_iter()
+        .chain({
+            let lo = fmt::day_cell(start_index.min(scan.end_index));
+            let hi = fmt::day_cell(start_index.max(scan.end_index));
+            vec![
+                row(
+                    fmt::msg(ui, "区间起点", "Range start"),
+                    format!("{} {}", lo.key, weekday_long(lo.weekday, spoken_en)),
+                ),
+                row(
+                    fmt::msg(ui, "区间终点", "Range end"),
+                    format!("{} {}", hi.key, weekday_long(hi.weekday, spoken_en)),
+                ),
+                row(
+                    fmt::msg(ui, "占比", "Share"),
+                    format!(
+                        "{} %",
+                        fmt::format_number(
+                            (scan.working as f64 / (natural_days as f64 + 1.0)) * 100.0
+                        )
                     ),
-                ]
-            })
-            .collect::<Vec<_>>()
+                ),
+            ]
+        })
+        .collect::<Vec<_>>()
     };
 
     let result_title = if mode == "add" {
@@ -340,7 +378,11 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
             &format!("工作日计算 · {}", tz.name()),
             &format!("Workdays · {}", tz.name()),
         )),
-        format!("{}\n\n{}", fmt::section(result_title), fmt::align_rows(&result_rows)),
+        format!(
+            "{}\n\n{}",
+            fmt::section(result_title),
+            fmt::align_rows(&result_rows)
+        ),
         fmt::align_rows(&head_rows),
     ];
 
@@ -355,11 +397,7 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
                     let lo_key = fmt::day_cell(lo).key;
                     let hi_key = fmt::day_cell(hi).key;
                     if lo == hi {
-                        format!(
-                            "  · {}{}",
-                            lo_key,
-                            fmt::msg(ui, "（1 天）", " (1 day)")
-                        )
+                        format!("  · {}{}", lo_key, fmt::msg(ui, "（1 天）", " (1 day)"))
                     } else if zh {
                         format!("  · {lo_key} ~ {hi_key}（{} 天）", hi - lo + 1)
                     } else {
@@ -371,7 +409,10 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
             blocks.push(fmt::section(&fmt::msg(
                 ui,
                 &format!("工作日区间（{} 天，按连续段合并）", scan.working),
-                &format!("Workday intervals ({} days, consecutive days merged)", scan.working),
+                &format!(
+                    "Workday intervals ({} days, consecutive days merged)",
+                    scan.working
+                ),
             )));
             blocks.push(lines);
         } else {
@@ -437,8 +478,14 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
             notes.push(
                 fmt::msg(
                     ui,
-                    &format!("· 起始日 {} 为{reason}，推算从其之后第一个工作日起算。", start_date.format("%Y-%m-%d")),
-                    &format!("· The start day {} is a {reason}; counting begins at the next workday.", start_date.format("%Y-%m-%d")),
+                    &format!(
+                        "· 起始日 {} 为{reason}，推算从其之后第一个工作日起算。",
+                        start_date.format("%Y-%m-%d")
+                    ),
+                    &format!(
+                        "· The start day {} is a {reason}; counting begins at the next workday.",
+                        start_date.format("%Y-%m-%d")
+                    ),
                 )
                 .to_string(),
             );
@@ -482,7 +529,11 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
     let mut extra = Map::new();
     put(&mut extra, "mode", mode);
     put(&mut extra, "timezone", tz.name());
-    put(&mut extra, "start", start_date.format("%Y-%m-%d").to_string());
+    put(
+        &mut extra,
+        "start",
+        start_date.format("%Y-%m-%d").to_string(),
+    );
     put(&mut extra, "result", result_cell.key);
     put(&mut extra, "workingDays", scan.working.to_string());
     put(&mut extra, "skippedDays", scan.rest_count.to_string());

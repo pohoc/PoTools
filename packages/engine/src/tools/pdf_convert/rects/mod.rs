@@ -74,7 +74,10 @@ fn pdf_load_error(message: impl std::fmt::Display) -> EngineError {
     if message.to_ascii_lowercase().contains("encrypt")
         || message.to_ascii_lowercase().contains("password")
     {
-        EngineError::new("encrypted_document", format!("PDF 受密码保护，无法读取：{message}"))
+        EngineError::new(
+            "encrypted_document",
+            format!("PDF 受密码保护，无法读取：{message}"),
+        )
     } else {
         EngineError::new("unreadable_file", format!("无法读取 PDF：{message}"))
     }
@@ -150,7 +153,10 @@ fn inherited_object(document: &Document, page_id: lopdf::ObjectId, key: &[u8]) -
 /// page, following inherited `Resources` up the Pages tree. Image masks are
 /// skipped, matching the TS `imageResourceNames`.
 fn image_resource_names(document: &Document, page_id: lopdf::ObjectId) -> HashSet<String> {
-    fn as_dictionary<'a>(document: &'a Document, object: &'a Object) -> Option<&'a lopdf::Dictionary> {
+    fn as_dictionary<'a>(
+        document: &'a Document,
+        object: &'a Object,
+    ) -> Option<&'a lopdf::Dictionary> {
         resolve(document, object).and_then(|resolved| resolved.as_dict().ok())
     }
     let mut found = HashSet::new();
@@ -167,7 +173,8 @@ fn image_resource_names(document: &Document, page_id: lopdf::ObjectId) -> HashSe
         return found;
     };
     for (name, value) in xobject.iter() {
-        let Some(stream) = resolve(document, value).and_then(|resolved| resolved.as_stream().ok()) else {
+        let Some(stream) = resolve(document, value).and_then(|resolved| resolved.as_stream().ok())
+        else {
             continue;
         };
         let is_image = matches!(

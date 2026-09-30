@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# Superseded pushes stop burning runners.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  WASM_BINDGEN_VERSION: 0.2.129
+
+jobs:
+  # Cheap contract checks that must never be skipped.
+  contracts:
+    name: Contracts (version + licenses)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Every manifest version is derived from the root package.json.
+      - run: pnpm version:check
+      # The committed license inventory must match the resolved dependency graph
+      # and must not depend on which host generated it.
+      - run: node scripts/generate-license-inventory.mjs --check
+
+  web:
+    name: Web typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Typecheck resolves the engine bindings from the committed `.d.ts`, so this
+      # job needs neither Rust nor wasm-bindgen.
+      - run: pnpm --filter @potools/web typecheck
+
+  rust:
+    name: Rust (fmt + clippy + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - name: Install Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install stable --profile minimal \
+            --component rustfmt --component clippy \
+            --target wasm32-unknown-unknown --no-self-update
+          rustup default stable
+          cargo --version
+          cargo fmt --version
+          cargo clippy --version
+      # The desktop crate links Tauri, so checking it needs the Linux webview and
+      # GTK development headers (same baseline the release notes document).
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libssl-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm rust:fmt
+      - run: pnpm rust:clippy
+      - run: pnpm rust:test
+      # The browser engine must keep compiling for wasm32 with native services
+      # disabled.
+      - name: Check wasm target
+        run: cargo check --manifest-path packages/engine/Cargo.toml --no-default-features --features wasm --target wasm32-unknown-unknown
+
+  bundle:
+    name: Web bundle + engine smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - name: Install Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install stable --profile minimal \
+            --target wasm32-unknown-unknown --no-self-update
+          rustup default stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-${{ runner.os }}-
+      # wasm-bindgen-cli must match the crate version exactly; the build script
+      # aborts with install instructions otherwise.
+      - name: Install wasm-bindgen-cli
+        run: |
+          set -euo pipefail
+          triples="x86_64-unknown-linux-musl"
+          url="https://github.com/rustwasm/wasm-bindgen/releases/download/${WASM_BINDGEN_VERSION}/wasm-bindgen-${WASM_BINDGEN_VERSION}-${triples}.tar.gz"
+          curl --proto '=https' --tlsv1.2 -fsSL "$url" -o /tmp/wasm-bindgen.tar.gz
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          sudo install -m755 "/tmp/wasm-bindgen-${WASM_BINDGEN_VERSION}-${triples}/wasm-bindgen" /usr/local/bin/wasm-bindgen
+          wasm-bindgen --version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm wasm:build
+      # `build` runs tsc, the wasm startup smoke check, and the Vite bundle.
+      - run: pnpm --filter @potools/web build
+      - name: Verify build identity was emitted
+        run: |
+          set -euo pipefail
+          cat apps/web/dist/build-info.json
+          bundled=$(node -p "require('./apps/web/dist/build-info.json').version")
+          manifest=$(node -p "require('./package.json').version")
+          test "$bundled" = "$manifest" || { echo "version mismatch: $bundled != $manifest"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+          retention-days: 7

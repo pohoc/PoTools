@@ -16,11 +16,28 @@ pub const YEAR_MS: i64 = 31_557_600_000;
 pub const DAY_TALLY_CAP: i64 = 40_000;
 
 pub fn epoch_date() -> NaiveDate {
-    NaiveDate::from_ymd_opt(1970, 1, 1).unwrap_or_else(|| NaiveDate::from_ymd_opt(2000, 1, 1).unwrap())
+    NaiveDate::from_ymd_opt(1970, 1, 1)
+        .unwrap_or_else(|| NaiveDate::from_ymd_opt(2000, 1, 1).unwrap())
 }
 
-pub const WEEKDAYS_ZH: [&str; 7] = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
-pub const WEEKDAYS_EN: [&str; 7] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+pub const WEEKDAYS_ZH: [&str; 7] = [
+    "星期日",
+    "星期一",
+    "星期二",
+    "星期三",
+    "星期四",
+    "星期五",
+    "星期六",
+];
+pub const WEEKDAYS_EN: [&str; 7] = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+];
 pub const WEEKDAYS_EN_SHORT: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 pub const MONTHS_EN_SHORT: [&str; 12] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -42,12 +59,12 @@ pub const MONTHS_EN_FULL: [&str; 12] = [
 
 /// Locale tag the tools reason about: the UI locale is either zh or en.
 pub use super::fmt_cal::{
-    calendar_breakdown, chinese_date, day_cell, day_index, day_index_of_instant,
-    days_in_month, format_in_zone, format_zone_stamp, instant_line, iso_in_zone, iso_week_of,
-    is_dst_active, long_date, long_date_en, offset_minutes_of, parse_holiday_map,
-    parse_weekend_set, resolve_wall_time, rfc2822, roll_to_working_day, shift_calendar, span_text,
-    tally_day_range, weekday_pair, weekday_short, weekday_spelled, zone_abbrev, zone_line,
-    CalendarSpan, DayCell, DayTally,
+    calendar_breakdown, chinese_date, day_cell, day_index, day_index_of_instant, days_in_month,
+    format_in_zone, format_zone_stamp, instant_line, is_dst_active, iso_in_zone, iso_week_of,
+    long_date, long_date_en, offset_minutes_of, parse_holiday_map, parse_weekend_set,
+    resolve_wall_time, rfc2822, roll_to_working_day, shift_calendar, span_text, tally_day_range,
+    weekday_pair, weekday_short, weekday_spelled, zone_abbrev, zone_line, CalendarSpan, DayCell,
+    DayTally,
 };
 
 pub fn is_zh(locale: &str) -> bool {
@@ -87,7 +104,9 @@ fn is_wide(code: u32) -> bool {
 }
 
 pub fn display_width(text: &str) -> usize {
-    text.chars().map(|c| if is_wide(c as u32) { 2 } else { 1 }).sum()
+    text.chars()
+        .map(|c| if is_wide(c as u32) { 2 } else { 1 })
+        .sum()
 }
 
 pub fn pad_to(text: &str, width: usize) -> String {
@@ -111,7 +130,14 @@ pub fn align_rows_indent(rows: &[(String, String)], indent: usize, gap: usize) -
         .max()
         .unwrap_or(0);
     rows.iter()
-        .map(|(label, value)| format!("{}{}{}", " ".repeat(indent), pad_to(label, width + gap), value))
+        .map(|(label, value)| {
+            format!(
+                "{}{}{}",
+                " ".repeat(indent),
+                pad_to(label, width + gap),
+                value
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -179,13 +205,22 @@ pub fn signed(value: f64) -> String {
     if !value.is_finite() {
         return format!("+ {}", format_number(0.0));
     }
-    format!("{} {}", if value < 0.0 { "−" } else { "+" }, format_number(value.abs()))
+    format!(
+        "{} {}",
+        if value < 0.0 { "−" } else { "+" },
+        format_number(value.abs())
+    )
 }
 
 pub fn offset_label(minutes: i32, colon: bool) -> String {
     let sign = if minutes < 0 { '-' } else { '+' };
     let abs = minutes.abs();
-    format!("{sign}{:02}{}{:02}", abs / 60, if colon { ":" } else { "" }, abs % 60)
+    format!(
+        "{sign}{:02}{}{:02}",
+        abs / 60,
+        if colon { ":" } else { "" },
+        abs % 60
+    )
 }
 
 /// Intl.RelativeTimeFormat(locale, { numeric, style: 'long' }).format(amount, unit).
@@ -312,16 +347,36 @@ pub fn format_relative(amount: i64, unit: &str, locale: LocaleCode, numeric_auto
 pub fn unit_name(unit: &str, ui_locale: &str) -> String {
     let zh = is_zh(ui_locale);
     match unit {
-        "s" | "second" | "seconds" => zh.then(|| "秒".to_string()).unwrap_or_else(|| "seconds".into()),
-        "min" | "minute" | "minutes" => zh.then(|| "分钟".to_string()).unwrap_or_else(|| "minutes".into()),
-        "h" | "hour" | "hours" => zh.then(|| "小时".to_string()).unwrap_or_else(|| "hours".into()),
-        "d" | "day" | "days" => zh.then(|| "天".to_string()).unwrap_or_else(|| "days".into()),
-        "w" | "week" | "weeks" => zh.then(|| "周".to_string()).unwrap_or_else(|| "weeks".into()),
-        "ms" => zh.then(|| "毫秒".to_string()).unwrap_or_else(|| "milliseconds".into()),
-        "us" => zh.then(|| "微秒".to_string()).unwrap_or_else(|| "microseconds".into()),
-        "ns" => zh.then(|| "纳秒".to_string()).unwrap_or_else(|| "nanoseconds".into()),
-        "years" => zh.then(|| "年".to_string()).unwrap_or_else(|| "years".into()),
-        "months" => zh.then(|| "个月".to_string()).unwrap_or_else(|| "months".into()),
+        "s" | "second" | "seconds" => zh
+            .then(|| "秒".to_string())
+            .unwrap_or_else(|| "seconds".into()),
+        "min" | "minute" | "minutes" => zh
+            .then(|| "分钟".to_string())
+            .unwrap_or_else(|| "minutes".into()),
+        "h" | "hour" | "hours" => zh
+            .then(|| "小时".to_string())
+            .unwrap_or_else(|| "hours".into()),
+        "d" | "day" | "days" => zh
+            .then(|| "天".to_string())
+            .unwrap_or_else(|| "days".into()),
+        "w" | "week" | "weeks" => zh
+            .then(|| "周".to_string())
+            .unwrap_or_else(|| "weeks".into()),
+        "ms" => zh
+            .then(|| "毫秒".to_string())
+            .unwrap_or_else(|| "milliseconds".into()),
+        "us" => zh
+            .then(|| "微秒".to_string())
+            .unwrap_or_else(|| "microseconds".into()),
+        "ns" => zh
+            .then(|| "纳秒".to_string())
+            .unwrap_or_else(|| "nanoseconds".into()),
+        "years" => zh
+            .then(|| "年".to_string())
+            .unwrap_or_else(|| "years".into()),
+        "months" => zh
+            .then(|| "个月".to_string())
+            .unwrap_or_else(|| "months".into()),
         other => other.into(),
     }
 }
@@ -376,13 +431,7 @@ pub fn format_weekend_set(weekend: &[u32], ui_locale: &str) -> String {
     sorted.sort_unstable();
     sorted
         .iter()
-        .map(|day| {
-            format!(
-                "{}={}",
-                day,
-                weekday_spelled(*day, ui_locale)
-            )
-        })
+        .map(|day| format!("{}={}", day, weekday_spelled(*day, ui_locale)))
         .collect::<Vec<_>>()
         .join(rest_sep(ui_locale))
 }
@@ -417,7 +466,10 @@ mod tests {
             row("日历分解", "10个月 2周"),
         ];
         let text = align_rows(&rows);
-        assert_eq!(text, "  方向      终点晚于起点，符号 +\n  日历分解  10个月 2周");
+        assert_eq!(
+            text,
+            "  方向      终点晚于起点，符号 +\n  日历分解  10个月 2周"
+        );
     }
 
     #[test]

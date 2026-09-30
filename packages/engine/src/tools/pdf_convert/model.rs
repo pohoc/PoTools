@@ -120,7 +120,11 @@ pub struct PdfOcrPage {
 /// up directly on the runtime JSON instead of deserializing the whole
 /// file-id keyed object, so one malformed entry cannot blank the other
 /// inputs. Missing or malformed data yields an empty list, never an error.
-fn read_entries<T: serde::de::DeserializeOwned>(ctx: &RunContext<'_>, key: &str, file_id: &str) -> Vec<T> {
+fn read_entries<T: serde::de::DeserializeOwned>(
+    ctx: &RunContext<'_>,
+    key: &str,
+    file_id: &str,
+) -> Vec<T> {
     let Some(entry) = ctx
         .runtime_data
         .and_then(|data| data.get(key))
@@ -242,7 +246,9 @@ pub fn markdown_assets(ctx: &RunContext<'_>) -> std::collections::HashMap<String
 /// base64 string. Anything else is absent.
 fn byte_array(value: &Value) -> Option<Vec<u8>> {
     if let Some(encoded) = value.as_str() {
-        return base64::engine::general_purpose::STANDARD.decode(encoded).ok();
+        return base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .ok();
     }
     value.as_array().map(|items| {
         items

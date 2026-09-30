@@ -99,7 +99,8 @@ pub(super) fn run_word(ctx: &RunContext<'_>) -> RunResult {
             });
         }
 
-        let content_width = (pages.first().map(|page| page.width).unwrap_or(595.0) - 144.0).max(200.0);
+        let content_width =
+            (pages.first().map(|page| page.width).unwrap_or(595.0) - 144.0).max(200.0);
         let image_blocks: Vec<&FlowBlock> = blocks
             .iter()
             .filter(|block| matches!(block, FlowBlock::Image { .. }))
@@ -171,7 +172,11 @@ pub(super) fn run_epub(ctx: &RunContext<'_>) -> RunResult {
             for block in flow.iter_mut() {
                 let FlowBlock::Image {
                     page,
-                    source: ImageSource::Region { page: source_page, index },
+                    source:
+                        ImageSource::Region {
+                            page: source_page,
+                            index,
+                        },
                     src,
                     ..
                 } = block
@@ -228,7 +233,11 @@ pub(super) fn run_html(ctx: &RunContext<'_>) -> RunResult {
         for block in flow.iter_mut() {
             let FlowBlock::Image {
                 page,
-                source: ImageSource::Region { page: source_page, index },
+                source:
+                    ImageSource::Region {
+                        page: source_page,
+                        index,
+                    },
                 ..
             } = block
             else {
@@ -361,7 +370,11 @@ mod end_to_end {
         assert!(artifact.name.ends_with(".docx"));
         let mut archive = ZipArchive::new(std::io::Cursor::new(&artifact.bytes)).unwrap();
         let mut document = String::new();
-        archive.by_name("word/document.xml").unwrap().read_to_string(&mut document).unwrap();
+        archive
+            .by_name("word/document.xml")
+            .unwrap()
+            .read_to_string(&mut document)
+            .unwrap();
         // The OCR paragraph splits its '\n' into <w:br/>.
         assert!(document.contains("扫描行一</w:t></w:r><w:r><w:br/></w:r>"));
         // The level-1 heading maps to the Title style; the region crop is
@@ -372,7 +385,11 @@ mod end_to_end {
         assert!(archive.by_name("word/media/image2.png").is_err());
         assert!(document.contains("r:embed=\"rId10\""));
         let mut content_types = String::new();
-        archive.by_name("[Content_Types].xml").unwrap().read_to_string(&mut content_types).unwrap();
+        archive
+            .by_name("[Content_Types].xml")
+            .unwrap()
+            .read_to_string(&mut content_types)
+            .unwrap();
         assert!(content_types.contains("image/png"));
     }
 
@@ -386,17 +403,29 @@ mod end_to_end {
         let mut archive = ZipArchive::new(std::io::Cursor::new(&artifact.bytes)).unwrap();
         assert_eq!(archive.by_index(0).unwrap().name(), "mimetype");
         let mut mimetype = String::new();
-        archive.by_name("mimetype").unwrap().read_to_string(&mut mimetype).unwrap();
+        archive
+            .by_name("mimetype")
+            .unwrap()
+            .read_to_string(&mut mimetype)
+            .unwrap();
         assert_eq!(mimetype, "application/epub+zip");
         let mut chapter = String::new();
-        archive.by_name("OEBPS/text/chapter1.xhtml").unwrap().read_to_string(&mut chapter).unwrap();
+        archive
+            .by_name("OEBPS/text/chapter1.xhtml")
+            .unwrap()
+            .read_to_string(&mut chapter)
+            .unwrap();
         // Heading mode: the level-1 标题 opens the chapter and is consumed.
         assert!(chapter.contains("<title>标题</title>"));
         assert!(chapter.contains("<p>正文内容</p>"));
         assert!(!chapter.contains("<h1>标题</h1>"));
         assert!(chapter.contains("../images/p1-01.png"));
         let mut image = Vec::new();
-        archive.by_name("OEBPS/images/p1-01.png").unwrap().read_to_end(&mut image).unwrap();
+        archive
+            .by_name("OEBPS/images/p1-01.png")
+            .unwrap()
+            .read_to_end(&mut image)
+            .unwrap();
         assert_eq!(image, vec![1, 2, 3, 4]);
     }
 
@@ -451,14 +480,18 @@ mod end_to_end {
             runtime_data: Some(runtime),
         };
         let result = run_word(&ctx).unwrap();
-        let mut archive = ZipArchive::new(std::io::Cursor::new(&result.artifacts[0].bytes)).unwrap();
+        let mut archive =
+            ZipArchive::new(std::io::Cursor::new(&result.artifacts[0].bytes)).unwrap();
         let mut document = String::new();
-        archive.by_name("word/document.xml").unwrap().read_to_string(&mut document).unwrap();
+        archive
+            .by_name("word/document.xml")
+            .unwrap()
+            .read_to_string(&mut document)
+            .unwrap();
         let content_width = (595.0f64 - 144.0).max(200.0);
         let scale = 1.0f64.min(content_width.max(72.0) / 595.0);
         let cx = (595.0 * scale * 96.0 / 72.0).round() * 9525.0;
         let cy = (842.0 * scale * 96.0 / 72.0).round() * 9525.0;
-        assert!(document
-            .contains(&format!("<wp:extent cx=\"{cx}\" cy=\"{cy}\"/>")));
+        assert!(document.contains(&format!("<wp:extent cx=\"{cx}\" cy=\"{cy}\"/>")));
     }
 }

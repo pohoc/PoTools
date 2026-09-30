@@ -65,7 +65,8 @@ pub(super) fn run(ctx: &RunContext<'_>) -> RunResult {
             });
         }
         if slides.is_empty() {
-            return Err(EngineError::new("no_rasterizer", "无法渲染页面图像").with_hint("error.noRasterizer"));
+            return Err(EngineError::new("no_rasterizer", "无法渲染页面图像")
+                .with_hint("error.noRasterizer"));
         }
         let bytes = write_pptx(&PptxInput {
             slides,

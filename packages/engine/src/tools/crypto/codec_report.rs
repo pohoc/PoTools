@@ -10,14 +10,26 @@ use serde_json::json;
 
 const RADIX_LABELS: [(&str, &str, &str); 6] = [
     ("base32", "Base32（RFC 4648）", "Base32 (RFC 4648)"),
-    ("base32-crockford", "Base32（Crockford）", "Base32 (Crockford)"),
+    (
+        "base32-crockford",
+        "Base32（Crockford）",
+        "Base32 (Crockford)",
+    ),
     ("base58-btc", "Base58（Bitcoin）", "Base58 (Bitcoin)"),
     ("base58-ripple", "Base58（Ripple）", "Base58 (Ripple)"),
     ("base36", "Base36", "Base36"),
-    ("base16", "Base16（RFC 4648 十六进制）", "Base16 (RFC 4648 hex)"),
+    (
+        "base16",
+        "Base16（RFC 4648 十六进制）",
+        "Base16 (RFC 4648 hex)",
+    ),
 ];
 
-pub(super) fn emit(name: &str, text: String, extra: serde_json::Map<String, serde_json::Value>) -> ToolResult {
+pub(super) fn emit(
+    name: &str,
+    text: String,
+    extra: serde_json::Map<String, serde_json::Value>,
+) -> ToolResult {
     let body = format!("{}\n", text.trim_end());
     let result = super::hash::artifact(name, body.clone(), extra);
     ToolResult {
@@ -52,29 +64,55 @@ pub(super) fn run_encoding(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
 
 fn base64_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineError> {
     let en = enc::is_en(ctx);
-    let mode = if string(ctx, "mode", "encode") == "decode" { "decode" } else { "encode" };
+    let mode = if string(ctx, "mode", "encode") == "decode" {
+        "decode"
+    } else {
+        "encode"
+    };
     let url = string(ctx, "variant", "standard") == "urlsafe";
     let charset = string(ctx, "charset", "utf8");
-    let charset_label = if charset == "latin1" { "latin1" } else { "UTF-8" };
+    let charset_label = if charset == "latin1" {
+        "latin1"
+    } else {
+        "UTF-8"
+    };
     let wrap = (super::hash::number(ctx, "lineWrap", 0) as f64).max(0.0) as usize;
     let data_uri = boolean(ctx, "dataUri", false);
     let table = enc::t(
         en,
-        if url { "URL 安全字符表（- _）" } else { "标准字符表（+ /）" },
-        if url { "URL-safe alphabet (- _)" } else { "Standard alphabet (+ /)" },
+        if url {
+            "URL 安全字符表（- _）"
+        } else {
+            "标准字符表（+ /）"
+        },
+        if url {
+            "URL-safe alphabet (- _)"
+        } else {
+            "Standard alphabet (+ /)"
+        },
     );
     let mut extra = serde_json::Map::new();
     extra.insert("mode".into(), json!(mode));
-    extra.insert("variant".into(), json!(if url { "urlsafe" } else { "standard" }));
+    extra.insert(
+        "variant".into(),
+        json!(if url { "urlsafe" } else { "standard" }),
+    );
     let mut blocks: Vec<String> = Vec::new();
     let mut notes: Vec<String> = Vec::new();
     if mode == "encode" {
         let bytes = input_bytes(raw, charset);
         if bytes.is_empty() {
-            return Err(super::hash::bad("input", "holds no content left to encode once whitespace is removed"));
+            return Err(super::hash::bad(
+                "input",
+                "holds no content left to encode once whitespace is removed",
+            ));
         }
         let encoded = b64_encode(&bytes, url);
-        let shown = if wrap > 0 { wrap_lines(&encoded, wrap) } else { encoded.clone() };
+        let shown = if wrap > 0 {
+            wrap_lines(&encoded, wrap)
+        } else {
+            encoded.clone()
+        };
         blocks.push(section(&format!(
             "{}{table}",
             enc::t(en, "Base64 编码 · ", "Base64 encode - ")
@@ -91,16 +129,30 @@ fn base64_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineEr
         } else {
             format!("{} 字节（{charset_label}）", group_digits(bytes.len()))
         };
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(raw).to_string()),
-            row(enc::t(en, "输入字节", "Input bytes"), bytes_label),
-            row(enc::t(en, "输出字符", "Output characters"), encoded.len().to_string()),
-            row(enc::t(en, "填充 =", "Padding ="), padding.to_string()),
-            row(
-                enc::t(en, "输出行数", "Output lines"),
-                (if wrap > 0 { encoded.len().div_ceil(wrap) } else { 1 }).to_string(),
-            ),
-        ]);
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "输入字符", "Input characters"),
+                    enc::code_points(raw).to_string(),
+                ),
+                row(enc::t(en, "输入字节", "Input bytes"), bytes_label),
+                row(
+                    enc::t(en, "输出字符", "Output characters"),
+                    encoded.len().to_string(),
+                ),
+                row(enc::t(en, "填充 =", "Padding ="), padding.to_string()),
+                row(
+                    enc::t(en, "输出行数", "Output lines"),
+                    (if wrap > 0 {
+                        encoded.len().div_ceil(wrap)
+                    } else {
+                        1
+                    })
+                    .to_string(),
+                ),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         notes.push(
@@ -124,13 +176,31 @@ fn base64_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineEr
         }
         if data_uri {
             let mime = string(ctx, "mime", "text/plain");
-            notes.push(if en { format!("- The Data URI form is data:{mime};base64,<data> on a single line.") } else { format!("· Data URI 形态为 data:{mime};base64,<数据>，单行不换行。") });
+            notes.push(if en {
+                format!("- The Data URI form is data:{mime};base64,<data> on a single line.")
+            } else {
+                format!("· Data URI 形态为 data:{mime};base64,<数据>，单行不换行。")
+            });
         } else {
-            notes.push(enc::t(en, "· 关闭“输出 Data URI”时只给裸编码串。", "- With \"output Data URI\" off, only the bare encoded string is returned.").to_string());
+            notes.push(
+                enc::t(
+                    en,
+                    "· 关闭“输出 Data URI”时只给裸编码串。",
+                    "- With \"output Data URI\" off, only the bare encoded string is returned.",
+                )
+                .to_string(),
+            );
         }
         extra.insert("inputBytes".into(), json!(bytes.len()));
         extra.insert("outputChars".into(), json!(encoded.len()));
-        extra.insert("mime".into(), json!(if data_uri { string(ctx, "mime", "text/plain") } else { "-" }));
+        extra.insert(
+            "mime".into(),
+            json!(if data_uri {
+                string(ctx, "mime", "text/plain")
+            } else {
+                "-"
+            }),
+        );
     } else {
         let body = raw
             .strip_prefix("data:")
@@ -140,26 +210,45 @@ fn base64_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineEr
         let lossy = std::str::from_utf8(&bytes).is_err();
         let text = String::from_utf8_lossy(&bytes).to_string();
         let re_encoded = b64_encode(&bytes, url);
-        let normalized = body.split_whitespace().collect::<String>().trim_end_matches('=').to_string();
+        let normalized = body
+            .split_whitespace()
+            .collect::<String>()
+            .trim_end_matches('=')
+            .to_string();
         let stable = re_encoded.trim_end_matches('=') == normalized;
         blocks.push(section(&format!(
             "{}{table}",
             enc::t(en, "Base64 解码 · ", "Base64 decode - ")
         )));
-        blocks.push(if text.is_empty() { enc::t(en, "(解码结果为空)", "(the decoded result is empty)").to_string() } else { text.clone() });
+        blocks.push(if text.is_empty() {
+            enc::t(en, "(解码结果为空)", "(the decoded result is empty)").to_string()
+        } else {
+            text.clone()
+        });
         let mut rows = vec![
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(body).to_string()),
+            row(
+                enc::t(en, "输入字符", "Input characters"),
+                enc::code_points(body).to_string(),
+            ),
             row(
                 enc::t(en, "解码字节", "Decoded bytes"),
                 format!(
                     "{}{}",
                     group_digits(bytes.len()),
-                    if en { format!(" bytes ({})", human_bytes(bytes.len())) } else { format!(" 字节（{}）", human_bytes(bytes.len())) }
+                    if en {
+                        format!(" bytes ({})", human_bytes(bytes.len()))
+                    } else {
+                        format!(" 字节（{}）", human_bytes(bytes.len()))
+                    }
                 ),
             ),
             row(
                 enc::t(en, "解码文本", "Decoded text"),
-                if en { format!("{} characters", enc::code_points(&text)) } else { format!("{} 字符", enc::code_points(&text)) },
+                if en {
+                    format!("{} characters", enc::code_points(&text))
+                } else {
+                    format!("{} 字符", enc::code_points(&text))
+                },
             ),
             row("HEX", enc::preview(en, &enc::spaced_hex(&bytes), 96)),
             row("HEX (compact)", enc::preview(en, &hex(&bytes, false), 192)),
@@ -183,10 +272,17 @@ fn base64_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineEr
         }
         extra.insert("decodedBytes".into(), json!(bytes.len()));
         extra.insert("decodedChars".into(), json!(enc::code_points(&text)));
-        extra.insert("roundTrip".into(), json!(if stable { "ok" } else { "differs" }));
+        extra.insert(
+            "roundTrip".into(),
+            json!(if stable { "ok" } else { "differs" }),
+        );
         blocks.push(section(enc::t(en, "说明", "Notes")));
         blocks.push(notes.join("\n"));
-        let mut result = emit("base64.txt", join_blocks(blocks.iter().map(String::as_str)), extra);
+        let mut result = emit(
+            "base64.txt",
+            join_blocks(blocks.iter().map(String::as_str)),
+            extra,
+        );
         if lossy {
             result.warnings.push(enc::t(en, "Base64 解码结果不是合法 UTF-8 文本，已按替换字符显示。", "The Base64 decode result is not valid UTF-8 text, so it is shown with replacement characters.").to_string());
         }
@@ -197,7 +293,11 @@ fn base64_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineEr
     }
     blocks.push(section(enc::t(en, "说明", "Notes")));
     blocks.push(notes.join("\n"));
-    Ok(emit("base64.txt", join_blocks(blocks.iter().map(String::as_str)), extra))
+    Ok(emit(
+        "base64.txt",
+        join_blocks(blocks.iter().map(String::as_str)),
+        extra,
+    ))
 }
 
 fn human_bytes(value: usize) -> String {
@@ -212,9 +312,17 @@ fn human_bytes(value: usize) -> String {
 
 fn hex_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineError> {
     let en = enc::is_en(ctx);
-    let mode = if string(ctx, "mode", "encode") == "decode" { "decode" } else { "encode" };
+    let mode = if string(ctx, "mode", "encode") == "decode" {
+        "decode"
+    } else {
+        "encode"
+    };
     let charset = string(ctx, "charset", "utf8");
-    let charset_label = if charset == "latin1" { "latin1" } else { "UTF-8" };
+    let charset_label = if charset == "latin1" {
+        "latin1"
+    } else {
+        "UTF-8"
+    };
     let separator = string(ctx, "separator", "none");
     let upper = boolean(ctx, "uppercase", false);
     let separator_label = match separator {
@@ -230,13 +338,30 @@ fn hex_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineError
     if mode == "encode" {
         let bytes = input_bytes(raw, charset);
         if bytes.is_empty() {
-            return Err(super::hash::bad("input", "holds no content left to encode once whitespace is removed"));
+            return Err(super::hash::bad(
+                "input",
+                "holds no content left to encode once whitespace is removed",
+            ));
         }
         let pure = hex(&bytes, upper);
         let shown = match separator {
-            "space" => pure.as_bytes().chunks(2).map(|c| std::str::from_utf8(c).unwrap()).collect::<Vec<_>>().join(" "),
-            "backslash-x" => pure.as_bytes().chunks(2).map(|c| format!("\\x{}", std::str::from_utf8(c).unwrap())).collect(),
-            "prefix-0x" => pure.as_bytes().chunks(2).map(|c| format!("0x{}", std::str::from_utf8(c).unwrap())).collect::<Vec<_>>().join(" "),
+            "space" => pure
+                .as_bytes()
+                .chunks(2)
+                .map(|c| std::str::from_utf8(c).unwrap())
+                .collect::<Vec<_>>()
+                .join(" "),
+            "backslash-x" => pure
+                .as_bytes()
+                .chunks(2)
+                .map(|c| format!("\\x{}", std::str::from_utf8(c).unwrap()))
+                .collect(),
+            "prefix-0x" => pure
+                .as_bytes()
+                .chunks(2)
+                .map(|c| format!("0x{}", std::str::from_utf8(c).unwrap()))
+                .collect::<Vec<_>>()
+                .join(" "),
             _ => pure.clone(),
         };
         blocks.push(section(&format!(
@@ -244,19 +369,48 @@ fn hex_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineError
             enc::t(en, "十六进制编码 · ", "Hex encode - ")
         )));
         blocks.push(shown);
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(raw).to_string()),
-            row(
-                enc::t(en, "输入字节", "Input bytes"),
-                format!("{}{}", group_digits(bytes.len()), if en { format!(" bytes ({charset_label})") } else { format!(" 字节（{charset_label}）") }),
-            ),
-            row(enc::t(en, "HEX 位数", "HEX digits"), pure.len().to_string()),
-            row(enc::t(en, "分隔方式", "Separator"), separator_label),
-        ]);
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "输入字符", "Input characters"),
+                    enc::code_points(raw).to_string(),
+                ),
+                row(
+                    enc::t(en, "输入字节", "Input bytes"),
+                    format!(
+                        "{}{}",
+                        group_digits(bytes.len()),
+                        if en {
+                            format!(" bytes ({charset_label})")
+                        } else {
+                            format!(" 字节（{charset_label}）")
+                        }
+                    ),
+                ),
+                row(enc::t(en, "HEX 位数", "HEX digits"), pure.len().to_string()),
+                row(enc::t(en, "分隔方式", "Separator"), separator_label),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         notes.push(if en { format!("- separator={separator} only changes the spelling; on decode, spaces, line breaks, 0x and \\x prefixes are all ignored.") } else { format!("· separator={separator} 只影响输出写法，解码时空格、换行、0x 与 \\x 前缀都会被忽略。") });
-        notes.push(enc::t(en, if upper { "· uppercase=true：字母输出为大写。" } else { "· uppercase=false：字母输出为小写。" }, if upper { "- uppercase=true: letters are output in upper case." } else { "- uppercase=false: letters are output in lower case." }).to_string());
+        notes.push(
+            enc::t(
+                en,
+                if upper {
+                    "· uppercase=true：字母输出为大写。"
+                } else {
+                    "· uppercase=false：字母输出为小写。"
+                },
+                if upper {
+                    "- uppercase=true: letters are output in upper case."
+                } else {
+                    "- uppercase=false: letters are output in lower case."
+                },
+            )
+            .to_string(),
+        );
         extra.insert("bytes".into(), json!(bytes.len()));
         extra.insert("hexDigits".into(), json!(pure.len()));
     } else {
@@ -273,44 +427,83 @@ fn hex_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineError
             enc::t(en, "十六进制解码 · ", "Hex decode - ")
         )));
         blocks.push(if lossy {
-            format!("{} {}", enc::t(en, "(非合法 UTF-8，按转义显示)", "(not valid UTF-8, shown as HEX)"), enc::spaced_hex(&bytes))
+            format!(
+                "{} {}",
+                enc::t(
+                    en,
+                    "(非合法 UTF-8，按转义显示)",
+                    "(not valid UTF-8, shown as HEX)"
+                ),
+                enc::spaced_hex(&bytes)
+            )
         } else if text.is_empty() {
             enc::t(en, "(解码结果为空)", "(the decoded result is empty)").to_string()
         } else {
             text.clone()
         });
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "字节数", "Byte count"), group_digits(bytes.len())),
-            row(enc::t(en, "连续 HEX", "Contiguous HEX"), enc::preview(en, &pure, 96)),
-            row(enc::t(en, "文本字符", "Text characters"), enc::code_points(&text).to_string()),
-            row(
-                enc::t(en, "再编码一致", "Re-encode matches"),
-                if pure == hex(&input_bytes(&text, charset), upper) {
-                    enc::t(en, "是", "Yes").to_string()
-                } else {
-                    enc::t(en, "否", "No").to_string()
-                },
-            ),
-        ]);
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "字节数", "Byte count"),
+                    group_digits(bytes.len()),
+                ),
+                row(
+                    enc::t(en, "连续 HEX", "Contiguous HEX"),
+                    enc::preview(en, &pure, 96),
+                ),
+                row(
+                    enc::t(en, "文本字符", "Text characters"),
+                    enc::code_points(&text).to_string(),
+                ),
+                row(
+                    enc::t(en, "再编码一致", "Re-encode matches"),
+                    if pure == hex(&input_bytes(&text, charset), upper) {
+                        enc::t(en, "是", "Yes").to_string()
+                    } else {
+                        enc::t(en, "否", "No").to_string()
+                    },
+                ),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         notes.push(enc::t(en, "· 解码先还原字节，再按 charset 解释为文本；latin1 可无损往返任意字节。", "- Decoding restores the bytes first, then reads them as text per charset; latin1 round-trips any byte losslessly.").to_string());
         extra.insert("bytes".into(), json!(bytes.len()));
         extra.insert("hexDigits".into(), json!(pure.len()));
-        let mut result = emit("hex.txt", join_blocks(blocks.iter().map(String::as_str)), extra);
+        let mut result = emit(
+            "hex.txt",
+            join_blocks(blocks.iter().map(String::as_str)),
+            extra,
+        );
         if lossy {
-            result.warnings.push(enc::t(en, "十六进制解码结果不是合法 UTF-8 文本，已按 HEX 显示。", "The hexadecimal decode result is not valid UTF-8 text, so it is shown as HEX.").to_string());
+            result.warnings.push(
+                enc::t(
+                    en,
+                    "十六进制解码结果不是合法 UTF-8 文本，已按 HEX 显示。",
+                    "The hexadecimal decode result is not valid UTF-8 text, so it is shown as HEX.",
+                )
+                .to_string(),
+            );
         }
         return Ok(result);
     }
     blocks.push(section(enc::t(en, "说明", "Notes")));
     blocks.push(notes.join("\n"));
-    Ok(emit("hex.txt", join_blocks(blocks.iter().map(String::as_str)), extra))
+    Ok(emit(
+        "hex.txt",
+        join_blocks(blocks.iter().map(String::as_str)),
+        extra,
+    ))
 }
 
 fn radix_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineError> {
     let en = enc::is_en(ctx);
-    let mode = if string(ctx, "mode", "encode") == "decode" { "decode" } else { "encode" };
+    let mode = if string(ctx, "mode", "encode") == "decode" {
+        "decode"
+    } else {
+        "encode"
+    };
     let name = match string(ctx, "alphabet", "base32") {
         "base32-crockford" => "base32-crockford",
         "base58-btc" => "base58-btc",
@@ -340,7 +533,10 @@ fn radix_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineErr
     if mode == "encode" {
         let bytes = raw.as_bytes();
         if bytes.is_empty() {
-            return Err(super::hash::bad("input", "holds no content left to encode once whitespace is removed"));
+            return Err(super::hash::bad(
+                "input",
+                "holds no content left to encode once whitespace is removed",
+            ));
         }
         let encoded = if name == "base32" {
             base32_encode(bytes, alphabet, true)
@@ -349,18 +545,44 @@ fn radix_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineErr
         } else {
             radix_encode(bytes, alphabet)
         };
-        blocks.push(section(&format!("{label}{}", enc::t(en, " · 编码", " encode"))));
+        blocks.push(section(&format!(
+            "{label}{}",
+            enc::t(en, " · 编码", " encode")
+        )));
         blocks.push(encoded.clone());
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "输入字符", "Input characters"), enc::code_points(raw).to_string()),
-            row(
-                enc::t(en, "输入字节", "Input bytes"),
-                format!("{}{}", group_digits(bytes.len()), if en { " bytes (UTF-8)" } else { " 字节（UTF-8）" }),
-            ),
-            row(enc::t(en, "输出字符", "Output characters"), encoded.len().to_string()),
-            row(enc::t(en, "字符表长度", "Alphabet length"), alphabet.len().to_string()),
-            row(enc::t(en, "字节 HEX", "Byte HEX"), enc::preview(en, &enc::spaced_hex(bytes), 96)),
-        ]);
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "输入字符", "Input characters"),
+                    enc::code_points(raw).to_string(),
+                ),
+                row(
+                    enc::t(en, "输入字节", "Input bytes"),
+                    format!(
+                        "{}{}",
+                        group_digits(bytes.len()),
+                        if en {
+                            " bytes (UTF-8)"
+                        } else {
+                            " 字节（UTF-8）"
+                        }
+                    ),
+                ),
+                row(
+                    enc::t(en, "输出字符", "Output characters"),
+                    encoded.len().to_string(),
+                ),
+                row(
+                    enc::t(en, "字符表长度", "Alphabet length"),
+                    alphabet.len().to_string(),
+                ),
+                row(
+                    enc::t(en, "字节 HEX", "Byte HEX"),
+                    enc::preview(en, &enc::spaced_hex(bytes), 96),
+                ),
+            ],
+        );
         blocks.push(head);
         blocks.push(rows_text);
         notes.push(
@@ -382,7 +604,10 @@ fn radix_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineErr
             radix_decode(raw, alphabet, name == "base36" || name == "base16")?
         };
         if bytes.is_empty() {
-            return Err(super::hash::bad("input", "decodes to an empty byte sequence"));
+            return Err(super::hash::bad(
+                "input",
+                "decodes to an empty byte sequence",
+            ));
         }
         let lossy = std::str::from_utf8(&bytes).is_err();
         let text = String::from_utf8_lossy(&bytes).to_string();
@@ -393,31 +618,55 @@ fn radix_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineErr
         } else {
             radix_encode(&bytes, alphabet)
         };
-        let normalized: String = raw.split_whitespace().collect::<String>().trim_end_matches('=').to_string();
+        let normalized: String = raw
+            .split_whitespace()
+            .collect::<String>()
+            .trim_end_matches('=')
+            .to_string();
         let stable = re_encoded.to_uppercase() == normalized.to_uppercase();
-        blocks.push(section(&format!("{label}{}", enc::t(en, " · 解码", " decode"))));
+        blocks.push(section(&format!(
+            "{label}{}",
+            enc::t(en, " · 解码", " decode")
+        )));
         blocks.push(if lossy {
-            format!("{} {}", enc::t(en, "(非合法 UTF-8，按转义显示)", "(not valid UTF-8, shown as HEX)"), enc::spaced_hex(&bytes))
+            format!(
+                "{} {}",
+                enc::t(
+                    en,
+                    "(非合法 UTF-8，按转义显示)",
+                    "(not valid UTF-8, shown as HEX)"
+                ),
+                enc::spaced_hex(&bytes)
+            )
         } else if text.is_empty() {
             enc::t(en, "(解码结果为空)", "(the decoded result is empty)").to_string()
         } else {
             text
         });
-        let (head, rows_text) = stats_section(en, &[
-            row(enc::t(en, "字节数", "Byte count"), group_digits(bytes.len())),
-            row("HEX", enc::preview(en, &enc::spaced_hex(&bytes), 96)),
-            row(enc::t(en, "大整数值", "Big integer value"), big_int_value(&bytes)),
-            row(
-                enc::t(en, "回编码一致", "Re-encode matches"),
-                if stable {
-                    enc::t(en, "是", "Yes").to_string()
-                } else if en {
-                    format!("No (canonical spelling {re_encoded})")
-                } else {
-                    format!("否（规范写法 {re_encoded}）")
-                },
-            ),
-        ]);
+        let (head, rows_text) = stats_section(
+            en,
+            &[
+                row(
+                    enc::t(en, "字节数", "Byte count"),
+                    group_digits(bytes.len()),
+                ),
+                row("HEX", enc::preview(en, &enc::spaced_hex(&bytes), 96)),
+                row(
+                    enc::t(en, "大整数值", "Big integer value"),
+                    big_int_value(&bytes),
+                ),
+                row(
+                    enc::t(en, "回编码一致", "Re-encode matches"),
+                    if stable {
+                        enc::t(en, "是", "Yes").to_string()
+                    } else if en {
+                        format!("No (canonical spelling {re_encoded})")
+                    } else {
+                        format!("否（规范写法 {re_encoded}）")
+                    },
+                ),
+            ],
+        );
         blocks.push(section(enc::t(en, "字节", "Bytes")));
         blocks.push(head);
         blocks.push(rows_text);
@@ -425,9 +674,20 @@ fn radix_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineErr
         notes.push(enc::t(en, "· 大整数值把解码字节视作一个无符号大端整数，可用于核对前导零（0x00000001 → 1）。", "- The big integer value treats the decoded bytes as one unsigned big-endian integer, which is handy to check leading zeros (0x00000001 -> 1).").to_string());
         extra.insert("decodedBytes".into(), json!(bytes.len()));
         extra.insert("stable".into(), json!(if stable { "yes" } else { "no" }));
-        let mut result = emit("radix.txt", join_blocks(blocks.iter().map(String::as_str)), extra);
+        let mut result = emit(
+            "radix.txt",
+            join_blocks(blocks.iter().map(String::as_str)),
+            extra,
+        );
         if lossy {
-            result.warnings.push(enc::t(en, "Base 解码结果不是合法 UTF-8 文本，已按 HEX 显示。", "The Base decode result is not valid UTF-8 text, so it is shown as HEX.").to_string());
+            result.warnings.push(
+                enc::t(
+                    en,
+                    "Base 解码结果不是合法 UTF-8 文本，已按 HEX 显示。",
+                    "The Base decode result is not valid UTF-8 text, so it is shown as HEX.",
+                )
+                .to_string(),
+            );
         }
         if !stable {
             result.warnings.push(enc::t(en, "Base 再编码结果与输入不一致，输入可能含填充或非规范写法。", "Re-encoding the Base result differs from the input, which may carry padding or a non-canonical spelling.").to_string());
@@ -436,7 +696,11 @@ fn radix_report(ctx: &RunContext<'_>, raw: &str) -> Result<ToolResult, EngineErr
     }
     blocks.push(section(enc::t(en, "说明", "Notes")));
     blocks.push(notes.join("\n"));
-    Ok(emit("radix.txt", join_blocks(blocks.iter().map(String::as_str)), extra))
+    Ok(emit(
+        "radix.txt",
+        join_blocks(blocks.iter().map(String::as_str)),
+        extra,
+    ))
 }
 
 fn big_int_value(bytes: &[u8]) -> String {
@@ -458,4 +722,3 @@ fn big_int_value(bytes: &[u8]) -> String {
     }
     value.iter().rev().map(|d| (b'0' + d) as char).collect()
 }
-

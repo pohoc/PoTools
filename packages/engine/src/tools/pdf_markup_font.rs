@@ -50,7 +50,9 @@ impl Font {
     /// this before any subset extension happens.
     pub(crate) fn face_width(&mut self, text: &str) -> f64 {
         let missing: Vec<char> = if self.subset.is_some() {
-            text.chars().filter(|c| !self.widths.contains_key(c)).collect()
+            text.chars()
+                .filter(|c| !self.widths.contains_key(c))
+                .collect()
         } else {
             Vec::new()
         };
@@ -63,8 +65,7 @@ impl Font {
                             .glyph_index(character)
                             .and_then(|g| face.glyph_hor_advance(g))
                             .unwrap_or(face.units_per_em());
-                        self.widths
-                            .insert(character, advance as f64 * 1000.0 / upm);
+                        self.widths.insert(character, advance as f64 * 1000.0 / upm);
                     }
                 }
             }
@@ -120,9 +121,7 @@ impl Font {
                     .glyph_index(character)
                     .map(|g| g.0)
                     .or_else(|| notdef.then_some(0))
-                    .ok_or_else(|| {
-                        EngineError::new("unsupported", "系统字体缺少文本所需字形")
-                    })?;
+                    .ok_or_else(|| EngineError::new("unsupported", "系统字体缺少文本所需字形"))?;
                 let advance = face
                     .glyph_hor_advance(GlyphId(glyph_id))
                     .unwrap_or(face.units_per_em());
@@ -156,7 +155,11 @@ impl Font {
                     &font_subset.remapper,
                 )
             } else {
-                subset(&font_subset.file, font_subset.face_index, &font_subset.remapper)
+                subset(
+                    &font_subset.file,
+                    font_subset.face_index,
+                    &font_subset.remapper,
+                )
             };
             let program = program.unwrap_or_else(|_| font_subset.file.clone());
             let program_len = program.len();
@@ -164,7 +167,11 @@ impl Font {
                 stream.set_content(program);
                 stream.dict.set("Length1", program_len as i64);
             }
-            (font_subset.cid_font_id, font_subset.cid_map_id, font_subset.to_unicode_id)
+            (
+                font_subset.cid_font_id,
+                font_subset.cid_map_id,
+                font_subset.to_unicode_id,
+            )
         };
         // The CID map tracks one subset GID per entry (plus .notdef) — the
         // same count the extension loop pushed.

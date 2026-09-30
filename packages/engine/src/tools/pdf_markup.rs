@@ -78,8 +78,7 @@ pub fn run(ctx: &RunContext<'_>) -> Result<Option<ToolResult>, EngineError> {
                     let gap = number(ctx.options, "tileGap", 60.0).max(0.0);
                     let (width, height, rotation, origin) = page_geometry(&document, page_id)?;
                     if tiled {
-                        let step_x =
-                            (font.encoded(text)?.1 * margin / 1000.0 + gap).max(1.0);
+                        let step_x = (font.encoded(text)?.1 * margin / 1000.0 + gap).max(1.0);
                         let step_y = (font.height * margin / 1000.0 + gap).max(1.0);
                         let reach = width.max(height);
                         let mut cy = step_y / 2.0;

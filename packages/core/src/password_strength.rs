@@ -193,6 +193,9 @@ mod tests {
 
     #[test]
     fn length_counts_chars_not_bytes() {
-        assert_eq!(assess_password_strength("密码密码密码密码密码密码密码").length, 14);
+        assert_eq!(
+            assess_password_strength("密码密码密码密码密码密码密码").length,
+            14
+        );
     }
 }

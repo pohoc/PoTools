@@ -10,13 +10,18 @@ const REST_LIST_SHOWN: usize = 4;
 pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let ui = ctx.locale;
     let tz = zone(ctx)?;
-    let locale = if is_en(ctx) || string(ctx, "locale", "zh-CN").to_lowercase().starts_with('e') {
+    let locale = if is_en(ctx)
+        || string(ctx, "locale", "zh-CN")
+            .to_lowercase()
+            .starts_with('e')
+    {
         fmt::EN_US
     } else {
         fmt::ZH_CN
     };
     let unit_raw = string(ctx, "unit", "auto");
-    let unit = if ["auto", "days", "hours", "minutes", "seconds", "ms", "weeks"].contains(&unit_raw) {
+    let unit = if ["auto", "days", "hours", "minutes", "seconds", "ms", "weeks"].contains(&unit_raw)
+    {
         unit_raw
     } else {
         "auto"
@@ -27,9 +32,17 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let weekend = fmt::parse_weekend_set(string(ctx, "weekend", "0,6"), ui)?;
     let holidays = fmt::parse_holiday_map(string(ctx, "holidays", ""), tz, ui)?;
     let from_raw = string(ctx, "from", "now").trim().to_string();
-    let from_raw = if from_raw.is_empty() { "now".to_string() } else { from_raw };
+    let from_raw = if from_raw.is_empty() {
+        "now".to_string()
+    } else {
+        from_raw
+    };
     let to_raw = string(ctx, "to", "now").trim().to_string();
-    let to_raw = if to_raw.is_empty() { "now".to_string() } else { to_raw };
+    let to_raw = if to_raw.is_empty() {
+        "now".to_string()
+    } else {
+        to_raw
+    };
     let from = parse_at(&from_raw, tz)?;
     let to = parse_at(&to_raw, tz)?;
     let from_ms = from.timestamp_millis();
@@ -37,27 +50,50 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let delta = to_ms - from_ms;
     let span = fmt::calendar_breakdown(from_ms, to_ms, tz)?;
     let first_index = fmt::day_index_of_instant(from, tz).min(fmt::day_index_of_instant(to, tz));
-    let whole_days = (fmt::day_index_of_instant(to, tz) - fmt::day_index_of_instant(from, tz)).abs();
+    let whole_days =
+        (fmt::day_index_of_instant(to, tz) - fmt::day_index_of_instant(from, tz)).abs();
     let counted_days = whole_days + i64::from(include_end);
     let tally = if count_workdays {
-        Some(fmt::tally_day_range(first_index, counted_days, &weekend, &holidays))
+        Some(fmt::tally_day_range(
+            first_index,
+            counted_days,
+            &weekend,
+            &holidays,
+        ))
     } else {
         None
     };
     let direction = if delta == 0 {
         fmt::msg(ui, "同一时刻（0）", "Same instant (0)")
     } else if delta > 0 {
-        fmt::msg(ui, "终点晚于起点，符号 +", "End is later than start, sign +")
+        fmt::msg(
+            ui,
+            "终点晚于起点，符号 +",
+            "End is later than start, sign +",
+        )
     } else {
-        fmt::msg(ui, "终点早于起点，符号 −", "End is earlier than start, sign −")
+        fmt::msg(
+            ui,
+            "终点早于起点，符号 −",
+            "End is earlier than start, sign −",
+        )
     };
     let span_value = format!(
         "{}{}",
         if delta < 0 { "−" } else { "" },
-        fmt::span_text(&fmt::CalendarSpan { sign: 1, ..span.clone() }, locale == fmt::EN_US)
+        fmt::span_text(
+            &fmt::CalendarSpan {
+                sign: 1,
+                ..span.clone()
+            },
+            locale == fmt::EN_US
+        )
     );
     let mut result_rows = vec![
-        row(fmt::msg(ui, "日历分解", "Calendar breakdown"), span_value.clone()),
+        row(
+            fmt::msg(ui, "日历分解", "Calendar breakdown"),
+            span_value.clone(),
+        ),
         row(fmt::msg(ui, "方向", "Direction"), direction),
     ];
     if unit != "auto" {
@@ -136,7 +172,10 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
                     unit_suffix("days", locale == fmt::EN_US, ui)
                 ),
             ),
-            row(fmt::msg(ui, "两者相差", "Difference"), fmt::msg(ui, "1 天", "1 day")),
+            row(
+                fmt::msg(ui, "两者相差", "Difference"),
+                fmt::msg(ui, "1 天", "1 day"),
+            ),
         ]),
     ];
     if let Some(tally) = &tally {
@@ -150,7 +189,10 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
             .join(sep);
         let hidden = tally.rest_days - tally.rest_days.min(REST_LIST_SHOWN as i64);
         let tally_rows = vec![
-            row(fmt::msg(ui, "周末定义", "Weekend definition"), fmt::format_weekend_set(&weekend, ui)),
+            row(
+                fmt::msg(ui, "周末定义", "Weekend definition"),
+                fmt::format_weekend_set(&weekend, ui),
+            ),
             row(
                 fmt::msg(ui, "节假日清单", "Holidays defined"),
                 if holidays.is_empty() {
@@ -180,19 +222,35 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
             ),
             row(
                 fmt::msg(ui, "范围内天数", "Days in range"),
-                format!("{} {}", fmt::format_number(tally.total as f64), unit_suffix("days", locale == fmt::EN_US, ui)),
+                format!(
+                    "{} {}",
+                    fmt::format_number(tally.total as f64),
+                    unit_suffix("days", locale == fmt::EN_US, ui)
+                ),
             ),
             row(
                 fmt::msg(ui, "工作日", "Workdays"),
-                format!("{} {}", fmt::format_number(tally.workdays as f64), unit_suffix("days", locale == fmt::EN_US, ui)),
+                format!(
+                    "{} {}",
+                    fmt::format_number(tally.workdays as f64),
+                    unit_suffix("days", locale == fmt::EN_US, ui)
+                ),
             ),
             row(
                 fmt::msg(ui, "周末", "Weekend days"),
-                format!("{} {}", fmt::format_number(tally.weekend_days as f64), unit_suffix("days", locale == fmt::EN_US, ui)),
+                format!(
+                    "{} {}",
+                    fmt::format_number(tally.weekend_days as f64),
+                    unit_suffix("days", locale == fmt::EN_US, ui)
+                ),
             ),
             row(
                 fmt::msg(ui, "节假日", "Holidays"),
-                format!("{} {}", fmt::format_number(tally.holiday_days as f64), unit_suffix("days", locale == fmt::EN_US, ui)),
+                format!(
+                    "{} {}",
+                    fmt::format_number(tally.holiday_days as f64),
+                    unit_suffix("days", locale == fmt::EN_US, ui)
+                ),
             ),
             row(
                 fmt::msg(ui, "休息日明细", "Rest days"),
@@ -201,14 +259,22 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
                 } else if hidden > 0 {
                     format!(
                         "{shown}{}",
-                        fmt::msg(ui, &format!(" 等 {hidden} 项"), &format!(" and {hidden} more"))
+                        fmt::msg(
+                            ui,
+                            &format!(" 等 {hidden} 项"),
+                            &format!(" and {hidden} more")
+                        )
                     )
                 } else {
                     shown
                 },
             ),
         ];
-        blocks.push(fmt::section(fmt::msg(ui, "工作日 / 周末统计", "Weekday / weekend breakdown")));
+        blocks.push(fmt::section(fmt::msg(
+            ui,
+            "工作日 / 周末统计",
+            "Weekday / weekend breakdown",
+        )));
         blocks.push(fmt::align_rows(&tally_rows));
         if tally.truncated {
             blocks.push(fmt::msg(
@@ -231,11 +297,14 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     }
     if !breakdown {
         blocks.push(fmt::section(fmt::msg(ui, "分解", "Breakdown")));
-        blocks.push(fmt::msg(
-            ui,
-            "  · 已关闭（breakdown = false），仅输出总量。",
-            "  · Disabled (breakdown = false); only totals are shown.",
-        ).to_string());
+        blocks.push(
+            fmt::msg(
+                ui,
+                "  · 已关闭（breakdown = false），仅输出总量。",
+                "  · Disabled (breakdown = false); only totals are shown.",
+            )
+            .to_string(),
+        );
     }
     let mut notes: Vec<String> = Vec::new();
     if fmt::offset_minutes_of(from, tz) != fmt::offset_minutes_of(to, tz) {
@@ -277,8 +346,16 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     if tally.is_some() {
         let convention = fmt::msg(
             ui,
-            if include_end { "含终点日" } else { "不含终点日" },
-            if include_end { "Including the end day" } else { "Excluding the end day" },
+            if include_end {
+                "含终点日"
+            } else {
+                "不含终点日"
+            },
+            if include_end {
+                "Including the end day"
+            } else {
+                "Excluding the end day"
+            },
         );
         notes.push(
             fmt::msg(
@@ -311,11 +388,19 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
         "workdays",
         tally.map(|t| t.workdays.to_string()).unwrap_or_default(),
     );
-    Ok(output("date-diff.txt", fmt::join_blocks(blocks.iter().map(String::as_str)), extra))
+    Ok(output(
+        "date-diff.txt",
+        fmt::join_blocks(blocks.iter().map(String::as_str)),
+        extra,
+    ))
 }
 
 fn by_unit_label(ui: &str, unit: &str) -> String {
-    format!("{}{}", fmt::msg(ui, "按", "By "), unit_option_label(unit, ui))
+    format!(
+        "{}{}",
+        fmt::msg(ui, "按", "By "),
+        unit_option_label(unit, ui)
+    )
 }
 
 fn unit_option_label(unit: &str, ui: &str) -> String {
@@ -355,7 +440,11 @@ fn totals_rows(abs_ms: i64, en_phrase: bool, ui: &str) -> String {
     .map(|(unit, value)| {
         row(
             fmt::unit_name(unit, ui),
-            format!("{} {}", fmt::format_number(*value), unit_suffix(unit, en_phrase, ui)),
+            format!(
+                "{} {}",
+                fmt::format_number(*value),
+                unit_suffix(unit, en_phrase, ui)
+            ),
         )
     })
     .collect();

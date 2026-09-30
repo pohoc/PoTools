@@ -56,7 +56,8 @@ pub(super) fn utf16_slice(text: &str, units: usize) -> String {
 /// JS `\s` as a regex class; the `regex` crate's own `\s` is
 /// `\p{White_Space}`, a slightly different set, so the ported patterns spell
 /// the class out to keep TS `u`-flag semantics.
-const WS: &str = r"[\t\n\v\f\r \u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]";
+const WS: &str =
+    r"[\t\n\v\f\r \u{a0}\u{1680}\u{2000}-\u{200a}\u{2028}\u{2029}\u{202f}\u{205f}\u{3000}\u{feff}]";
 
 /// `/^\s*([•·▪◦‣*o●-]|\((\d{1,3})\)|(\d{1,3}[.)])|([一二三四五六七八九十]+[、.]))\s+/u`
 pub(super) fn bullet_regex() -> &'static Regex {
@@ -74,14 +75,13 @@ pub(super) fn bullet_regex() -> &'static Regex {
 /// `/^\s*(\((\d{1,3})\)|(\d{1,3}[.)])|([一二三四五六七八九十]+[、.]))\s+/u`
 pub(super) fn numbered_regex() -> &'static Regex {
     static NUMBERED: OnceLock<Regex> = OnceLock::new();
-    NUMBERED
-        .get_or_init(|| {
-            Regex::new(&format!(
-                r"^{ws}*(?:\([0-9]{{1,3}}\)|[0-9]{{1,3}}[.)]|[一二三四五六七八九十]+[、.]){ws}+",
-                ws = WS
-            ))
-            .expect("numbered pattern is valid")
-        })
+    NUMBERED.get_or_init(|| {
+        Regex::new(&format!(
+            r"^{ws}*(?:\([0-9]{{1,3}}\)|[0-9]{{1,3}}[.)]|[一二三四五六七八九十]+[、.]){ws}+",
+            ws = WS
+        ))
+        .expect("numbered pattern is valid")
+    })
 }
 
 #[cfg(test)]
