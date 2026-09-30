@@ -375,7 +375,7 @@ function Control({
       const selected = (option: { value: string | number }) => String(current) === String(option.value);
       if (field.presentation === 'position-grid') {
         return (
-          <div role="group" aria-label={t(field.labelKey)} className="grid w-fit grid-cols-3 gap-1 rounded-control border border-line bg-raised/60 p-1">
+          <div role="group" aria-label={t(field.labelKey)} className="grid w-fit grid-cols-3 gap-1 rounded-control border border-control-line bg-raised/60 p-1">
             {field.options.map((option) => (
               <Button
                 key={String(option.value)}
@@ -511,7 +511,7 @@ function Control({
             aria-label={t('opt.color')}
             value={hex}
             onChange={(event) => onChange(field.key, event.target.value)}
-            className="h-10 w-12 shrink-0 cursor-pointer rounded-control border border-line bg-surface p-1 shadow-inner"
+            className="h-10 w-12 shrink-0 cursor-pointer rounded-control border border-control-line bg-surface p-1 shadow-inner"
           />
           <HeroInput
             type="text"

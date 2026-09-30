@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement, type ButtonHTMLAttributes, type ReactNode, type Ref } from 'react';
+import { Children, cloneElement, isValidElement, useRef, type ButtonHTMLAttributes, type ReactNode, type Ref } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button as HeroButton, Description as HeroDescription, Label as HeroLabel, Switch as HeroSwitch } from '@heroui/react';
 import { Icon } from './Icon';
@@ -271,18 +271,64 @@ export function Segmented<T extends string | number>({
   size?: 'sm' | 'md';
 }) {
   const groupLabel = options.map((option) => option.label).join(' / ');
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // Roving tabindex: only the selected tab is in the tab order, so arrow keys
+  // have to move focus as well as selection. Without this the group declared
+  // role="tablist"/"tab" but was unreachable by keyboard.
+  const focusAndSelect = (index: number) => {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.value);
+    itemRefs.current[index]?.focus();
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const last = options.length - 1;
+    let next: number;
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        next = index >= last ? 0 : index + 1;
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        next = index <= 0 ? last : index - 1;
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = last;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    focusAndSelect(next);
+  };
+
   return (
-    <div role="tablist" aria-label={groupLabel} className={cn('ui-segmented', size === 'md' && 'ui-segmented-md')}>
-      {options.map((option) => {
+    <div
+      role="tablist"
+      aria-label={groupLabel}
+      aria-orientation="horizontal"
+      className={cn('ui-segmented', size === 'md' && 'ui-segmented-md')}
+    >
+      {options.map((option, index) => {
         const selected = value === option.value;
         return (
           <button
             key={String(option.value)}
+            ref={(element) => {
+              itemRefs.current[index] = element;
+            }}
             type="button"
             role="tab"
             aria-selected={selected}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
+            onKeyDown={(event) => onKeyDown(event, index)}
             className={cn('ui-segmented-item', selected && 'ui-segmented-item-selected', size === 'sm' && 'ui-segmented-item-sm')}
           >
             {option.label}

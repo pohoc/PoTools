@@ -11,6 +11,7 @@
   --color-surface: rgb(var(--ui-surface));
   --color-raised: rgb(var(--ui-raised));
   --color-line: rgb(var(--ui-line));
+  --color-control-line: rgb(var(--ui-control-line));
   --color-ink: rgb(var(--ui-ink));
   --color-muted: rgb(var(--ui-muted));
   --color-faint: rgb(var(--ui-faint));
@@ -123,7 +124,7 @@
   align-items: center;
   gap: var(--ui-space-1);
   overflow-x: auto;
-  border: var(--ui-border-width) solid rgb(var(--ui-line) / 0.9);
+  border: var(--ui-border-width) solid rgb(var(--ui-control-line));
   border-radius: var(--ui-radius-control);
   background: rgb(var(--ui-raised) / 0.72);
   padding: 3px;
@@ -159,7 +160,7 @@
 .ui-field-control {
   box-sizing: border-box;
   min-height: var(--ui-control-md);
-  border: var(--ui-border-width) solid rgb(var(--ui-line));
+  border: var(--ui-border-width) solid rgb(var(--ui-control-line));
   border-radius: var(--ui-radius-control);
   background: rgb(var(--ui-surface));
   color: rgb(var(--ui-ink));
@@ -181,7 +182,7 @@
   box-sizing: border-box;
   border-style: solid;
   border-width: var(--ui-border-width);
-  border-color: rgb(var(--ui-line));
+  border-color: rgb(var(--ui-control-line));
   background: rgb(var(--ui-surface));
   accent-color: rgb(var(--ui-accent));
 }
