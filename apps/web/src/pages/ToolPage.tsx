@@ -14,7 +14,7 @@ import { PageGrid, slotsFromProbes, type Slot } from './PageGrid.tsx';
 import { SplitCanvas, groupsFromCuts } from './SplitCanvas.tsx';
 import { useI18n } from '../i18n/index.tsx';
 import { useToolDraft } from '../lib/useToolDraft.ts';
-import { useEngine, rpcErrorMessage } from '../stores/engine.ts';
+import { useEngine } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { useSettings } from '../lib/settings.ts';
 import { formatBytes } from '../lib/format.ts';
@@ -61,6 +61,9 @@ export function ToolPage() {
 function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   const { t, tf } = useI18n();
   const draft = useToolDraft(descriptor);
+  // Destructured so the paste effect can depend on the callback instead of the
+  // whole draft object (`useToolDraft` keeps its identity stable).
+  const { addFiles } = draft;
   const status = useEngine((state) => state.status);
   const info = useEngine((state) => state.info);
   const reconnect = useEngine((state) => state.reconnect);
@@ -94,11 +97,13 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
       });
       if (!files.length) return;
       event.preventDefault();
-      draft.addFiles(files);
+      addFiles(files);
     };
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
-  }, [descriptor.accept, draft.addFiles, needsFiles]);
+    // `addFiles` is destructured so the dependency is the callback itself rather
+    // than the whole draft object; `useToolDraft` keeps its identity stable.
+  }, [descriptor.accept, addFiles, needsFiles]);
   const total = useMemo(
     () => Object.values(draft.probes).reduce((sum, probe) => sum + probe.pageCount, 0),
     [draft.probes],
@@ -372,7 +377,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
                   multiple={descriptor.multiFile}
                   compact={draft.files.length > 0}
                   busy={draft.probing}
-                  onFiles={(files) => draft.addFiles(files)}
+                  onFiles={addFiles}
                 />
                 {draft.files.length ? (
                   <FileList

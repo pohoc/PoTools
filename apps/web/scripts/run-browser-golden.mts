@@ -7,14 +7,14 @@
  *   DIFF      — handled but output diverges (real regression to fix)
  *   CRASH     — worker/page error
  */
-import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { createServer, type ViteDevServer, type Plugin } from 'vite';
 import { chromium } from 'playwright';
-import { basename, dirname, extname, join, resolve } from 'node:path';
+import { dirname, extname, join, resolve } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { homedir, tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 
 const DESKTOP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO_ROOT = resolve(DESKTOP_ROOT, '../..');
@@ -206,7 +206,11 @@ async function main(): Promise<void> {
     plugins: [fileServer],
   });
   await server.listen();
-  const resolvedPort = (server.httpServer?.address() as { port: number }).port;
+  const address = server.httpServer?.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('golden harness: the Vite dev server exposed no TCP address');
+  }
+  const resolvedPort = address.port;
 
   const browser = await chromium.launch();
   const context = await browser.newContext();
@@ -359,8 +363,8 @@ async function main(): Promise<void> {
           const actual = result?.text ?? '';
           let at = 0;
           while (at < Math.min(expected.length, actual.length) && expected[at] === actual[at]) at += 1;
-          const dumpFragment = process.env.POTOOLS_GOLDEN_DUMP;
-          if (dumpFragment && key.includes(dumpFragment)) {
+          const dumpFilter = process.env.POTOOLS_GOLDEN_DUMP;
+          if (dumpFilter && key.includes(dumpFilter)) {
             await import('node:fs/promises').then((fs) => Promise.all([
               fs.writeFile(`/tmp/golden-expected.txt`, expected),
               fs.writeFile(`/tmp/golden-actual.txt`, actual),

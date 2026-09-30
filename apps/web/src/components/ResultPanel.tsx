@@ -81,8 +81,8 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
     try {
       const count = await saveAllToFolder(job.id, job.artifacts);
       if (count) toast.success(tf('result.savedCount', { count }));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('result.saveFailed'));
+    } catch (issue) {
+      toast.error(issue instanceof Error ? issue.message : t('result.saveFailed'));
     }
   };
 
@@ -95,8 +95,8 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
       }
       const path = await saveArtifactToFolder(job.id, artifact, dir);
       if (path) toast.success(tf('result.savedTo', { path }));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('result.saveFailed'));
+    } catch (issue) {
+      toast.error(issue instanceof Error ? issue.message : t('result.saveFailed'));
     }
   };
 

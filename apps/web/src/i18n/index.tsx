@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { en } from './en.ts';
 import { zhCN, type MessageKey, type Messages } from './zh-CN.ts';
 
@@ -45,10 +45,13 @@ export function translate(key: string, vars?: Record<string, string | number>): 
 
 export function I18nProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
   const table = TABLES[locale] ?? zhCN;
-  // Assigning during render is safe here: it is an idempotent module-level mirror
-  // of the locale being rendered, which is what keeps `translate` correct for
-  // module-scope callers before any effect has run.
-  activeLocale = locale;
+  // Keeps `translate` (used by transport/worker/native-bridge modules) on the
+  // active locale. Done in an effect rather than during render: render must stay
+  // a pure function of props, and every `translate` call site is event-driven,
+  // so it always runs well after the first commit.
+  useEffect(() => {
+    activeLocale = locale;
+  }, [locale]);
 
   const t = useCallback(
     (key: MessageKey | string): string => {

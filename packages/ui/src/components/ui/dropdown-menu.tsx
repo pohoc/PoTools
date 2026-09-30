@@ -19,7 +19,6 @@ export const DropdownMenuSeparator = () => <div className="my-1 h-px bg-line" />
 
 export function DropdownMenuContent({
   className,
-  sideOffset = 6,
   children,
   ...props
 }: ComponentProps<typeof HeroDropdown.Popover> & { align?: string; sideOffset?: number; children?: ReactNode }) {

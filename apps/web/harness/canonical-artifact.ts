@@ -108,7 +108,7 @@ export async function canonicalPdfText(bytes: Uint8Array): Promise<string> {
     if (/\/FlateDecode/.test(dict)) {
       // Compressed length depends on deflate entropy (e.g. timestamp bytes
       // inside the stream), not on document content — normalize it.
-      skeleton = skeleton.replace(/\/Length\s+\d+(?![\s\S]*\/Length)/, (match) => match.replace(/\d+/, 'N'));
+      skeleton = skeleton.replace(/\/Length\s+\d+(?![\s\S]*\/Length)/, (segment) => segment.replace(/\d+/, 'N'));
     }
     out += skeleton;
     if (/\/FlateDecode/.test(dict)) {

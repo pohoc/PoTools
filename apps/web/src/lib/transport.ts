@@ -5,14 +5,11 @@ import { callEmbeddedRpc, configureEmbeddedWorkerPool, embeddedWorkerCount, shut
 import { EmbeddedJobRunner, textToolRuntimeData } from './embedded-jobs.ts';
 import { scanInvoices as scanInvoicesInWeb } from './invoice-scan.ts';
 import { engineBridge, isTauri } from './tauri.ts';
-import { BaseTransport, decodeBase64, encodeBase64, RpcError, type Transport, type TransportStatus } from './transport-shared.ts';
+import { BaseTransport, decodeBase64, encodeBase64, RpcError, type Transport } from './transport-shared.ts';
 import { APP_VERSION } from './version.ts';
 
 export { RpcError } from './transport-shared.ts';
 export type { Transport, TransportStatus } from './transport-shared.ts';
-
-let counter = 0;
-const nextId = (): string => `r${Date.now().toString(36)}${(counter += 1)}`;
 
 class TauriTransport extends BaseTransport {
   readonly mode: 'web' | 'tauri' = isTauri() ? 'tauri' : 'web';
@@ -114,7 +111,7 @@ class TauriTransport extends BaseTransport {
     return { handled: true, result: reply.result as T };
   }
 
-  private async scanInvoices<T>(params: Record<string, unknown>, timeoutMs: number): Promise<T> {
+  private async scanInvoices<T>(params: Record<string, unknown>): Promise<T> {
     const bridge = await this.requireNativeHost();
     try {
       return await scanInvoicesInWeb(bridge.invoke.bind(bridge), params, embeddedWorkerCount()) as T;
@@ -124,7 +121,11 @@ class TauriTransport extends BaseTransport {
     }
   }
 
-  async call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs = 120_000): Promise<T> {
+  // `_timeoutMs` is part of the Transport contract that callers already pass
+  // (the health check asks for 2.5s), but this implementation does not enforce
+  // one yet: an unenforced deadline is preferable to a wrong one that would
+  // abort legitimate long conversions.
+  async call<T>(method: RpcMethodName, params: Record<string, unknown>, _timeoutMs = 120_000): Promise<T> {
     if (method === 'engine.info') return this.localInfo<T>();
     if (method === 'engine.ping') {
       return { pong: Date.now() } as T;
@@ -187,7 +188,7 @@ class TauriTransport extends BaseTransport {
         throw new RpcError('bad_request', String(error));
       }
     }
-    if (method === 'invoice.scan') return this.scanInvoices<T>(params, timeoutMs);
+    if (method === 'invoice.scan') return this.scanInvoices<T>(params);
     if (method === 'invoice.archive' && params && typeof params === 'object') {
       const bridge = await this.requireNativeHost();
       try {

@@ -1,6 +1,6 @@
 import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Badge, Button, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Icon } from '@potools/ui';
+import { Badge, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Icon } from '@potools/ui';
 import { TitleBar } from './TitleBar.tsx';
 import { AppLogo } from './AppLogo.tsx';
 import { Status } from './Status.tsx';

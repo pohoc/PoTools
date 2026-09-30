@@ -76,7 +76,7 @@ export function ImageStudioEditor({
       disposed = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [processed, tool, options]);
+  }, [processed, tool, options, t, tf]);
 
   useEffect(() => {
     if (tool !== 'image-id-photo' || !processed || options.printSheet !== true) { setPrintUrl(''); return; }
@@ -85,7 +85,7 @@ export function ImageStudioEditor({
       if (!disposed) setPrintUrl(URL.createObjectURL(blob));
     }).catch((issue) => { if (!disposed) setError(studioError(issue, t, tf)); });
     return () => { disposed = true; };
-  }, [processed, tool, options]);
+  }, [processed, tool, options, t, tf]);
 
   const sourceLabel = useMemo(() => source?.name ?? t('imageStudio.needFile'), [source?.name, t]);
 
@@ -211,7 +211,7 @@ export function ImageStudioEditor({
           {sizeError ? <p role="alert" className="mt-2 text-[11px] text-bad">{sizeError}</p> : null}
         </div>
       </Card>
-      {tool === 'image-watermark-clean' && preview ? <div className="relative mx-auto w-full max-w-[720px] overflow-hidden rounded-control border border-line" style={{ aspectRatio: `${preview.width}/${preview.height}` }}><img src={compare ? sourceUrl : preview.url} alt={compare ? t('imageStudio.inputLabel') : t('imageStudio.outputLabel')} className="absolute inset-0 h-full w-full object-contain" /><canvas ref={canvasRef} className="absolute inset-0 h-full w-full cursor-crosshair opacity-45 mix-blend-screen" onPointerDown={(e) => { drawingRef.current = true; e.currentTarget.setPointerCapture(e.pointerId); const c = e.currentTarget; const rect = c.getBoundingClientRect(); const x = (e.clientX - rect.left) / rect.width * c.width; const y = (e.clientY - rect.top) / rect.height * c.height; const ctx = c.getContext('2d'); if (ctx) { ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(10, c.width * .025); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .1, y + .1); ctx.stroke(); } }} onPointerMove={(e) => { if (!drawingRef.current) return; const c = e.currentTarget; const rect = c.getBoundingClientRect(); const ctx = c.getContext('2d'); if (!ctx) return; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(10, c.width * .025); ctx.lineCap = 'round'; ctx.lineTo((e.clientX - rect.left) / rect.width * c.width, (e.clientY - rect.top) / rect.height * c.height); ctx.stroke(); }} onPointerUp={(e) => { drawingRef.current = false; snapshotMask(); }} /></div> : null}
+      {tool === 'image-watermark-clean' && preview ? <div className="relative mx-auto w-full max-w-[720px] overflow-hidden rounded-control border border-line" style={{ aspectRatio: `${preview.width}/${preview.height}` }}><img src={compare ? sourceUrl : preview.url} alt={compare ? t('imageStudio.inputLabel') : t('imageStudio.outputLabel')} className="absolute inset-0 h-full w-full object-contain" /><canvas ref={canvasRef} className="absolute inset-0 h-full w-full cursor-crosshair opacity-45 mix-blend-screen" onPointerDown={(e) => { drawingRef.current = true; e.currentTarget.setPointerCapture(e.pointerId); const c = e.currentTarget; const rect = c.getBoundingClientRect(); const x = (e.clientX - rect.left) / rect.width * c.width; const y = (e.clientY - rect.top) / rect.height * c.height; const ctx = c.getContext('2d'); if (ctx) { ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(10, c.width * .025); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .1, y + .1); ctx.stroke(); } }} onPointerMove={(e) => { if (!drawingRef.current) return; const c = e.currentTarget; const rect = c.getBoundingClientRect(); const ctx = c.getContext('2d'); if (!ctx) return; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(10, c.width * .025); ctx.lineCap = 'round'; ctx.lineTo((e.clientX - rect.left) / rect.width * c.width, (e.clientY - rect.top) / rect.height * c.height); ctx.stroke(); }} onPointerUp={() => { drawingRef.current = false; snapshotMask(); }} /></div> : null}
       <div className="flex flex-col gap-1 text-[11px] leading-4 text-faint">
         <p>{t('imageStudio.localHint')}</p>
         <p>{t(tool === 'image-watermark-clean' ? 'imageStudio.watermarkLimit' : 'imageStudio.modelLimit')}</p>

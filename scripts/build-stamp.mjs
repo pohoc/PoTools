@@ -13,8 +13,6 @@ import path from 'node:path';
 
 export const BUILD_TIME_ZONE = 'Asia/Shanghai';
 
-const pad2 = (value) => String(value).padStart(2, '0');
-
 /** `2026-09-30 09:50` in Asia/Shanghai -> `09300950`. */
 export function buildStamp(date = new Date()) {
   const local = date.toLocaleString('sv-SE', { timeZone: BUILD_TIME_ZONE });

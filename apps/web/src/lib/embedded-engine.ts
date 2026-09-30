@@ -1,5 +1,5 @@
 import type { JobSnapshot, RpcMethodName } from 'core';
-import type { EmbeddedRpcRequest, InMemoryJobResult, ResolvedInput } from './engine-types.ts';
+import type { InMemoryJobResult, ResolvedInput } from './engine-types.ts';
 import { RpcError } from './transport.ts';
 
 export interface WorkerReply {

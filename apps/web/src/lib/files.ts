@@ -107,15 +107,6 @@ export function releasePickedFileBytes(picked: PickedFile): void {
   picked.file = null;
 }
 
-function toBase64(bytes: Uint8Array): string {
-  const chunk = 0x8000;
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-}
-
 export function artifactBytes(artifact: OutputFile): Uint8Array | null {
   if (!artifact.dataBase64) return null;
   const binary = atob(artifact.dataBase64);

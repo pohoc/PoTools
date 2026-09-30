@@ -3,7 +3,6 @@ import { Tabs as HeroTabs } from '@heroui/react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../utils.ts';
 
-const Context = createContext<{ variant: TabVariant }>({ variant: 'line' });
 export function Tabs({ value, defaultValue, onValueChange, children, ...props }: { value?: string; defaultValue?: string; onValueChange?: (value: string) => void; children: ReactNode; className?: string }) {
   return <HeroTabs selectedKey={value ?? defaultValue} onSelectionChange={(key) => onValueChange?.(String(key))} {...props}>{children}</HeroTabs>;
 }

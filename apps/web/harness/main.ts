@@ -164,7 +164,6 @@ interface GoldenOutcome {
 (globalThis as unknown as { __golden: { run(cases: GoldenCase[]): Promise<GoldenOutcome[]> } }).__golden = {
   async run(cases: GoldenCase[]): Promise<GoldenOutcome[]> {
     const notify = (globalThis as unknown as { __goldenProgress?: (key: string, index: number, total: number) => void }).__goldenProgress;
-    const updateBaseline = (globalThis as unknown as { __goldenUpdate?: boolean }).__goldenUpdate === true;
     const outcomes: GoldenOutcome[] = [];
     const observed: Array<Record<string, unknown>> = [];
     for (const [index, item] of cases.entries()) {

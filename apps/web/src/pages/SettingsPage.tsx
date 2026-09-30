@@ -224,8 +224,8 @@ function AppearanceTab() {
 
 function OutputTab() {
   const { t } = useI18n();
-  const settings = useSettings();
   const info = useEngine((state) => state.info);
+  const settings = useSettings();
   const [picking, setPicking] = useState(false);
 
   const chooseDir = () => {
@@ -584,8 +584,7 @@ function EngineTab() {
 
 function AboutTab() {
   const { t } = useI18n();
-  const info = useEngine((state) => state.info);
-  const securityItems = [
+    const securityItems = [
     { key: 'local', icon: 'shield' },
     { key: 'temporary', icon: 'trash' },
     { key: 'sharing', icon: 'folder' },

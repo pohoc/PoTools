@@ -1,10 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FieldValue, ProbedPdf, TextRunResult, ToolDescriptor } from 'core';
 import { defaultOptions } from './core-bindings.ts';
 import { useEngine, rpcErrorMessage } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
 import { releasePickedFileBytes, toFileRef, type PickedFile } from '../lib/files.ts';
 import { useSettings } from '../lib/settings.ts';
+
+/** Stable identity used to de-duplicate picked files. */
+function fileIdentity(file: PickedFile): string {
+  return `${file.path ?? ''}|${file.name}|${file.size}`;
+}
 
 function initialOptions(descriptor: ToolDescriptor): Record<string, FieldValue> {
   const options = defaultOptions(descriptor.id);
@@ -60,18 +65,16 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
   const [jobId, setJobId] = useState<string | null>(null);
   const textTool = descriptor.layout === 'text';
 
-  // Switching tools remounts the workspace (`key={descriptor.id}`), so this only
-  // ever runs on mount. It is kept as the single place that defines the initial
-  // draft, so the guarantee does not silently depend on the call site's key.
+  // Per-tool freshness comes from the call site rendering the workspace with
+  // `key={descriptor.id}`, which remounts this hook and re-runs every `useState`
+  // initialiser. An effect that reset the same state was therefore dead code
+  // (and could not be made dependency-correct anyway, since it read the whole
+  // descriptor). `files` is mirrored into a ref so `addFiles` below stays
+  // referentially stable for the window paste listener.
+  const filesRef = useRef(files);
   useEffect(() => {
-    setFiles([]);
-    setProbes({});
-    setOptions(initialOptions(descriptor));
-    setError(null);
-    setErrorCode(null);
-    setTextResult(null);
-    setJobId(null);
-  }, [descriptor.id]);
+    filesRef.current = files;
+  }, [files]);
 
   const probe = useCallback(
     async (incoming: PickedFile[]) => {
@@ -97,17 +100,23 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
     (incoming: PickedFile[]) => {
       if (!incoming.length) return;
       setError(null);
-      // Deduplicate against the current list *outside* the state updater: React
-      // double-invokes updaters under StrictMode (and may call them during a
-      // render that is later discarded), so starting the probe inside one issued
-      // two `file.probe` round trips per added file.
-      const known = new Set(files.map((file) => `${file.path ?? ''}|${file.name}|${file.size}`));
-      const fresh = incoming.filter((file) => !known.has(`${file.path ?? ''}|${file.name}|${file.size}`));
+      // De-duplicate outside the state updater: React double-invokes updaters
+      // under StrictMode (and may call them during a render that is later
+      // discarded), so starting the probe inside one issued two `file.probe`
+      // round trips per added file.
+      const known = new Set(filesRef.current.map(fileIdentity));
+      const fresh = incoming.filter((file) => !known.has(fileIdentity(file)));
       if (!fresh.length) return;
-      setFiles(descriptor.multiFile ? [...files, ...fresh] : fresh.slice(0, 1));
+      // The updater itself stays pure; `prev` is still consulted so a second
+      // batch in the same tick cannot re-add what the first one already did.
+      setFiles((prev) => {
+        const unseen = fresh.filter((file) => !prev.some((existing) => fileIdentity(existing) === fileIdentity(file)));
+        if (!unseen.length) return prev;
+        return descriptor.multiFile ? [...prev, ...unseen] : unseen.slice(0, 1);
+      });
       void probe(fresh);
     },
-    [descriptor.multiFile, files, probe],
+    [descriptor.multiFile, probe],
   );
 
   const submitFiles = useCallback(

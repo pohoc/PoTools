@@ -66,7 +66,6 @@ function MainApp() {
   const reconnecting = useEngine((state) => state.reconnecting);
   const error = useEngine((state) => state.error);
   const attach = useJobs((state) => state.attach);
-  const locale = useSettings((state) => state.locale);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -104,9 +103,9 @@ function MainApp() {
       // rejection — the crash screen turns any of those into a full error UI.
       if (disposed) void Promise.resolve().then(unlisten).catch(() => undefined);
       else stop = unlisten;
-    }).catch((error: unknown) => {
+    }).catch((issue: unknown) => {
       // Registration may lose a race with native window destruction.
-      console.debug('PoTools close listener unavailable', error);
+      console.debug('PoTools close listener unavailable', issue);
     });
     return () => {
       disposed = true;
@@ -116,7 +115,9 @@ function MainApp() {
 
   useEffect(() => {
     document.title = t('app.name');
-  }, [locale, t]);
+    // `t` is memoised on the locale's message table, so it changes exactly when
+    // the language does — listing the locale as well was redundant.
+  }, [t]);
 
   if (status !== 'ready' || reconnecting) {
     return <EngineStartupScreen error={status === 'offline' ? error : null} retry={() => void reconnect()} />;

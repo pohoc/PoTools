@@ -21,7 +21,7 @@ async function readBuildInfo() {
     }
     return { ...info, source: 'apps/web/dist/build-info.json' };
   } catch (error) {
-    if (error?.code !== 'ENOENT') throw new Error(`Invalid ${file}: ${error.message}`);
+    if (error?.code !== 'ENOENT') throw new Error(`Invalid ${file}: ${error.message}`, { cause: error });
     const stamp = buildStamp();
     console.warn(`[release] ${file} not found; falling back to root package.json + a freshly computed stamp.`);
     return {
