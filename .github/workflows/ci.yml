@@ -134,6 +134,17 @@ jobs:
           wasm-bindgen --version
       - run: pnpm install --frozen-lockfile
       - run: pnpm wasm:build
+      # The generated `.js`/`.wasm` are gitignored but the typings they carry are
+      # committed (they are what lets the `web` job typecheck without a Rust
+      # toolchain). They are deterministic for a pinned wasm-bindgen version, so
+      # a diff here means the committed typings no longer describe the build.
+      - name: Verify committed wasm typings are in sync
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code -- packages/engine/wasm/pkg/; then
+            echo "::error::packages/engine/wasm/pkg typings are stale; run 'pnpm wasm:build' and commit the result."
+            exit 1
+          fi
       # `build` runs tsc, the wasm startup smoke check, and the Vite bundle.
       - run: pnpm --filter @potools/web build
       - name: Verify build identity was emitted

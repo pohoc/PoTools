@@ -87,7 +87,8 @@ export function renderToolName(pattern: string | null | undefined, name: string,
 
 /**
  * Returns catalog tools routed by the Rust engine, including tools that
- * return a validation error when called without their required input.
+ * return a validation error when called without their required input, plus the
+ * engine-only entry points that the catalog does not expose.
  */
 export function toolCapabilities(): any;
 
@@ -95,31 +96,28 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly coreAllTools: () => [number, number, number];
-    readonly coreAssessPasswordStrength: (a: number, b: number) => [number, number, number];
-    readonly coreFieldsOf: (a: any) => [number, number, number];
-    readonly coreFormatPageRanges: (a: any) => [number, number, number, number];
-    readonly coreIdPhotoPrintSize: (a: number, b: number) => [number, number, number];
-    readonly coreIdPhotoSize: (a: number, b: number) => [number, number, number];
+    readonly coreAllTools: (a: number) => void;
+    readonly coreAssessPasswordStrength: (a: number, b: number, c: number) => void;
+    readonly coreFieldsOf: (a: number, b: number) => void;
+    readonly coreFormatPageRanges: (a: number, b: number) => void;
+    readonly coreIdPhotoPrintSize: (a: number, b: number, c: number) => void;
+    readonly coreIdPhotoSize: (a: number, b: number, c: number) => void;
     readonly coreIsValidPageRanges: (a: number, b: number) => number;
-    readonly coreParsePageRanges: (a: number, b: number, c: number) => [number, number, number];
-    readonly coreVisibleFields: (a: any, b: any) => [number, number, number];
-    readonly decodeImageRgba: (a: number, b: number, c: number) => [number, number, number];
-    readonly dispatch: (a: any) => [number, number, number];
-    readonly ocrTableWorkbook: (a: any) => [number, number, number];
-    readonly ocrTextArtifacts: (a: any) => [number, number, number];
-    readonly parseInvoiceFields: (a: number, b: number) => [number, number, number];
-    readonly pdfImageRects: (a: number, b: number) => [number, number, number];
-    readonly renderToolName: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number];
-    readonly toolCapabilities: () => [number, number, number];
-    readonly __wbindgen_malloc: (a: number, b: number) => number;
-    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbindgen_exn_store: (a: number) => void;
-    readonly __externref_table_alloc: () => number;
-    readonly __wbindgen_externrefs: WebAssembly.Table;
-    readonly __externref_table_dealloc: (a: number) => void;
-    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-    readonly __wbindgen_start: () => void;
+    readonly coreParsePageRanges: (a: number, b: number, c: number, d: number) => void;
+    readonly coreVisibleFields: (a: number, b: number, c: number) => void;
+    readonly decodeImageRgba: (a: number, b: number, c: number, d: number) => void;
+    readonly dispatch: (a: number, b: number) => void;
+    readonly ocrTableWorkbook: (a: number, b: number) => void;
+    readonly ocrTextArtifacts: (a: number, b: number) => void;
+    readonly parseInvoiceFields: (a: number, b: number, c: number) => void;
+    readonly pdfImageRects: (a: number, b: number, c: number) => void;
+    readonly renderToolName: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
+    readonly toolCapabilities: (a: number) => void;
+    readonly __wbindgen_export: (a: number, b: number) => number;
+    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export3: (a: number) => void;
+    readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;
