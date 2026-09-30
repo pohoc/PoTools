@@ -73,7 +73,7 @@ function JobRow({ job }: { job: JobSnapshot }) {
         {job.error ? (
           <p className="flex items-start gap-1.5 rounded-control bg-bad/10 px-2.5 py-1.5 text-[12px] leading-5 text-ink">
             <Icon name="warning" size={13} className="mt-[3px] shrink-0 text-bad" />
-            {localizedErrorText({ message: job.error.message, code: job.error.code, hintKey }, t)}
+            {localizedErrorText({ message: job.error.message, code: job.error.code, hintKey, details: job.error.details }, t)}
           </p>
         ) : null}
 

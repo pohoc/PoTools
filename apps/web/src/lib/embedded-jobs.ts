@@ -202,7 +202,13 @@ export class EmbeddedJobRunner {
     const missing = /ENOENT|os error 2|no such file|cannot find (?:the )?file/i.test(detail);
     const hasPath = Boolean(file?.path);
     snapshot.error = {
-      code: hasPath ? 'unreadable_file' : error instanceof RpcError ? error.code : 'bad_request',
+      code: !file
+        ? error instanceof RpcError ? error.code : 'bad_request'
+        : missing
+          ? 'fileMissing'
+          : hasPath
+            ? 'fileUnreadable'
+            : 'bad_request',
       message: !file
         ? detail
         : missing
@@ -210,6 +216,8 @@ export class EmbeddedJobRunner {
           : hasPath
             ? `无法读取 ${file.name || file.path}: ${detail}`
             : detail,
+      // Kept so message tables can name the file and the reason in any locale.
+      details: file ? { file: file.name || file.path, detail } : undefined,
     };
     snapshot.finishedAt = Date.now();
     snapshot.progress = { state: 'failed', percent: 1 };

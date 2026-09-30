@@ -12,6 +12,24 @@ export interface LocalizableError {
   code?: string;
   /** Explicit message-table key; wins over everything else. */
   hintKey?: string;
+  /**
+   * Values for `{placeholder}` spans in the resolved template.
+   *
+   * Without this, a coded failure could only ever resolve to a generic sentence:
+   * `无法读取 <file>: <detail>` had to choose between its specifics and being
+   * translatable. `JobError.details` already carries such values.
+   */
+  details?: unknown;
+}
+
+/** Substitute `{name}` spans; missing or non-scalar values are left visible. */
+function interpolate(template: string, details: unknown): string {
+  if (!details || typeof details !== 'object') return template;
+  const values = details as Record<string, unknown>;
+  return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
+    const value = values[name];
+    return typeof value === 'string' || typeof value === 'number' ? String(value) : whole;
+  });
 }
 
 const CJK = /[\u3400-\u9fff]/;
@@ -42,7 +60,7 @@ const PATH_DENIAL = /^path_not_authorized:\s*([^\n]+)/;
 export function localizedErrorText(error: LocalizableError, t: (key: string) => string): string {
   if (error.hintKey) {
     const hinted = t(error.hintKey);
-    if (hinted !== error.hintKey) return hinted;
+    if (hinted !== error.hintKey) return interpolate(hinted, error.details);
   }
   // A path-guard refusal names the offending path, which is the actionable part,
   // so translate the sentence and keep the path rather than discarding both.
@@ -52,7 +70,7 @@ export function localizedErrorText(error: LocalizableError, t: (key: string) => 
   if (error.code) {
     const genericKey = `error.${error.code}`;
     const generic = t(genericKey);
-    if (generic !== genericKey) return generic;
+    if (generic !== genericKey) return interpolate(generic, error.details);
   }
   return error.message;
 }

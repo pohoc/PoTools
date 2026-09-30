@@ -1457,6 +1457,8 @@ export const en: Messages = {
   'startup.privacy': 'The report contains only startup errors and engine logs. It is not uploaded; local paths are hidden, and selected file or image contents are not included.',
 
   'error.notOfd': 'That file is not a valid OFD package',
+  'error.fileMissing': 'The file no longer exists: {file} (it may have been moved, deleted, or cleaned up)',
+  'error.fileUnreadable': 'Could not read {file}: {detail}',
   'error.workerCrash': 'The embedded tool worker stopped unexpectedly. Retry, or restart the app if it keeps happening.',
   'error.pathNotAuthorized': 'That path is not authorized (not chosen in a system dialog, not dropped in, and outside every configured directory): ',
   'error.badRange': 'Page number is outside the document',

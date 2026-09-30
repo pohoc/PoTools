@@ -134,10 +134,10 @@ export function transportMode(): 'web' | 'tauri' {
   return getTransport().mode;
 }
 
-export function rpcErrorMessage(error: unknown): { message: string; hintKey?: string; code: string } {
+export function rpcErrorMessage(error: unknown): { message: string; hintKey?: string; code: string; details?: unknown } {
   if (error && typeof error === 'object' && 'code' in error) {
-    const rpc = error as { code: string; message: string; hintKey?: string };
-    return { code: rpc.code, message: rpc.message, hintKey: rpc.hintKey };
+    const rpc = error as { code: string; message: string; hintKey?: string; details?: unknown };
+    return { code: rpc.code, message: rpc.message, hintKey: rpc.hintKey, details: rpc.details };
   }
   return {
     code: 'internal',
