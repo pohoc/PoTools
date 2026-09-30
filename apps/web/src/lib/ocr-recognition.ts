@@ -34,6 +34,13 @@ class JobFailure extends Error {
 
 /** Model/dictionary fetch or ONNX session init failure. */
 class OcrInitError extends Error {
+  /**
+   * The display layer resolves a failure by looking up `error.<code>`, so
+   * without this the (already translated) `error.ocrInit` entry was unreachable
+   * and every init failure surfaced its Chinese message verbatim in the English
+   * UI. The message is kept for logs and for the no-code fallback.
+   */
+  readonly code = 'ocrInit';
   constructor(message: string) {
     super(message);
     this.name = 'OcrInitError';
