@@ -1,12 +1,8 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell.tsx';
 import { AppLogo } from './components/AppLogo.tsx';
 import { Button, Icon, ThemeProvider, Toaster } from '@potools/ui';
-import { Home } from './pages/Home.tsx';
-import { ToolPage } from './pages/ToolPage.tsx';
-import { QueuePage } from './pages/QueuePage.tsx';
-import { SettingsPage } from './pages/SettingsPage.tsx';
 import { useEngine } from './stores/engine.ts';
 import { useJobs } from './stores/jobs.ts';
 import { useI18n } from './i18n/index.tsx';
@@ -18,6 +14,13 @@ import { isTauri } from './lib/tauri.ts';
 import { isMac } from './lib/window.ts';
 import { clearThumbCache } from './lib/usePageThumbs.ts';
 import { LicenseAgreement } from './components/LicenseAgreement.tsx';
+
+// One chunk per route: the landing page should not wait on the settings screen,
+// the queue, or the tool workspace (which itself splits its heavy panels).
+const Home = lazy(() => import('./pages/Home.tsx').then((module) => ({ default: module.Home })));
+const ToolPage = lazy(() => import('./pages/ToolPage.tsx').then((module) => ({ default: module.ToolPage })));
+const QueuePage = lazy(() => import('./pages/QueuePage.tsx').then((module) => ({ default: module.QueuePage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage.tsx').then((module) => ({ default: module.SettingsPage })));
 
 const MAC_LICENSE_ACCEPTANCE_KEY = 'potools.license.accepted.v1';
 
@@ -122,16 +125,30 @@ function MainApp() {
   return (
     <>
       <AppShell>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/tool/:toolId" element={<ToolPage />} />
-          <Route path="/queue" element={<QueuePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
+        {/* Kept inside the shell so the sidebar and title bar never unmount
+            while a route chunk is being fetched. */}
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/tool/:toolId" element={<ToolPage />} />
+            <Route path="/queue" element={<QueuePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </Suspense>
       </AppShell>
       <Toaster />
     </>
+  );
+}
+
+function RouteFallback() {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-1 items-center justify-center py-16 text-xs text-muted" role="status" aria-live="polite">
+      <Icon name="spinner" size={16} className="mr-2 animate-spin motion-reduce:animate-none" />
+      {t('app.loading')}
+    </div>
   );
 }
 

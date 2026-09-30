@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Icon, Input as HeroInput, Textarea as HeroTextarea } from '@potools/ui';
 import type { FieldValue, ToolField } from 'core';
 import { isValidPageRanges, visibleFields } from '../lib/core-bindings.ts';
@@ -160,11 +160,20 @@ export function OptionForm({
 }) {
   const { t } = useI18n();
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const visible = visibleFields(fields, values);
-  // UI-only controls (presets) stay rendered; they write into real fields.
-  const main = visible.filter((field) => !field.section || field.section === 'main');
-  const layout = visible.filter((field) => field.section === 'layout' && !field.uiOnly);
-  const advanced = visible.filter((field) => field.section === 'advanced' && !field.uiOnly);
+  // `visibleFields` crosses into WASM and serialises the whole field list plus
+  // every option value. It used to run on each render, so unrelated re-renders
+  // (job progress frames arrive about once a second per running job) paid that
+  // cost for nothing. Both inputs are referentially stable across those renders.
+  const sections = useMemo(() => {
+    const visible = visibleFields(fields, values);
+    // UI-only controls (presets) stay rendered; they write into real fields.
+    return {
+      main: visible.filter((field) => !field.section || field.section === 'main'),
+      layout: visible.filter((field) => field.section === 'layout' && !field.uiOnly),
+      advanced: visible.filter((field) => field.section === 'advanced' && !field.uiOnly),
+    };
+  }, [fields, values]);
+  const { main, layout, advanced } = sections;
 
   return (
     <div className="tool-form flex flex-col gap-4">

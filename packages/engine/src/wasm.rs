@@ -28,7 +28,7 @@ fn to_js_payload<T: Serialize + ?Sized>(value: &T) -> Result<JsValue, JsValue> {
 pub fn core_all_tools() -> Result<JsValue, JsValue> {
     let tools =
         potools_core::tools::all_tools().map_err(|error| JsValue::from_str(&error.to_string()))?;
-    to_js_json(&tools)
+    to_js_json(tools)
 }
 
 #[wasm_bindgen(js_name = coreFieldsOf)]

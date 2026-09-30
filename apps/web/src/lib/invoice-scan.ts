@@ -1,9 +1,7 @@
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
+import { loadPdfjs } from './pdfjs.ts';
 import { parseInvoiceFields } from '../../../../packages/engine/wasm/pkg/potools_engine.js';
 import type { InvoiceScanEntry, InvoiceScanResult } from 'core';
 
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 const MAX_TEXT_CHARS = 2_000_000;
 
 interface Candidate {
@@ -19,6 +17,7 @@ function emptyFields(): InvoiceScanEntry['fields'] {
 }
 
 async function extractPdfText(bytes: Uint8Array): Promise<{ text: string; pages: number }> {
+  const { getDocument } = await loadPdfjs();
   const loading = getDocument({ data: Uint8Array.from(bytes), isEvalSupported: false });
   let document: Awaited<typeof loading.promise> | null = null;
   try {

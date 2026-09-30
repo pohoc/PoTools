@@ -2,6 +2,7 @@ export const zhCN = {
   'app.name': 'PoTools 工具箱',
   'app.short': 'PoTools',
   'app.tagline': '本机文件工作台，覆盖文档、图片与格式转换',
+  'app.loading': '正在载入…',
   'license.windowTitle': '许可协议',
   'license.title': 'PoTools 软件许可协议',
   'license.subtitle': '版本 {version} · 请阅读协议后继续',

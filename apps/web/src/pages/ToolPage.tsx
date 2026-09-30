@@ -1,5 +1,5 @@
 import { Icon } from '@potools/ui';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useParams, Link } from 'react-router-dom';
 import type { JobSnapshot, ToolDescriptor, ToolId } from 'core';
 import { TOOLS } from '../lib/core-bindings.ts';
@@ -10,7 +10,6 @@ import { ColorPickerPanel } from '../components/ColorPickerPanel.tsx';
 import { PasswordStrengthPanel } from '../components/PasswordStrengthPanel.tsx';
 import { FileList } from '../components/FileList.tsx';
 import { areOptionsValid, OptionForm } from '../components/OptionForm.tsx';
-import { ResultPanel, TextRunPanel } from '../components/ResultPanel.tsx';
 import { PageGrid, slotsFromProbes, type Slot } from './PageGrid.tsx';
 import { SplitCanvas, groupsFromCuts } from './SplitCanvas.tsx';
 import { useI18n } from '../i18n/index.tsx';
@@ -21,18 +20,41 @@ import { useSettings } from '../lib/settings.ts';
 import { formatBytes } from '../lib/format.ts';
 import { filesFromDataTransfer, kindFor } from '../lib/files.ts';
 import { usePageThumbs } from '../lib/usePageThumbs.ts';
-import { ImageStudioEditor } from '../components/ImageStudioEditor.tsx';
 import type { PickedFile } from '../lib/files.ts';
 import type { ProbedPdf } from 'core';
-import { InvoiceOrganizerPage } from './InvoiceOrganizerPage.tsx';
 import { ToolWorkspaceLayout } from '../components/PageLayout.tsx';
+
+// Result preview and the image studio are the two heaviest parts of the page:
+// the former pulls in @open-file-viewer (mermaid/cytoscape/katex/pptx-renderer/
+// heic2any) plus pdf.js, the latter mediapipe. Neither is needed to render the
+// form, so both are split out and fetched only when the relevant tool actually
+// shows them.
+const ResultPanel = lazy(() =>
+  import('../components/ResultPanel.tsx').then((module) => ({ default: module.ResultPanel })),
+);
+const TextRunPanel = lazy(() =>
+  import('../components/ResultPanel.tsx').then((module) => ({ default: module.TextRunPanel })),
+);
+const ImageStudioEditor = lazy(() =>
+  import('../components/ImageStudioEditor.tsx').then((module) => ({ default: module.ImageStudioEditor })),
+);
+const InvoiceOrganizerPage = lazy(() =>
+  import('./InvoiceOrganizerPage.tsx').then((module) => ({ default: module.InvoiceOrganizerPage })),
+);
 
 export function ToolPage() {
   const { toolId } = useParams<{ toolId: string }>();
   const descriptor = toolId ? TOOLS[toolId as ToolId] : undefined;
   if (!descriptor) return <Navigate to="/" replace />;
-  if (descriptor.id === 'invoice-organize') return <InvoiceOrganizerPage />;
-  return <ToolWorkspace key={descriptor.id} descriptor={descriptor} />;
+  return (
+    <Suspense fallback={null}>
+      {descriptor.id === 'invoice-organize' ? (
+        <InvoiceOrganizerPage />
+      ) : (
+        <ToolWorkspace key={descriptor.id} descriptor={descriptor} />
+      )}
+    </Suspense>
+  );
 }
 
 function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
@@ -275,17 +297,21 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
     </div>
   );
 
-  const resultPanel = textLayout ? (
-    <TextRunPanel
-      defaultName={`${descriptor.id}.txt`}
-      result={draft.textResult}
-      error={error}
-      errorCode={draft.errorCode}
-      running={draft.running}
-      onRetry={() => void onRun()}
-    />
-  ) : (
-    <ResultPanel job={job} onRetry={() => void onRun()} />
+  const resultPanel = (
+    <Suspense fallback={null}>
+      {textLayout ? (
+        <TextRunPanel
+          defaultName={`${descriptor.id}.txt`}
+          result={draft.textResult}
+          error={error}
+          errorCode={draft.errorCode}
+          running={draft.running}
+          onRetry={() => void onRun()}
+        />
+      ) : (
+        <ResultPanel job={job} onRetry={() => void onRun()} />
+      )}
+    </Suspense>
   );
 
   if (descriptor.id === 'color-convert') {
@@ -363,12 +389,14 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
 
           {imageStudio ? (
             <Section title={t('imageStudio.preview')}>
-              <ImageStudioEditor
-                tool={descriptor.id as 'image-cutout' | 'image-id-photo' | 'image-watermark-clean'}
-                source={draft.files[0]}
-                options={draft.options}
-                onReady={setPortrait}
-              />
+              <Suspense fallback={null}>
+                <ImageStudioEditor
+                  tool={descriptor.id as 'image-cutout' | 'image-id-photo' | 'image-watermark-clean'}
+                  source={draft.files[0]}
+                  options={draft.options}
+                  onReady={setPortrait}
+                />
+              </Suspense>
             </Section>
           ) : null}
 

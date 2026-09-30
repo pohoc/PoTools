@@ -143,8 +143,8 @@ mod tests {
     fn catalog_ids() -> BTreeSet<String> {
         potools_core::tools::all_tools()
             .expect("embedded catalog must parse")
-            .into_iter()
-            .map(|tool| tool.id)
+            .iter()
+            .map(|tool| tool.id.clone())
             .collect()
     }
 

@@ -84,14 +84,28 @@ const CATALOGS: &[&str] = &[
     include_str!("../catalog/network.json"),
 ];
 
-/// The checked-in domain JSON is shared data. Rust owns the catalog API and validation;
-/// the TypeScript package exposes a compatibility view for UI type checking.
-pub fn all_tools() -> Result<Vec<ToolDescriptor>, serde_json::Error> {
-    CATALOGS.iter().try_fold(Vec::new(), |mut catalog, source| {
-        catalog.extend(serde_json::from_str::<Vec<ToolDescriptor>>(source)?);
-        Ok(catalog)
-    })
+/// The checked-in domain JSON is shared data. Rust owns the catalog API and
+/// validation; the Web contract mirror in `apps/web/src/lib/core-contract.ts`
+/// exists only for UI type checking.
+///
+/// The 14 embedded blobs are ~187 KB of JSON, so the parse result is cached for
+/// the lifetime of the process instead of being redone on every call.
+pub fn all_tools() -> Result<&'static [ToolDescriptor], serde_json::Error> {
+    if let Some(cached) = CATALOG.get() {
+        return Ok(cached);
+    }
+    // Parse before initialising so a malformed catalog stays a recoverable error
+    // rather than poisoning a `OnceLock`. A lost race just re-parses once.
+    let parsed = CATALOGS
+        .iter()
+        .try_fold(Vec::new(), |mut catalog, source| {
+            catalog.extend(serde_json::from_str::<Vec<ToolDescriptor>>(source)?);
+            Ok(catalog)
+        })?;
+    Ok(CATALOG.get_or_init(|| parsed))
 }
+
+static CATALOG: std::sync::OnceLock<Vec<ToolDescriptor>> = std::sync::OnceLock::new();
 
 pub fn find_tool<'a>(catalog: &'a [ToolDescriptor], id: &str) -> Option<&'a ToolDescriptor> {
     catalog.iter().find(|tool| tool.id == id)

@@ -1,7 +1,4 @@
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
-
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+import { loadPdfjs } from './pdfjs.ts';
 
 export interface ContentInsets {
   top: number;
@@ -81,6 +78,7 @@ export async function pdfContentInsets(
   bytes: Uint8Array,
   password?: string | null,
 ): Promise<Array<ContentInsets | null>> {
+  const { getDocument } = await loadPdfjs();
   const loading = getDocument({ data: Uint8Array.from(bytes), password: password ?? undefined, isEvalSupported: false });
   let document: Awaited<typeof loading.promise> | null = null;
   try {
@@ -195,6 +193,7 @@ export async function removeBlankInkRatios(
   bytes: Uint8Array,
   password?: string | null,
 ): Promise<number[]> {
+  const { getDocument } = await loadPdfjs();
   const loading = getDocument({ data: Uint8Array.from(bytes), password: password ?? undefined, isEvalSupported: false });
   let document: Awaited<typeof loading.promise> | null = null;
   try {

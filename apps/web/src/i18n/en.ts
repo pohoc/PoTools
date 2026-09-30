@@ -4,6 +4,7 @@ export const en: Messages = {
   'app.name': 'PoTools Toolbox',
   'app.short': 'PoTools',
   'app.tagline': 'Your local workspace for documents, images, and file conversion',
+  'app.loading': 'Loading…',
   'license.windowTitle': 'License agreement',
   'license.title': 'PoTools Software License Agreement',
   'license.subtitle': 'Version {version} · Read the agreement to continue',
