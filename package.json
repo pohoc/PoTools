@@ -19,7 +19,7 @@
     "rust:test": "node scripts/run-cargo.mjs test",
     "rust:fmt": "node scripts/run-cargo.mjs fmt --check",
     "rust:clippy": "node scripts/run-cargo.mjs clippy --all-targets -- -D warnings",
-    "rust:check:wasm": "node scripts/run-cargo.mjs check --no-default-features --features wasm --target wasm32-unknown-unknown",
+    "rust:check:wasm": "node scripts/check-engine-wasm.mjs",
     "package:macos": "pnpm version:check && pnpm icons && pnpm tauri build --bundles dmg --target x86_64-apple-darwin && node scripts/collect-release-artifacts.mjs macos",
     "package:windows:x64": "pnpm version:check && pnpm icons && pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc && node scripts/collect-release-artifacts.mjs windows x64",
     "package:windows:x86": "pnpm version:check && pnpm icons && pnpm tauri build --bundles nsis --target i686-pc-windows-msvc && node scripts/collect-release-artifacts.mjs windows x86",

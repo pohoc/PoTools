@@ -86,12 +86,12 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
   };
 
   const saveOne = async (artifact: OutputFile) => {
-    const dir = await chooseSaveDir();
-    if (!dir) {
-      await downloadArtifact(artifact);
-      return;
-    }
     try {
+      const dir = await chooseSaveDir();
+      if (!dir) {
+        await downloadArtifact(artifact);
+        return;
+      }
       const path = await saveArtifactToFolder(job.id, artifact, dir);
       if (path) toast.success(tf('result.savedTo', { path }));
     } catch (error) {
@@ -246,7 +246,7 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
                     {t('result.saveToShort')}
                   </Button>
                 ) : null}
-                {artifact.path ? (
+                {isTauri() && artifact.path ? (
                   <Button size="sm" variant="quiet" icon="folder" onClick={() => void revealArtifact(artifact)}>
                     {t('result.revealShort')}
                   </Button>

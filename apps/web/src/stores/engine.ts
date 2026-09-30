@@ -41,6 +41,9 @@ function applyJobDefaults(job: JobRequest): JobRequest {
   };
 }
 
+/** Unsubscribe for the active transport's status listener (see `boot`). */
+let detachStatus: (() => void) | null = null;
+
 export const useEngine = create<EngineState>((set, get) => ({
   status: 'connecting',
   info: null,
@@ -52,7 +55,9 @@ export const useEngine = create<EngineState>((set, get) => ({
     if (get().started) return;
     set({ started: true });
     const transport = getTransport();
-    transport.onStatus((status) => set({ status }));
+    // Re-registering without unsubscribing leaked a listener per boot attempt.
+    detachStatus?.();
+    detachStatus = transport.onStatus((status) => set({ status }));
     try {
       const info = await transport.start({ concurrency: useSettings.getState().concurrency });
       set({ info, error: null });
@@ -64,7 +69,8 @@ export const useEngine = create<EngineState>((set, get) => ({
       if (transport.mode === 'tauri') {
         resetTransport();
         const http = getTransport('http');
-        http.onStatus((status) => set({ status }));
+        detachStatus?.();
+        detachStatus = http.onStatus((status) => set({ status }));
         try {
           const info = await http.start();
           set({ info, error: null });

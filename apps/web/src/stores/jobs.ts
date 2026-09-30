@@ -1,13 +1,20 @@
 import { create } from 'zustand';
 import type { JobRequest, JobSnapshot, ToolId } from 'core';
 import { getTransport } from '../lib/transport.ts';
+import type { Transport } from '../lib/transport-shared.ts';
 import { useSettings } from '../lib/settings.ts';
 import { useEngine } from './engine.ts';
 
 interface JobState {
   jobs: JobSnapshot[];
   attached: boolean;
+  /**
+   * Subscribes to the current transport's job events. Safe to call repeatedly:
+   * the subscription follows the transport instance, so a manual reconnect
+   * (which replaces the singleton) re-attaches instead of silently going deaf.
+   */
   attach: () => void;
+  detach: () => void;
   submit: (job: Omit<JobRequest, 'id' | 'createdAt'>) => Promise<JobSnapshot>;
   /** Re-runs the exact original request (files + options), independent of the current draft. */
   resubmit: (jobId: string) => Promise<boolean>;
@@ -34,6 +41,9 @@ const WATCHDOG_TICK_MS = 1_000;
 
 let watchdog: ReturnType<typeof setInterval> | null = null;
 let lastEventAt = 0;
+/** Transport the current event subscription belongs to, plus its unsubscribe. */
+let subscribedTransport: Transport | null = null;
+let detachEvents: (() => void) | null = null;
 
 /**
  * Safety net for a silently dead event stream: while a job is non-terminal and
@@ -61,9 +71,11 @@ export const useJobs = create<JobState>((set, get) => ({
   attached: false,
 
   attach: () => {
-    if (get().attached) return;
-    set({ attached: true });
-    getTransport().onEvent((event) => {
+    const transport = getTransport();
+    if (subscribedTransport === transport) return;
+    detachEvents?.();
+    subscribedTransport = transport;
+    detachEvents = transport.onEvent((event) => {
       lastEventAt = Date.now();
       if (event.event !== 'job.updated') return;
       const incoming = event.job;
@@ -91,7 +103,15 @@ export const useJobs = create<JobState>((set, get) => ({
         }
       }
     });
+    set({ attached: true });
     void get().refresh().then(armWatchdog);
+  },
+
+  detach: () => {
+    detachEvents?.();
+    detachEvents = null;
+    subscribedTransport = null;
+    set({ attached: false });
   },
 
   submit: async (job) => {

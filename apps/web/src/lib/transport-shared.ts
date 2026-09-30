@@ -40,10 +40,12 @@ export abstract class BaseTransport implements Transport {
   info: EngineInfo | null = null;
   protected eventHandlers = new Set<(event: EngineEvent) => void>();
   protected statusHandlers = new Set<(status: TransportStatus) => void>();
+  private stopped = false;
 
   abstract start(options?: { concurrency?: number }): Promise<EngineInfo>;
   abstract call<T>(method: RpcMethodName, params: Record<string, unknown>, timeoutMs?: number): Promise<T>;
-  abstract stop(): void;
+  /** Releases the concrete resources (timers, workers). Handlers are cleared by `stop`. */
+  protected abstract dispose(): void;
 
   onEvent(handler: (event: EngineEvent) => void): () => void {
     this.eventHandlers.add(handler);
@@ -54,6 +56,20 @@ export abstract class BaseTransport implements Transport {
     this.statusHandlers.add(handler);
     handler(this.status);
     return () => this.statusHandlers.delete(handler);
+  }
+
+  /**
+   * Retires this transport. Subscribers must be dropped here: `resetTransport`
+   * throws the instance away, and a surviving handler set would keep the
+   * previous engine's subscribers wired to a dead object (job progress updates
+   * silently stopped arriving after a manual reconnect).
+   */
+  stop(): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    this.dispose();
+    this.eventHandlers.clear();
+    this.statusHandlers.clear();
   }
 
   protected emitEvent(event: EngineEvent): void {

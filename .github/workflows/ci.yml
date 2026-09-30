@@ -96,7 +96,7 @@ jobs:
       # The browser engine must keep compiling for wasm32 with native services
       # disabled.
       - name: Check wasm target
-        run: cargo check --manifest-path packages/engine/Cargo.toml --no-default-features --features wasm --target wasm32-unknown-unknown
+        run: pnpm rust:check:wasm
 
   bundle:
     name: Web bundle + engine smoke

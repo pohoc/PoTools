@@ -16,6 +16,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from './lib/tauri.ts';
 import { isMac } from './lib/window.ts';
+import { clearThumbCache } from './lib/usePageThumbs.ts';
 import { LicenseAgreement } from './components/LicenseAgreement.tsx';
 
 const MAC_LICENSE_ACCEPTANCE_KEY = 'potools.license.accepted.v1';
@@ -66,16 +67,25 @@ function MainApp() {
   const { t } = useI18n();
 
   useEffect(() => {
-    void boot()
-      .then(() => attach())
-      .then(() => {
-        // Honour the retention preference on every launch, not only in dev.
-        const ttl = useSettings.getState().tempTtlDays;
-        if (ttl > 0) {
-          void useEngine.getState().call('temp.clean', { olderThanDays: ttl, keepJobs: 1 }).catch(() => undefined);
-        }
-      });
-  }, [boot, attach]);
+    void boot().then(() => {
+      // Honour the retention preference on every launch, not only in dev.
+      const ttl = useSettings.getState().tempTtlDays;
+      if (ttl > 0) {
+        void useEngine.getState().call('temp.clean', { olderThanDays: ttl, keepJobs: 1 }).catch(() => undefined);
+      }
+    });
+  }, [boot]);
+
+  // Job events and cached page renders belong to one engine instance. A manual
+  // reconnect replaces the transport, so re-subscribe once it is ready again and
+  // drop renders produced by the previous instance while it is down.
+  useEffect(() => {
+    if (status === 'ready') {
+      attach();
+      return;
+    }
+    clearThumbCache();
+  }, [status, attach]);
 
   useEffect(() => {
     if (!isTauri()) return;

@@ -1,6 +1,6 @@
 import type { FileRef, OutputFile } from 'core';
 import { isTauri, nativeOpenPath, nativePickDirectory, nativePickFiles, nativeSaveAs, ACCEPT_EXTENSIONS, type AcceptKind } from './tauri.ts';
-import { getTransport } from './transport.ts';
+import { getTransport, RpcError } from './transport.ts';
 
 export interface PickedFile {
   id: string;
@@ -127,6 +127,11 @@ export function artifactBytes(artifact: OutputFile): Uint8Array | null {
 export async function downloadArtifact(artifact: OutputFile): Promise<void> {
   const bytes = artifactBytes(artifact);
   if (!bytes) {
+    // Desktop stages large artifacts on disk and sends a path instead of bytes;
+    // there is no such fallback in a browser page.
+    if (!isTauri()) {
+      throw new RpcError('unsupported', '该产物未包含可下载内容，请在桌面版另存');
+    }
     await revealArtifact(artifact);
     return;
   }
@@ -135,14 +140,18 @@ export async function downloadArtifact(artifact: OutputFile): Promise<void> {
   anchor.href = url;
   anchor.download = artifact.name;
   anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  // Revoking too eagerly can abort a slow download; wait for the anchor to be
+  // dropped by the browser instead of racing it with a fixed timer.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+/** Opens the OS file manager at the artifact. Desktop only. */
 export async function revealArtifact(artifact: OutputFile): Promise<void> {
   if (!artifact.path) return;
-  if (isTauri()) {
-    await getTransport().call('shell.reveal', { path: artifact.path });
-    return;
+  if (!isTauri()) {
+    // The reveal affordance is gated on `isTauri()` in the UI; reaching here in
+    // browser mode means the caller skipped that gate.
+    throw new RpcError('unsupported', '此功能需要 PoTools 桌面版提供的本机文件系统');
   }
   await getTransport().call('shell.reveal', { path: artifact.path });
 }

@@ -294,7 +294,7 @@ class TauriTransport extends BaseTransport {
     throw new RpcError('unsupported', `${method} 尚未接入 Worker 或本机宿主`);
   }
 
-  stop(): void {
+  protected dispose(): void {
     if (this.healthTimer) clearInterval(this.healthTimer);
     this.healthTimer = null;
     this.ready = null;
