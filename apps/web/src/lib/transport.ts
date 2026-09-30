@@ -113,8 +113,14 @@ class TauriTransport extends BaseTransport {
     const readAt = now();
     const input = await this.resolveInput(params.file as FileRef);
     const readMs = now() - readAt;
+    // The worker identifies the file by `id` and takes its bytes from `inputs`, so
+    // anything else on the ref is pure payload. A ref carrying inline base64 put
+    // ~63 MB of string into every message, and serialising that — not reading the
+    // file (20 ms) and not rendering the page (0.5 s) — was the ~6 s this request
+    // spent. Stripped to the two fields the worker actually reads.
+    const ref = params.file as { id?: string; name?: string };
     const workerAt = now();
-    const reply = await callEmbeddedRpc(method, params, { inputs: [input] });
+    const reply = await callEmbeddedRpc(method, { ...params, file: { id: ref.id, name: ref.name } }, { inputs: [input] });
     console.info(`PoTools⏱ bytes:${method}`, {
       size: input.bytes?.byteLength ?? 0,
       readMs: Math.round(readMs),
