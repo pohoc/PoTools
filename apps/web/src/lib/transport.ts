@@ -5,7 +5,7 @@ import { callEmbeddedRpc, configureEmbeddedWorkerPool, embeddedWorkerCount, shut
 import { EmbeddedJobRunner, textToolRuntimeData } from './embedded-jobs.ts';
 import { scanInvoices as scanInvoicesInWeb } from './invoice-scan.ts';
 import { authorizeOutputDir, authorizeTempDir, engineBridge, isTauri } from './tauri.ts';
-import { timed } from './timing.ts';
+import { now, timed } from './timing.ts';
 import { BaseTransport, decodeBase64, encodeBase64, RpcError, type Transport } from './transport-shared.ts';
 import { APP_VERSION } from './version.ts';
 
@@ -106,8 +106,20 @@ class TauriTransport extends BaseTransport {
 
   private async tryEmbeddedFileRpc<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<{ handled: boolean; result?: T }> {
     if (!params.file || typeof params.file !== 'object') return { handled: false };
+    // Both halves of this are proportional to the file size and used to run on
+    // every single request: reading the bytes over IPC, then structured-cloning
+    // them into the worker. Timed separately so a 45 MB file's transport cost is
+    // visible next to the work it was requested for.
+    const readAt = now();
     const input = await this.resolveInput(params.file as FileRef);
+    const readMs = now() - readAt;
+    const workerAt = now();
     const reply = await callEmbeddedRpc(method, params, { inputs: [input] });
+    console.info(`PoTools⏱ bytes:${method}`, {
+      size: input.bytes?.byteLength ?? 0,
+      readMs: Math.round(readMs),
+      workerMs: Math.round(now() - workerAt),
+    });
     if (!reply.handled) throw new RpcError('unsupported', `${method} 不支持此文件或当前浏览器环境`);
     return { handled: true, result: reply.result as T };
   }
