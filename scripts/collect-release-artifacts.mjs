@@ -1,9 +1,48 @@
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BUILD_INFO_FILENAME, buildStamp, displayVersion } from './build-stamp.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { version } = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+const { version: manifestVersion } = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+
+/**
+ * Prefer the identity the web build actually embedded, so the artifact name and
+ * the in-app `DISPLAY_VERSION` cannot disagree. The Tauri `beforeBuildCommand`
+ * always runs that build first, so a missing file means packaging was invoked
+ * without it.
+ */
+async function readBuildInfo() {
+  const file = path.join(root, 'apps/web/dist', BUILD_INFO_FILENAME);
+  try {
+    const info = JSON.parse(await readFile(file, 'utf8'));
+    if (typeof info.version !== 'string' || typeof info.buildStamp !== 'string') {
+      throw new Error('missing version/buildStamp');
+    }
+    return { ...info, source: 'apps/web/dist/build-info.json' };
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw new Error(`Invalid ${file}: ${error.message}`);
+    const stamp = buildStamp();
+    console.warn(`[release] ${file} not found; falling back to root package.json + a freshly computed stamp.`);
+    return {
+      version: manifestVersion,
+      buildStamp: stamp,
+      displayVersion: displayVersion(manifestVersion, stamp),
+      source: 'root package.json (fallback)',
+    };
+  }
+}
+
+const buildInfo = await readBuildInfo();
+const version = buildInfo.version;
+if (version !== manifestVersion) {
+  throw new Error(
+    `Version mismatch: root package.json is ${manifestVersion} but the web build embedded ${version}. ` +
+      'Run `pnpm version:sync` and rebuild before packaging.',
+  );
+}
+console.log(`[release] build identity ${buildInfo.displayVersion} (from ${buildInfo.source})`);
+
 const platform = process.argv[2];
 const architecture = process.argv[3];
 const outputs = {
@@ -58,8 +97,13 @@ if (platform === 'macos') {
   const source = path.join(root, config.source);
   const dmg = (await readdir(source)).find((name) => config.pattern.test(name));
   if (!dmg) throw new Error(`No macOS DMG found in ${source}`);
-  const stamp = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).replace(/[-: T]/g, '').slice(4, 12);
-  const stamped = dmg.replace(/^(PoTools_[0-9.]+?)(_x64|_i686|_aarch64)?\.dmg$/, `$1-${stamp}$2.dmg`);
+  // The DMG comes from Tauri as PoTools_<version>_<arch>.dmg; fail loudly if the
+  // bundle version drifted from the synced manifests instead of mislabelling it.
+  const bundled = /^PoTools_([0-9][^-]*?)(_[a-z0-9]+)?\.dmg$/.exec(dmg)?.[1];
+  if (bundled !== version) {
+    throw new Error(`DMG ${dmg} carries version ${bundled ?? '(unreadable)'} but the build identity is ${version}. Run \`pnpm version:sync\` and rebuild.`);
+  }
+  const stamped = dmg.replace(/^(PoTools_[0-9.]+?)(_[a-z0-9]+)?\.dmg$/, `$1-${buildInfo.buildStamp}$2.dmg`);
   await cp(path.join(source, dmg), path.join(destination, stamped));
   console.log(`[release] copied ${stamped} to ${destination}`);
 } else if (platform === 'windows') {

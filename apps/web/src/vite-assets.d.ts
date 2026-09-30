@@ -1,4 +1,7 @@
+/** Build identity injected by `vite.config.ts` (see `src/lib/version.ts`). */
+declare const __APP_VERSION__: string;
 declare const __BUILD_STAMP__: string;
+declare const __DISPLAY_VERSION__: string;
 declare module '*?url' {
   const assetUrl: string;
   export default assetUrl;

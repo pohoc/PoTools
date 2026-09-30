@@ -1,19 +1,50 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { BUILD_INFO_FILENAME, buildStamp, buildTimestamp, displayVersion } from '../../scripts/build-stamp.mjs';
 
+const appRoot = fileURLToPath(new URL('.', import.meta.url));
+const repoRoot = path.resolve(appRoot, '..', '..');
 
-// 构建时间戳（MMDDHHMM 本地时间）：区分每次打包（dev 下为启动时刻）。
-const now = new Date();
-const pad2 = (n: number) => String(n).padStart(2, '0');
-const buildStamp = `${pad2(now.getMonth() + 1)}${pad2(now.getDate())}${pad2(now.getHours())}${pad2(now.getMinutes())}`;
+// The root package.json is the version single source of truth (see
+// scripts/sync-version.mjs). The build stamp is generated here, once, and
+// recorded in dist/build-info.json so the release collector names artifacts
+// with exactly the version the app reports about itself.
+const { version } = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')) as { version: string };
+const stamp = buildStamp();
+const display = displayVersion(version, stamp);
+
+const buildInfo = {
+  name: 'PoTools',
+  version,
+  buildStamp: stamp,
+  displayVersion: display,
+  builtAt: buildTimestamp(),
+};
+
+/** Writes the build identity next to the bundle so packaging can consume it. */
+function emitBuildInfo(): Plugin {
+  return {
+    name: 'potools-build-info',
+    apply: 'build',
+    writeBundle(options) {
+      const outDir = options.dir ? path.resolve(appRoot, options.dir) : path.resolve(appRoot, 'dist');
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(path.join(outDir, BUILD_INFO_FILENAME), `${JSON.stringify(buildInfo, null, 2)}\n`);
+    },
+  };
+}
 
 export default defineConfig({
   define: {
-    __BUILD_STAMP__: JSON.stringify(buildStamp),
+    __APP_VERSION__: JSON.stringify(version),
+    __BUILD_STAMP__: JSON.stringify(stamp),
+    __DISPLAY_VERSION__: JSON.stringify(display),
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), emitBuildInfo()],
   resolve: {
     alias: {
       core: fileURLToPath(new URL('./src/lib/core-contract.ts', import.meta.url)),
@@ -30,7 +61,6 @@ export default defineConfig({
     target: 'es2022',
     outDir: 'dist',
     sourcemap: false,
-    chunkSizeWarningLimit: 1200,
   },
   worker: {
     format: 'es',

@@ -6,6 +6,7 @@ import { EmbeddedJobRunner, textToolRuntimeData } from './embedded-jobs.ts';
 import { scanInvoices as scanInvoicesInWeb } from './invoice-scan.ts';
 import { engineBridge, isTauri } from './tauri.ts';
 import { BaseTransport, decodeBase64, encodeBase64, RpcError, type Transport, type TransportStatus } from './transport-shared.ts';
+import { APP_VERSION } from './version.ts';
 
 export { RpcError } from './transport-shared.ts';
 export type { Transport, TransportStatus } from './transport-shared.ts';
@@ -62,7 +63,7 @@ class TauriTransport extends BaseTransport {
       : [];
     const info: EngineInfo = {
       name: '@potools/engine',
-      version: '0.1.0',
+      version: APP_VERSION,
       protocol: PROTOCOL_VERSION,
       platform: host.platform,
       nodeVersion: 'Web Worker',

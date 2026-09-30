@@ -139,7 +139,12 @@ async function main(): Promise<void> {
   const keysFilter = process.argv.find((arg) => arg.startsWith('--keys='))?.slice(7)
     .split(',').map((item) => item.trim()).filter(Boolean) ?? [];
   const updateBaseline = process.argv.includes('--update');
-  const golden = JSON.parse(await readFile(GOLDEN_PATH, 'utf8')) as { entries: Record<string, GoldenEntry>; canonicalVersion?: number };
+  const golden = JSON.parse(await readFile(GOLDEN_PATH, 'utf8')) as {
+    entries: Record<string, GoldenEntry>;
+    canonicalVersion?: number;
+    capturedAt?: string;
+    engine?: string;
+  };
   if (golden.canonicalVersion !== CANONICAL_VERSION) {
     console.error(`golden file canonicalVersion=${golden.canonicalVersion ?? '(none)'} but code is v${CANONICAL_VERSION} — re-run 'pnpm --filter @potools/web test:golden:browser' first`);
     process.exit(1);
@@ -374,8 +379,8 @@ async function main(): Promise<void> {
       continue;
     }
     // job entry
-    const jobResult = outcome.jobResult as { snapshot?: { progress?: { state?: string }; error?: { code?: string }; warnings?: string[] }; artifacts?: Array<{ name: string; sha256: string }> } | null;
-    const snapshot = jobResult?.snapshot as { progress?: { state?: string }; error?: { code?: string }; warnings?: string[]; summary?: Record<string, unknown> } | undefined;
+    const jobResult = outcome.jobResult as { snapshot?: { progress?: { state?: string }; error?: { code?: string; message?: string }; warnings?: string[] }; artifacts?: Array<{ name: string; sha256: string }> } | null;
+    const snapshot = jobResult?.snapshot as { progress?: { state?: string }; error?: { code?: string; message?: string }; warnings?: string[]; summary?: Record<string, unknown> } | undefined;
     if (entry.state === 'failed') {
       if (snapshot?.error?.code === entry.error?.code) pass += 1;
       else {
@@ -415,8 +420,8 @@ async function main(): Promise<void> {
       // outputBytes/sizeDeltaPercent tick with embedded timestamps on both
       // sides; structural producers additionally differ in size-derived
       // summary.extra, which is not part of their contract.
-      const normalize = (value: Record<string, unknown> | undefined) => {
-        const base = { ...value, outputBytes: undefined, sizeDeltaPercent: undefined };
+      const normalize = (value: Record<string, unknown> | undefined): Record<string, unknown> => {
+        const base: Record<string, unknown> = { ...value, outputBytes: undefined, sizeDeltaPercent: undefined };
         if (STRUCTURAL_ONLY_TOOLS.has(entry.tool)) base.extra = undefined;
         return base;
       };

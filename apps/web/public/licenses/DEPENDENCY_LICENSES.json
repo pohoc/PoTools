@@ -116,6 +116,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "arrayvec",
+      "version": "0.7.8",
+      "license": "MIT OR Apache-2.0",
+      "author": "bluss",
+      "repository": "https://github.com/bluss/arrayvec"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "asn1-rs",
       "version": "0.6.2",
       "license": "MIT OR Apache-2.0",
@@ -350,6 +358,14 @@
       "ecosystem": "cargo",
       "name": "bytemuck",
       "version": "1.25.2",
+      "license": "Zlib OR Apache-2.0 OR MIT",
+      "author": "Lokathor <zefria@gmail.com>",
+      "repository": "https://github.com/Lokathor/bytemuck"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "bytemuck_derive",
+      "version": "1.12.1",
       "license": "Zlib OR Apache-2.0 OR MIT",
       "author": "Lokathor <zefria@gmail.com>",
       "repository": "https://github.com/Lokathor/bytemuck"
@@ -1044,6 +1060,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "euclid",
+      "version": "0.22.14",
+      "license": "MIT OR Apache-2.0",
+      "author": "The Servo Project Developers",
+      "repository": "https://github.com/servo/euclid"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "fancy-regex",
       "version": "0.19.2",
       "license": "MIT",
@@ -1121,6 +1145,14 @@
       "license": "Zlib",
       "author": "Orson Peters <orsonpeters@gmail.com>",
       "repository": "https://github.com/orlp/foldhash"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "font-types",
+      "version": "0.11.3",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/googlefonts/fontations"
     },
     {
       "ecosystem": "cargo",
@@ -1860,6 +1892,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "kurbo",
+      "version": "0.13.1",
+      "license": "Apache-2.0 OR MIT",
+      "author": null,
+      "repository": "https://github.com/linebender/kurbo"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "lazy_static",
       "version": "1.5.0",
       "license": "MIT OR Apache-2.0",
@@ -2548,6 +2588,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "polycool",
+      "version": "0.4.0",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/linebender/kurbo"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "polyval",
       "version": "0.6.2",
       "license": "Apache-2.0 OR MIT",
@@ -2777,6 +2825,14 @@
       "license": "MIT OR Apache-2.0 OR Zlib",
       "author": "Osspial <osspial@gmail.com>",
       "repository": "https://github.com/rust-windowing/raw-window-handle"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "read-fonts",
+      "version": "0.39.2",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/googlefonts/fontations"
     },
     {
       "ecosystem": "cargo",
@@ -3180,6 +3236,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "skrifa",
+      "version": "0.42.1",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/googlefonts/fontations"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "slab",
       "version": "0.4.12",
       "license": "MIT",
@@ -3281,6 +3345,14 @@
       "license": "MIT",
       "author": "Danny Guo <danny@dannyguo.com>, maxbachmann <oss@maxbachmann.de>",
       "repository": "https://github.com/rapidfuzz/strsim-rs"
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "subsetter",
+      "version": "0.2.6",
+      "license": "MIT OR Apache-2.0",
+      "author": "Laurenz Mädje <laurmaedje@gmail.com>, Laurenz Stampfl <laurenz.stampfl@gmail.com>",
+      "repository": "https://github.com/typst/subsetter"
     },
     {
       "ecosystem": "cargo",
@@ -4532,6 +4604,14 @@
     },
     {
       "ecosystem": "cargo",
+      "name": "write-fonts",
+      "version": "0.48.1",
+      "license": "MIT OR Apache-2.0",
+      "author": null,
+      "repository": "https://github.com/googlefonts/fontations"
+    },
+    {
+      "ecosystem": "cargo",
       "name": "writeable",
       "version": "0.6.4",
       "license": "Unicode-3.0",
@@ -4788,14 +4868,6 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@esbuild/darwin-x64",
-      "version": "0.28.2",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://github.com/evanw/esbuild#readme"
-    },
-    {
-      "ecosystem": "npm",
       "name": "@heroui/react",
       "version": "3.2.6",
       "license": "MIT",
@@ -4833,22 +4905,6 @@
       "license": "MIT",
       "author": null,
       "repository": "https://github.com/lovell/colour#readme"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@img/sharp-darwin-x64",
-      "version": "0.35.5",
-      "license": "Apache-2.0",
-      "author": "Lovell Fuller",
-      "repository": "https://sharp.pixelplumbing.com"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@img/sharp-libvips-darwin-x64",
-      "version": "1.3.4",
-      "license": "LGPL-3.0-or-later",
-      "author": "Lovell Fuller",
-      "repository": "https://sharp.pixelplumbing.com"
     },
     {
       "ecosystem": "npm",
@@ -4965,22 +5021,6 @@
     {
       "ecosystem": "npm",
       "name": "@napi-rs/canvas",
-      "version": "1.0.9",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://github.com/Brooooooklyn/canvas#readme"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@napi-rs/canvas-darwin-x64",
-      "version": "0.1.100",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://github.com/Brooooooklyn/canvas#readme"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@napi-rs/canvas-darwin-x64",
       "version": "1.0.9",
       "license": "MIT",
       "author": null,
@@ -5252,14 +5292,6 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@rolldown/binding-darwin-x64",
-      "version": "1.2.9",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://rolldown.rs/"
-    },
-    {
-      "ecosystem": "npm",
       "name": "@rolldown/pluginutils",
       "version": "1.0.1",
       "license": "MIT",
@@ -5316,14 +5348,6 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@tailwindcss/oxide-darwin-x64",
-      "version": "4.3.3",
-      "license": "MIT",
-      "author": null,
-      "repository": "https://github.com/tailwindlabs/tailwindcss#readme"
-    },
-    {
-      "ecosystem": "npm",
       "name": "@tailwindcss/vite",
       "version": "4.3.3",
       "license": "MIT",
@@ -5341,14 +5365,6 @@
     {
       "ecosystem": "npm",
       "name": "@tauri-apps/cli",
-      "version": "2.11.5",
-      "license": "Apache-2.0 OR MIT",
-      "author": null,
-      "repository": "https://github.com/tauri-apps/tauri#readme"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@tauri-apps/cli-darwin-x64",
       "version": "2.11.5",
       "license": "Apache-2.0 OR MIT",
       "author": null,
@@ -5649,14 +5665,6 @@
       "license": "MIT",
       "author": null,
       "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/trusted-types"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@typescript/typescript-darwin-x64",
-      "version": "7.0.2",
-      "license": "Apache-2.0",
-      "author": "Microsoft Corp.",
-      "repository": "https://www.typescriptlang.org/"
     },
     {
       "ecosystem": "npm",
@@ -6485,22 +6493,6 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss",
-      "version": "1.33.0",
-      "license": "MPL-2.0",
-      "author": null,
-      "repository": "https://github.com/parcel-bundler/lightningcss#readme"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "lightningcss-darwin-x64",
-      "version": "1.32.0",
-      "license": "MPL-2.0",
-      "author": null,
-      "repository": "https://github.com/parcel-bundler/lightningcss#readme"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "lightningcss-darwin-x64",
       "version": "1.33.0",
       "license": "MPL-2.0",
       "author": null,

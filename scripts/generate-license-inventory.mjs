@@ -1,10 +1,13 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const output = resolve(root, 'apps/web/public/licenses/DEPENDENCY_LICENSES.json');
+// `--check` regenerates in memory and fails if the committed file differs. CI
+// runs it so a stale inventory cannot ship.
+const check = process.argv.includes('--check');
 
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -14,11 +17,37 @@ function run(command, args) {
   return JSON.parse(result.stdout);
 }
 
+/**
+ * Build-tool packages published as per-platform native binaries. `pnpm licenses
+ * list` only reports the variants installed for the *current* host, so keeping
+ * them would make this shipped file differ between a macOS, Windows and Linux
+ * build machine. None of them are redistributed inside the app, so they are
+ * excluded and counted instead.
+ */
+const PLATFORM_BUILD_TOOL_PREFIXES = [
+  '@esbuild/',
+  '@img/sharp-',
+  '@napi-rs/canvas-',
+  '@rolldown/binding-',
+  '@tailwindcss/oxide-',
+  '@tauri-apps/cli-',
+  '@typescript/typescript-',
+  'lightningcss-',
+];
+
+const isPlatformBuildTool = (name) =>
+  PLATFORM_BUILD_TOOL_PREFIXES.some((prefix) => name.startsWith(prefix));
+
 const components = [];
+let excludedPlatformBuildTools = 0;
 const npmLicenses = run('pnpm', ['licenses', 'list', '--json', '-r', '--long']);
 
 for (const [groupLicense, packages] of Object.entries(npmLicenses)) {
   for (const entry of packages) {
+    if (isPlatformBuildTool(entry.name)) {
+      excludedPlatformBuildTools += entry.versions.length;
+      continue;
+    }
     for (const version of entry.versions) {
       const license = groupLicense === 'Unknown' && entry.name === 'buffers' && version === '0.1.1'
         ? 'MIT (verified from upstream history; see MIT-buffers-0.1.1.txt)'
@@ -93,11 +122,37 @@ components.sort((a, b) =>
   a.license.localeCompare(b.license),
 );
 
-await mkdir(dirname(output), { recursive: true });
-await writeFile(output, `${JSON.stringify({
+const payload = {
   generatedBy: 'pnpm licenses:inventory',
   purpose: 'Dependency inventory only. See THIRD_PARTY_NOTICES.md for license text and release constraints.',
   components,
-}, null, 2)}\n`);
+};
+const serialized = `${JSON.stringify(payload, null, 2)}\n`;
 
-console.log(`[licenses] wrote ${components.length} dependency records to ${output}`);
+if (check) {
+  const existing = await readFile(output, 'utf8').catch(() => null);
+  if (existing === serialized) {
+    console.log(`[licenses] inventory is up to date (${components.length} records)`);
+  } else {
+    const before = new Set(
+      (existing ? JSON.parse(existing).components : []).map((c) => `${c.ecosystem}:${c.name}@${c.version}`),
+    );
+    const after = new Set(components.map((c) => `${c.ecosystem}:${c.name}@${c.version}`));
+    const added = [...after].filter((key) => !before.has(key));
+    const removed = [...before].filter((key) => !after.has(key));
+    console.error('[licenses] DEPENDENCY_LICENSES.json is out of date.');
+    for (const key of added.slice(0, 25)) console.error(`  + ${key}`);
+    if (added.length > 25) console.error(`  + … ${added.length - 25} more`);
+    for (const key of removed.slice(0, 25)) console.error(`  - ${key}`);
+    if (removed.length > 25) console.error(`  - … ${removed.length - 25} more`);
+    console.error('Run `pnpm licenses:inventory` and review the result.');
+    process.exitCode = 1;
+  }
+} else {
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, serialized);
+  console.log(
+    `[licenses] wrote ${components.length} dependency records to ${output}` +
+      (excludedPlatformBuildTools ? ` (excluded ${excludedPlatformBuildTools} platform-specific build-tool binaries)` : ''),
+  );
+}
