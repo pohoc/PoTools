@@ -1,4 +1,5 @@
 import type { JobSnapshot, RpcMethodName } from 'core';
+import { now } from './timing.ts';
 import type { InMemoryJobResult, ResolvedInput } from './engine-types.ts';
 import { RpcError } from './transport.ts';
 
@@ -166,10 +167,31 @@ function makeDispatch(id: number, method: RpcMethodName, params: Record<string, 
   runtimeData?: Record<string, unknown>;
 }, slot: WorkerSlot): () => void {
   return () => {
+    // Splits the request into "read the bytes" and "the worker round trip", which
+    // the transport-level timing above cannot tell apart: it only sees the total,
+    // and an unchanged total after a caching change means the read was not the
+    // cost at all. `cacheHits` also reveals whether each request really reuses the
+    // same File instance.
+    const prepareAt = now();
+    let cacheHits = 0;
+    let cacheMisses = 0;
     void Promise.all((options.inputs ?? []).map(async (input) => {
+      const file = (input as ResolvedInput & { file?: File }).file;
+      const wasCached = file ? INPUT_BYTES.has(file) : false;
       const bytes = await materializeInput(input);
+      if (file) {
+        if (wasCached) cacheHits += 1;
+        else cacheMisses += 1;
+      }
       return { input: { ...input, path: input.path ?? null, bytes }, transfer: bytes.buffer as ArrayBuffer };
     })).then((prepared) => {
+      console.info('PoTools⏱ dispatch:prepare', {
+        method,
+        bytes: prepared.reduce((sum, entry) => sum + entry.input.bytes.byteLength, 0),
+        materializeMs: Math.round(now() - prepareAt),
+        cacheHits,
+        cacheMisses,
+      });
       if (!pending.has(id)) return;
       try {
         slot.worker.postMessage(
