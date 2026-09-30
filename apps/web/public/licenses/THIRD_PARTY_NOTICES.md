@@ -47,6 +47,12 @@ PoTools uses UTIF.js to decode TIFF images in the Web application. It is license
 
 - Source: https://github.com/photopea/UTIF.js
 
+## MPL-2.0 components (desktop binary)
+
+The desktop binary statically links MPL-2.0 code that arrives through Tauri's own stack: `cssparser` and `selectors` (via `wry`/`tauri-utils` → `dom_query`), `dtoa-short` (via `cssparser`) and `option-ext` (via `dirs-sys`). MPL-2.0 is file-level copyleft: those files are not relicensed, their license text is included as `MPL-2.0.txt`, and their unmodified sources are the corresponding crates.io releases listed in `DEPENDENCY_LICENSES.json`.
+
+- Source: https://crates.io/crates/cssparser, https://crates.io/crates/selectors, https://crates.io/crates/dtoa-short, https://crates.io/crates/option-ext
+
 ## Other dependencies
 
 The JavaScript and Rust dependency trees include components under MIT, Apache-2.0, BSD, ISC, MPL-2.0, Unicode-3.0, Zlib, Unlicense, BlueOak-1.0.0, and other SPDX expressions. Individual package license files are retained with staged Node modules where those modules are copied.
