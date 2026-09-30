@@ -1465,6 +1465,7 @@ export const zhCN = {
   'error.unreadable': '文件无法解析，可能已损坏',
   'error.noRasterizer': '无法渲染页面图像',
   'error.ocrInit': 'OCR 引擎初始化失败，请重试或检查应用资源。',
+  'error.ocr_error': '未在页面中识别到可导出的内容。',
   'error.noTable': '没有识别到可导出的表格内容',
   'error.emptySelection': '没有可处理的内容',
   'error.bad_request': '参数不完整，请检查设置',

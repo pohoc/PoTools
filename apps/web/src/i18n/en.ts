@@ -1464,6 +1464,7 @@ export const en: Messages = {
   'error.unreadable': 'The file could not be parsed and may be corrupt',
   'error.noRasterizer': 'Pages could not be rendered',
   'error.ocrInit': 'The OCR engine could not start. Retry or check the application resources.',
+  'error.ocr_error': 'Nothing exportable was recognised on the page.',
   'error.noTable': 'No table content was recognized for export',
   'error.emptySelection': 'Nothing to process',
   'error.bad_request': 'Some options are missing',
