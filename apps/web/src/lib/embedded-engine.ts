@@ -143,19 +143,20 @@ export function embeddedWorkerCount(): number {
  * ~0.4 s). Resulting buffers are handed out as a fresh copy because the buffer is
  * transferred — and therefore detached — to the worker.
  */
-const INPUT_BYTES = new Map<string, Uint8Array>();
+const INPUT_BYTES = new WeakMap<Blob, Uint8Array>();
 
 async function materializeInput(input: ResolvedInput): Promise<Uint8Array> {
   if (input.bytes.byteLength) return input.bytes;
   const file = (input as ResolvedInput & { file?: File }).file;
   if (!file) return input.bytes;
-  const cacheKey = `${input.id}:${file.size}:${file.lastModified}`;
-  let cached = INPUT_BYTES.get(cacheKey);
+  // Keyed by the File itself, not by `input.id`: the id is generated per
+  // `toFileRef` call, so an id-based key missed on every request and the 47 MB
+  // was still read once per batch. A File also keys the cache's lifetime for
+  // free, so nothing is retained once the pick is gone.
+  let cached = INPUT_BYTES.get(file);
   if (!cached) {
     cached = new Uint8Array(await file.arrayBuffer());
-    // Two entries stop the repeat reading without pinning much memory.
-    if (INPUT_BYTES.size >= 2) INPUT_BYTES.clear();
-    INPUT_BYTES.set(cacheKey, cached);
+    INPUT_BYTES.set(file, cached);
   }
   return cached.slice();
 }
