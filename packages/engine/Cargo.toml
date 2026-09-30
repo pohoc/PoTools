@@ -65,3 +65,15 @@ too_many_arguments = "allow"
 # collections where the size difference would matter; boxing would only add
 # indirection to every use site.
 large_enum_variant = "allow"
+
+# This package is its own workspace root, so its release profile is what
+# `pnpm wasm:build` compiles with (the desktop host applies the profile in
+# apps/desktop/Cargo.toml instead, which already sets LTO/strip). Without it the
+# browser engine shipped at the default opt-level=3 / no-LTO / unstripped size.
+# Size beats speed here: the module is parsed on every app start and is the
+# single largest asset in the bundle.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
