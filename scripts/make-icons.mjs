@@ -23,6 +23,19 @@ async function render(svg, size) {
     .toBuffer();
 }
 
+// macOS 图标遵循苹果图标网格：1024 画布、内容 824 居中（四周约 10% 透明
+// 边距）。满幅图标在 Dock 里会比系统图标明显大一圈。
+async function renderMacosIcon(svg) {
+  const canvas = 1024;
+  const content = 824;
+  const artwork = await render(svg, content);
+  const inset = Math.round((canvas - content) / 2);
+  return sharp(artwork)
+    .extend({ top: inset, bottom: inset, left: inset, right: inset, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+}
+
 async function main() {
   const svg = (await readFile(SOURCE)).toString('utf8');
   const targets = [
@@ -37,6 +50,8 @@ async function main() {
     await writeFile(path, await render(svg, size));
     console.log(`  ${path.replace(`${ROOT}/`, '')}`);
   }
+  await writeFile(resolve(TAURI, 'app-icon.png'), await renderMacosIcon(svg));
+  console.log('  apps/desktop/app-icon.png (macOS 网格 824/1024)');
 }
 
 main().catch((error) => {

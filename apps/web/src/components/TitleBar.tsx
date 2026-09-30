@@ -7,7 +7,9 @@ import { closeWindow, isMac, minimizeWindow, startWindowDrag, toggleMaximize, us
 /**
  * Window chrome drawn by the app: the whole bar is a drag region, and on
  * Windows/Linux the caption buttons live inside it. macOS keeps its native
- * traffic lights, which float over the left inset declared here.
+ * traffic lights, which float over the left inset declared here; their vertical
+ * position comes from `trafficLightPosition` in tauri.macos.conf.json so they
+ * stay level with these controls instead of the shallower native title bar.
  */
 export function TitleBar({
   brand,

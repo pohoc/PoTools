@@ -3,6 +3,11 @@
 /* App-layout extensions on top of the shared design tokens. */
 @theme {
   --spacing-sidebar: 232px;
+  /* Title bar height. Keep it in sync with macOS: the native traffic lights are
+     positioned by `trafficLightPosition` in apps/desktop/tauri.macos.conf.json,
+     where AppKit draws a button centre at `y + 2`. This bar has a 1px bottom
+     border inside its 42px border-box, so its controls centre at (42 - 1) / 2 =
+     20.5 and the config uses y = 18.5. Changing one height requires the other. */
   --spacing-titlebar: 42px;
 }
 

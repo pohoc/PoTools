@@ -86,13 +86,19 @@ function MainApp() {
       const ttl = useSettings.getState().tempTtlDays;
       await useEngine.getState().call('temp.clean', { olderThanDays: ttl || 7, keepJobs: 1 }).catch(() => undefined);
     }).then((unlisten) => {
-      if (disposed) unlisten();
+      // UnlistenFn returns void; route through a promise so a remove-listener
+      // race (webview already torn down) can never surface as an unhandled
+      // rejection — the crash screen turns any of those into a full error UI.
+      if (disposed) void Promise.resolve().then(unlisten).catch(() => undefined);
       else stop = unlisten;
     }).catch((error: unknown) => {
       // Registration may lose a race with native window destruction.
       console.debug('PoTools close listener unavailable', error);
     });
-    return () => { disposed = true; stop?.(); };
+    return () => {
+      disposed = true;
+      void Promise.resolve().then(() => stop?.()).catch(() => undefined);
+    };
   }, []);
 
   useEffect(() => {
