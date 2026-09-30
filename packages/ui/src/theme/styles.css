@@ -432,6 +432,25 @@
   animation: stripes 0.7s linear infinite;
 }
 
+/* Progress bar. HeroUI supplies the state machine, the grid layout and the
+   animated fill width; the surfaces and tones are this app's tokens. Without
+   these overrides the track would use HeroUI's `--default` (#ebebec / #27272a)
+   instead of `--ui-raised`, and the `default` tone would read
+   `--default-foreground` (near-black / near-white) instead of `--ui-faint`. */
+.ui-progress .progress-bar__track {
+  height: 6px;
+  border-radius: var(--ui-radius-pill);
+  background-color: rgb(var(--ui-raised));
+}
+
+.ui-progress .progress-bar__fill {
+  border-radius: var(--ui-radius-pill);
+}
+
+.ui-progress.progress-bar--default {
+  --progress-bar-fill: rgb(var(--ui-faint));
+}
+
 @keyframes stripes {
   from {
     background-position: 0 0;

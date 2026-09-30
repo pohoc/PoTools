@@ -121,11 +121,17 @@ export function Section({
 /** Semantic progress coloring, decoupled from any app-specific state enum. */
 export type ProgressTone = 'accent' | 'ok' | 'bad' | 'idle';
 
-const PROGRESS_TONE: Record<ProgressTone, string> = {
-  accent: 'bg-accent',
-  ok: 'bg-ok',
-  bad: 'bg-bad',
-  idle: 'bg-faint',
+/**
+ * Maps the app's semantic tones onto HeroUI's colour API, which resolves
+ * `--accent`/`--success`/`--warning`/`--danger` to this app's tokens (see
+ * `theme/styles.css`). `idle` uses the library's `default`, whose fill colour is
+ * overridden to `--ui-faint` by the `.ui-progress` rules.
+ */
+const PROGRESS_COLOR: Record<ProgressTone, 'accent' | 'success' | 'danger' | 'default'> = {
+  accent: 'accent',
+  ok: 'success',
+  bad: 'danger',
+  idle: 'default',
 };
 
 export function ProgressBar({ percent, tone = 'accent', striped = false }: { percent: number; tone?: ProgressTone; striped?: boolean }) {
@@ -133,8 +139,8 @@ export function ProgressBar({ percent, tone = 'accent', striped = false }: { per
   return (
     <Progress
       value={value}
-      indicatorClassName={cn(PROGRESS_TONE[tone], striped && 'progress-stripes')}
-      aria-valuenow={value}
+      color={PROGRESS_COLOR[tone]}
+      indicatorClassName={striped ? 'progress-stripes' : undefined}
     />
   );
 }
