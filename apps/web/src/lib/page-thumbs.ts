@@ -115,15 +115,42 @@ async function renderImageThumb(bytes: Uint8Array, params: Record<string, unknow
   }
 }
 
-async function renderPdfThumbs(bytes: Uint8Array, params: Record<string, unknown>): Promise<PageThumb[] | null> {
+type LoadedPdf = Awaited<ReturnType<typeof getDocument>['promise']>;
+
+/**
+ * The most recently parsed PDF.
+ *
+ * The page grid asks for thumbnails in chunks of eight pages, per width, so a
+ * 30-page document used to be fetched, copied and fully parsed four or more
+ * times — for a 45 MB scan that dominated the whole preview. The document is
+ * kept until a *different* file is asked for, which makes every chunk after the
+ * first reuse one parse.
+ */
+let loaded: { key: string; document: LoadedPdf } | null = null;
+
+async function documentFor(input: { id: string; bytes: Uint8Array }): Promise<LoadedPdf> {
+  const key = `${input.id}:${input.bytes.byteLength}`;
+  if (loaded?.key === key) return loaded.document;
+  if (loaded) {
+    await loaded.document.destroy().catch(() => undefined);
+    loaded = null;
+  }
+  // Copied once: pdf.js takes ownership of the buffer it is given, and the
+  // caller's bytes stay live for the rest of the session.
+  const data = Uint8Array.from(input.bytes);
+  const document = await getDocument({ data, isEvalSupported: false }).promise;
+  loaded = { key, document };
+  return document;
+}
+
+async function renderPdfThumbs(input: { id: string; bytes: Uint8Array }, params: Record<string, unknown>): Promise<PageThumb[] | null> {
   const requested = Array.isArray(params.pages) ? params.pages.map(Number) : [];
   if (!requested.length) return [];
   const width = requestedWidth(params);
   const options = outputOptions(params, width);
-  const loading = getDocument({ data: Uint8Array.from(bytes), isEvalSupported: false });
-  let document: Awaited<typeof loading.promise> | null = null;
-  try {
-    document = await loading.promise;
+  // Outlives this call: the cache above serves the remaining page chunks.
+  const document = await documentFor(input);
+
     const thumbs: PageThumb[] = [];
     for (const pageNumber of requested) {
       if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > document.numPages) continue;
@@ -147,10 +174,6 @@ async function renderPdfThumbs(bytes: Uint8Array, params: Record<string, unknown
       page.cleanup();
     }
     return thumbs;
-  } finally {
-    if (document) await document.destroy();
-    else await loading.destroy();
-  }
 }
 
 export async function renderPageThumbs(
@@ -190,7 +213,7 @@ export async function renderPageThumbs(
     return result ? { handled: true, result: [result] } : { handled: false };
   }
   try {
-    const result = await renderPdfThumbs(input.bytes, params);
+    const result = await renderPdfThumbs(input, params);
     if (!result) console.warn('PoTools: PDF thumbnail render returned nothing', { file: file.name, bytes: input.bytes.byteLength, pages: params.pages });
     return result ? { handled: true, result } : { handled: false };
   } catch (error) {
