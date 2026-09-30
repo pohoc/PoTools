@@ -264,8 +264,16 @@ fn tcp_check_host(
 }
 
 #[tauri::command(async)]
-fn system_font_candidates() -> Vec<String> {
-    potools_engine::services::runtime::system_font_candidates()
+fn system_font_candidates(grants: tauri::State<'_, PathGrants>) -> Vec<String> {
+    let paths = potools_engine::services::runtime::system_font_candidates();
+    // Reading these needs no dialog: the list comes from the OS enumeration this
+    // process performs, not from a value handed over by the WebView. Without the
+    // grant, CJK font embedding lost every candidate (the reader swallows the
+    // denial), so converted documents silently rendered without the font.
+    for path in &paths {
+        grants.grant_file(std::path::Path::new(path));
+    }
+    paths
 }
 
 #[tauri::command]

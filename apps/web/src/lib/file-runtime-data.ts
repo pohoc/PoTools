@@ -32,7 +32,17 @@ export async function systemFontRuntimeData(explicitPath?: string | null): Promi
       let pending = fontBytes.get(path);
       if (!pending) {
         pending = readFileBinary(bridge, path)
-          .catch(() => null);
+          .catch((issue) => {
+            // A denied read is not the same as an unreadable font: the host grants
+            // the paths it enumerates itself, so a denial here means this path
+            // arrived from somewhere unvetted (a typed font path, for instance).
+            // Log it, because silently dropping the font degrades output instead
+            // of failing, which is how the missing grant went unnoticed.
+            if (String(issue).includes('path_not_authorized')) {
+              console.debug('PoTools: font path not authorized', path);
+            }
+            return null;
+          });
         fontBytes.set(path, pending);
       }
       const bytes = await pending;
