@@ -133,14 +133,40 @@ export function embeddedWorkerCount(): number {
   return desiredSize;
 }
 
+/**
+ * Bytes of a File-backed input, cached per file.
+ *
+ * `arrayBuffer()` on the user's file used to run for **every** request, and a
+ * 47 MB scan made that the dominant cost of merely *opening* a document: the page
+ * grid asks for thumbnails in several batches, so the same file was read from
+ * scratch each time (~6 s per batch, measured, while the render itself was
+ * ~0.4 s). Resulting buffers are handed out as a fresh copy because the buffer is
+ * transferred — and therefore detached — to the worker.
+ */
+const INPUT_BYTES = new Map<string, Uint8Array>();
+
+async function materializeInput(input: ResolvedInput): Promise<Uint8Array> {
+  if (input.bytes.byteLength) return input.bytes;
+  const file = (input as ResolvedInput & { file?: File }).file;
+  if (!file) return input.bytes;
+  const cacheKey = `${input.id}:${file.size}:${file.lastModified}`;
+  let cached = INPUT_BYTES.get(cacheKey);
+  if (!cached) {
+    cached = new Uint8Array(await file.arrayBuffer());
+    // Two entries stop the repeat reading without pinning much memory.
+    if (INPUT_BYTES.size >= 2) INPUT_BYTES.clear();
+    INPUT_BYTES.set(cacheKey, cached);
+  }
+  return cached.slice();
+}
+
 function makeDispatch(id: number, method: RpcMethodName, params: Record<string, unknown>, options: {
   inputs?: ResolvedInput[];
   runtimeData?: Record<string, unknown>;
 }, slot: WorkerSlot): () => void {
   return () => {
     void Promise.all((options.inputs ?? []).map(async (input) => {
-      const browserFile = (input as ResolvedInput & { file?: File }).file;
-      const bytes = browserFile && !input.bytes.byteLength ? new Uint8Array(await browserFile.arrayBuffer()) : input.bytes;
+      const bytes = await materializeInput(input);
       return { input: { ...input, path: input.path ?? null, bytes }, transfer: bytes.buffer as ArrayBuffer };
     })).then((prepared) => {
       if (!pending.has(id)) return;
