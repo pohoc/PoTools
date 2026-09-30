@@ -159,18 +159,48 @@ export async function renderPageThumbs(
 ): Promise<{ handled: boolean; result?: PageThumb[] }> {
   const file = params.file as { id?: string; name?: string } | undefined;
   const input = inputs.find((item) => item.id === file?.id) ?? inputs[0];
-  if (!file || !input || typeof OffscreenCanvas === 'undefined') return { handled: false };
+  if (!file || !input || typeof OffscreenCanvas === 'undefined') {
+    // `handled: false` normally means "not my job, try the next handler", but for
+    // a page-thumbnail request it also leaves the grid empty with no error. Name
+    // the reason: a WebView without OffscreenCanvas (older WebKit) lands here.
+    console.warn('PoTools: page thumbnails unavailable', {
+      hasFile: Boolean(file),
+      hasInput: Boolean(input),
+      hasOffscreenCanvas: typeof OffscreenCanvas !== 'undefined',
+    });
+    return { handled: false };
+  }
   const isPdf = new TextDecoder().decode(input.bytes.subarray(0, 1024)).includes('%PDF-');
   if (!isPdf) {
     const requested = Array.isArray(params.pages) ? params.pages.map(Number) : [];
-    if (!requested.length || !requested.includes(1)) return { handled: true, result: [] };
+    if (!requested.length || !requested.includes(1)) {
+      // Returning an empty grid here is what a broken preview looks like, so say
+      // why. The usual cause is a payload that arrived without bytes: a
+      // File-backed input carries them out of band and a worker cannot see them.
+      console.warn('PoTools: page thumbnails requested for a non-PDF payload', {
+        file: file.name,
+        bytes: input.bytes.byteLength,
+        head: new TextDecoder().decode(input.bytes.subarray(0, 16)),
+        requested,
+      });
+      return { handled: true, result: [] };
+    }
     const result = await renderImageThumb(input.bytes, params);
+    if (!result) console.warn('PoTools: image thumbnail render returned nothing', { file: file.name, bytes: input.bytes.byteLength });
     return result ? { handled: true, result: [result] } : { handled: false };
   }
   try {
     const result = await renderPdfThumbs(input.bytes, params);
+    if (!result) console.warn('PoTools: PDF thumbnail render returned nothing', { file: file.name, bytes: input.bytes.byteLength, pages: params.pages });
     return result ? { handled: true, result } : { handled: false };
-  } catch {
+  } catch (error) {
+    // A bare catch here turned every render failure into a blank grid with no
+    // error at all, which is the hardest possible thing to diagnose.
+    console.error('PoTools: PDF page thumbnails failed', {
+      file: file.name,
+      bytes: input.bytes.byteLength,
+      error,
+    });
     return { handled: false };
   }
 }
