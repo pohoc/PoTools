@@ -81,7 +81,10 @@ export function FileList({
               </span>
             </span>
             {orderSensitive ? (
-              <span className="flex shrink-0 items-center opacity-0 transition group-hover:opacity-100">
+              // These are the keyboard alternative to dragging. They used to
+              // appear on hover only, so a sighted keyboard user could focus
+              // them without ever seeing them.
+              <span className="flex shrink-0 items-center opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
                 <IconButton
                   icon="up"
                   size={13}
@@ -103,7 +106,7 @@ export function FileList({
               size={13}
               label={t('file.remove')}
               onClick={() => onRemove(file.id)}
-              className="shrink-0 opacity-0 transition group-hover:opacity-100"
+              className="shrink-0 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100"
             />
           </li>
         );

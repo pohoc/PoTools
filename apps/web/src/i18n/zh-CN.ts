@@ -1309,7 +1309,8 @@ export const zhCN = {
   'job.details': '查看详情',
 
   'organizer.title': '页面预览与排序',
-  'organizer.hint': '拖动页面调整顺序，点击页面可取消选择',
+  'organizer.hint': '拖动页面调整顺序（键盘：Alt + 方向键），点击页面可取消选择',
+  'organizer.page': '第 {page} 页',
   'organizer.pages': '共 {count} 页',
   'organizer.selected': '已选 {count} 页',
   'organizer.rotateLeft': '左转',

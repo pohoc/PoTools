@@ -60,6 +60,9 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
   const [jobId, setJobId] = useState<string | null>(null);
   const textTool = descriptor.layout === 'text';
 
+  // Switching tools remounts the workspace (`key={descriptor.id}`), so this only
+  // ever runs on mount. It is kept as the single place that defines the initial
+  // draft, so the guarantee does not silently depend on the call site's key.
   useEffect(() => {
     setFiles([]);
     setProbes({});
@@ -94,15 +97,17 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
     (incoming: PickedFile[]) => {
       if (!incoming.length) return;
       setError(null);
-      setFiles((prev) => {
-        const known = new Set(prev.map((file) => `${file.path ?? ''}|${file.name}|${file.size}`));
-        const fresh = incoming.filter((file) => !known.has(`${file.path ?? ''}|${file.name}|${file.size}`));
-        if (!fresh.length) return prev;
-        void probe(fresh);
-        return descriptor.multiFile ? [...prev, ...fresh] : fresh.slice(0, 1);
-      });
+      // Deduplicate against the current list *outside* the state updater: React
+      // double-invokes updaters under StrictMode (and may call them during a
+      // render that is later discarded), so starting the probe inside one issued
+      // two `file.probe` round trips per added file.
+      const known = new Set(files.map((file) => `${file.path ?? ''}|${file.name}|${file.size}`));
+      const fresh = incoming.filter((file) => !known.has(`${file.path ?? ''}|${file.name}|${file.size}`));
+      if (!fresh.length) return;
+      setFiles(descriptor.multiFile ? [...files, ...fresh] : fresh.slice(0, 1));
+      void probe(fresh);
     },
-    [descriptor.multiFile, probe],
+    [descriptor.multiFile, files, probe],
   );
 
   const submitFiles = useCallback(

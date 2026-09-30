@@ -39,12 +39,53 @@ interface SettingsStore extends Settings {
 
 const STORAGE_KEY = 'potools.settings';
 
+const isString = (value: unknown): boolean => typeof value === 'string';
+const isBoolean = (value: unknown): boolean => typeof value === 'boolean';
+const isNullableString = (value: unknown): boolean => value === null || typeof value === 'string';
+const isTheme = (value: unknown): boolean => value === 'system' || value === 'light' || value === 'dark';
+const isLocale = (value: unknown): boolean => value === 'zh-CN' || value === 'en';
+const isIntegerBetween = (min: number, max: number) => (value: unknown): boolean =>
+  typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+
+/**
+ * Validates a persisted settings blob field by field.
+ *
+ * `localStorage` is writable by anything running in the page, and an older build
+ * or a hand edit can leave a blob with the right keys but the wrong types. The
+ * previous implementation spread `parsed.state` straight into the store, so a
+ * corrupted `locale`, `concurrency` or `theme` reached the UI unchecked. Invalid
+ * values now fall back to the default for that field only, so one bad entry does
+ * not discard the rest of the user's preferences.
+ */
+function sanitizeSettings(raw: unknown): Settings {
+  const source: Record<string, unknown> =
+    raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const read = <K extends keyof Settings>(key: K, valid: (value: unknown) => boolean): Settings[K] =>
+    valid(source[key]) ? (source[key] as Settings[K]) : DEFAULT_SETTINGS[key];
+
+  return {
+    theme: read('theme', isTheme),
+    locale: read('locale', isLocale),
+    outputDir: read('outputDir', isNullableString),
+    tempDir: read('tempDir', isNullableString),
+    namePattern: read('namePattern', isString),
+    // The settings UI offers 1-4 and the worker pool caps at 4 regardless.
+    concurrency: read('concurrency', isIntegerBetween(1, 4)),
+    fontPath: read('fontPath', isNullableString),
+    autoOpen: read('autoOpen', isBoolean),
+    sidebarCollapsed: read('sidebarCollapsed', isBoolean),
+    // 0 means "never sweep"; the upper bound only guards against absurd values.
+    tempTtlDays: read('tempTtlDays', isIntegerBetween(0, 3650)),
+    cleanupTempOnClose: read('cleanupTempOnClose', isBoolean),
+  };
+}
+
 function readStored(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    const parsed = JSON.parse(raw) as { state?: Partial<Settings> };
-    return { ...DEFAULT_SETTINGS, ...(parsed.state ?? {}) };
+    const parsed = JSON.parse(raw) as { state?: unknown };
+    return sanitizeSettings(parsed?.state);
   } catch {
     return DEFAULT_SETTINGS;
   }

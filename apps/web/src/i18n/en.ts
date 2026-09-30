@@ -1310,7 +1310,8 @@ export const en: Messages = {
   'job.details': 'Details',
 
   'organizer.title': 'Page preview & order',
-  'organizer.hint': 'Drag pages to reorder, click a page to deselect it',
+  'organizer.hint': 'Drag pages to reorder (keyboard: Alt + arrow keys), click a page to deselect it',
+  'organizer.page': 'Page {page}',
   'organizer.pages': '{count} pages',
   'organizer.selected': '{count} selected',
   'organizer.rotateLeft': 'Rotate left',

@@ -164,6 +164,32 @@ export function PageGrid({
             <figure
               key={slot.key}
               draggable
+              // A tile is a toggle button, not a listbox option: `aria-pressed`
+              // matches the behaviour without implying arrow-key navigation that
+              // the grid does not implement. Without this the grid was
+              // mouse-only — no role, no tab stop, no key handling.
+              role="button"
+              tabIndex={0}
+              aria-pressed={isSelected}
+              aria-label={`${source?.name ? `${source.name} · ` : ''}${tf('organizer.page', { page: slot.page })}`}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  toggle(slot.key, event.metaKey || event.ctrlKey || event.shiftKey);
+                  return;
+                }
+                // Alt+arrow is the keyboard equivalent of dragging a tile.
+                if (!event.altKey) return;
+                const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                  ? -1
+                  : event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                    ? 1
+                    : 0;
+                const to = index + delta;
+                if (!delta || to < 0 || to >= slots.length) return;
+                event.preventDefault();
+                move(index, to);
+              }}
               onDragStart={() => setDragFrom(index)}
               onDragOver={(event) => {
                 if (dragFrom === null) return;
@@ -217,7 +243,7 @@ export function PageGrid({
                 ) : null}
               </figcaption>
 
-              <span className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
+              <span className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
                 <IconButton
                   icon="rotate-cw"
                   size={12}
