@@ -8,7 +8,14 @@ const REF_CACHE = new Map<string, Promise<FileRef>>();
 // Large page renders are much larger than card thumbnails. Keep only a few
 // high-resolution pages so opening several previews cannot retain hundreds
 // of megabytes of base64 image data in the renderer.
-const MAX_THUMB_CACHE_ENTRIES = 16;
+//
+// The small-thumbnail bound has to cover a whole document, though: eviction does
+// not change the effect's dependency (the requested-pages signature), so an
+// evicted tile is never requested again and stays on "generating preview"
+// forever. A 16-entry bound therefore made any document longer than 16 pages
+// look like it previewed only a handful of them (30 pages -> ~6 visible).
+// At <=600px a thumbnail is tens of KB, so this stays in the low tens of MB.
+const MAX_THUMB_CACHE_ENTRIES = 256;
 
 function key(fileId: string, page: number, width: number): string {
   return `${fileId}:${page}:${width}`;
