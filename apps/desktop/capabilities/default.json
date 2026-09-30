@@ -4,7 +4,7 @@
   "description": "主窗口权限：文件对话框、自定义标题栏的窗口控制与引擎命令",
   "windows": ["main"],
   "remote": {
-    "urls": ["http://127.0.0.1:5199/**", "http://localhost:5199/**"]
+    "urls": ["http://127.0.0.1:5199/**"]
   },
   "permissions": [
     "core:default",
