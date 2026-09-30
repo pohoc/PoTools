@@ -1,12 +1,11 @@
 //! Native operating-system shell integrations for opening and printing files.
 
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 /// Open a file or directory with the platform's associated application.
 pub fn open_path(path: String, reveal: Option<bool>) -> Result<(), String> {
-    let target = PathBuf::from(&path);
+    let target = crate::services::filesystem::validate_absolute_path(&path, "路径")?;
     if !target.exists() {
         return Err(format!("路径不存在: {}", path));
     }
@@ -59,7 +58,7 @@ pub fn print_file(path: String) -> Result<serde_json::Value, String> {
     if path.trim().is_empty() {
         return Err("缺少待打印文件路径".to_string());
     }
-    let target = PathBuf::from(&path);
+    let target = crate::services::filesystem::validate_absolute_path(&path, "待打印文件路径")?;
     if !target.is_file() {
         return Err(format!("待打印文件不存在：{}", path));
     }

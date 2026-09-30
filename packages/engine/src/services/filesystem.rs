@@ -37,16 +37,44 @@ pub struct DirectoryListing {
     pub quick: Vec<QuickDirectory>,
 }
 
-pub fn write_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
-    let target = PathBuf::from(path);
-    if let Some(parent) = target.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+/// Reject path shapes that no legitimate caller can produce.
+///
+/// Every one of these services takes a path as a plain string over IPC, so a
+/// script running in the WebView can ask them to touch anything the process can
+/// reach. The callers only ever hand over absolute paths that came from a native
+/// file dialog, an OS drag-and-drop event, or `desktop_runtime_info`, so
+/// requiring an absolute, NUL-free path rejects the cheap string tricks
+/// (`../`, `~`, drive-relative `C:foo`, embedded NUL) without changing any real
+/// flow.
+///
+/// This is shape validation, **not** authorization: it does not decide which
+/// absolute paths are allowed, and a UNC/network path is still accepted because
+/// picking a file from a share is a supported flow.
+pub fn validate_absolute_path(path: &str, what: &str) -> Result<PathBuf, String> {
+    if path.trim().is_empty() {
+        return Err(format!("{what}不能为空"));
     }
+    if path.contains('\0') {
+        return Err(format!("{what}包含非法字符"));
+    }
+    let candidate = PathBuf::from(path);
+    if !candidate.is_absolute() {
+        return Err(format!("{what}必须是绝对路径：{path}"));
+    }
+    Ok(candidate)
+}
+
+pub fn write_file_bytes(path: String, bytes: Vec<u8>) -> Result<(), String> {
+    // The parent is deliberately *not* created here: the only caller writes to a
+    // path returned by the native save dialog, whose directory already exists.
+    // Creating parents turned this into an arbitrary-directory-tree primitive.
+    let target = validate_absolute_path(&path, "待写入路径")?;
     fs::write(&target, bytes).map_err(|error| error.to_string())
 }
 
 pub fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    fs::read(path).map_err(|error| error.to_string())
+    let target = validate_absolute_path(&path, "待读取路径")?;
+    fs::read(target).map_err(|error| error.to_string())
 }
 
 pub fn browse_directories(path: Option<String>) -> Result<DirectoryListing, String> {
@@ -136,13 +164,13 @@ pub fn stage_artifact(
     bytes: &[u8],
 ) -> Result<StagedArtifact, String> {
     let file_name = safe_artifact_name(&name);
-    let job_dir = PathBuf::from(temp_root)
+    let job_dir = validate_absolute_path(&temp_root, "临时目录")?
         .join("jobs")
         .join(safe_temp_segment(&job_id));
     fs::create_dir_all(&job_dir).map_err(|error| error.to_string())?;
     let (staged_path, _) = write_unique(&job_dir, &file_name, bytes)?;
     let (output_path, final_name) = if let Some(dir) = output_dir {
-        let directory = PathBuf::from(dir);
+        let directory = validate_absolute_path(&dir, "输出目录")?;
         fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         let (path, name) = write_unique(&directory, &file_name, bytes)?;
         (Some(path.to_string_lossy().to_string()), name)
@@ -157,7 +185,7 @@ pub fn stage_artifact(
 }
 
 pub fn write_output_file(dir: String, name: String, bytes: Vec<u8>) -> Result<WrittenFile, String> {
-    let directory = PathBuf::from(dir);
+    let directory = validate_absolute_path(&dir, "输出目录")?;
     if !directory.is_dir() {
         return Err(format!("输出目录不存在：{}", directory.display()));
     }
@@ -174,12 +202,12 @@ pub fn copy_staged_artifact(
     name: String,
     temp_root: String,
 ) -> Result<String, String> {
-    let root = PathBuf::from(temp_root).join("jobs");
-    let source = PathBuf::from(from);
+    let root = validate_absolute_path(&temp_root, "临时目录")?.join("jobs");
+    let source = validate_absolute_path(&from, "临时产物路径")?;
     if !source.starts_with(&root) || !source.is_file() {
         return Err("找不到该临时产物".to_string());
     }
-    let destination = PathBuf::from(dir);
+    let destination = validate_absolute_path(&dir, "输出目录")?;
     if !destination.is_dir() {
         return Err(format!("输出目录不存在：{}", destination.display()));
     }
@@ -273,7 +301,11 @@ fn safe_artifact_name(name: &str) -> String {
         })
         .collect();
     let trimmed = cleaned.trim();
-    if trimmed.is_empty() {
+    // `.` and `..` contain no separator, so they survive the character filter and
+    // would still address a directory when joined; a name made only of dots is
+    // never a real output name, so fall back to the default instead of producing
+    // a file called `.. (2)`.
+    if trimmed.is_empty() || trimmed.chars().all(|character| character == '.') {
         "output.pdf".to_string()
     } else {
         trimmed.chars().take(120).collect()
@@ -324,4 +356,112 @@ fn write_unique(directory: &Path, name: &str, bytes: &[u8]) -> Result<(PathBuf, 
         }
     }
     Err("无法为输出文件生成不冲突的名称".to_string())
+}
+
+#[cfg(test)]
+mod path_guard_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    /// Unique scratch directory per call, so `create_new` name-collision retries
+    /// in `write_unique` cannot make assertions depend on test order.
+    fn scratch(tag: &str) -> PathBuf {
+        let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir =
+            std::env::temp_dir().join(format!("potools-guard-{tag}-{}-{id}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("create scratch dir");
+        dir
+    }
+
+    #[test]
+    fn relative_paths_are_rejected_everywhere() {
+        let relative = "some/relative/file.pdf".to_string();
+        assert!(write_file_bytes(relative.clone(), vec![1]).is_err());
+        assert!(read_file_bytes(relative.clone()).is_err());
+        assert!(write_output_file(relative.clone(), "a.pdf".into(), vec![1]).is_err());
+        assert!(copy_staged_artifact(
+            relative.clone(),
+            relative.clone(),
+            "a.pdf".into(),
+            relative.clone()
+        )
+        .is_err());
+        assert!(
+            stage_artifact(relative.clone(), "job".into(), "a.pdf".into(), None, &[1]).is_err()
+        );
+        assert!(stage_artifact(
+            "/tmp".into(),
+            "job".into(),
+            "a.pdf".into(),
+            Some(relative),
+            &[1]
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn empty_and_nul_paths_are_rejected() {
+        assert!(read_file_bytes(String::new()).is_err());
+        assert!(read_file_bytes("   ".into()).is_err());
+        assert!(read_file_bytes("/tmp/with\0nul".into()).is_err());
+        assert!(write_file_bytes("/tmp/with\0nul".into(), vec![]).is_err());
+    }
+
+    #[test]
+    fn absolute_paths_still_round_trip() {
+        let dir = scratch("roundtrip");
+        let target = dir.join("payload.bin");
+        write_file_bytes(target.to_string_lossy().to_string(), vec![7, 8, 9])
+            .expect("absolute write");
+        assert_eq!(
+            read_file_bytes(target.to_string_lossy().to_string()).unwrap(),
+            vec![7, 8, 9]
+        );
+    }
+
+    #[test]
+    fn write_file_bytes_no_longer_creates_missing_parents() {
+        // Dropping `create_dir_all` removed an arbitrary directory-tree primitive;
+        // a save dialog always returns a path whose directory exists.
+        let dir = scratch("noparents");
+        let nested = dir.join("missing").join("deep.bin");
+        assert!(write_file_bytes(nested.to_string_lossy().to_string(), vec![1]).is_err());
+        assert!(!dir.join("missing").exists());
+    }
+
+    #[test]
+    fn a_traversal_name_cannot_escape_the_output_directory() {
+        let dir = scratch("traversal");
+        let written = write_output_file(
+            dir.to_string_lossy().to_string(),
+            "../../escaped.pdf".into(),
+            vec![1],
+        )
+        .expect("write");
+        let parent = Path::new(&written.path)
+            .parent()
+            .expect("parent")
+            .to_path_buf();
+        assert_eq!(
+            parent, dir,
+            "output escaped its directory: {}",
+            written.path
+        );
+        // Separators are neutralised in the stored name, so it stays one component.
+        assert!(!written.name.contains('/'));
+        assert!(!written.name.contains('\\'));
+        assert!(!dir.parent().unwrap().join("escaped.pdf").exists());
+    }
+
+    #[test]
+    fn a_dot_only_name_is_replaced_rather_than_addressing_a_directory() {
+        let dir = scratch("dottier");
+        let written = write_output_file(dir.to_string_lossy().to_string(), "..".into(), vec![1])
+            .expect("write");
+        assert_eq!(Path::new(&written.path).parent().unwrap(), dir);
+        assert_eq!(written.name, "output.pdf");
+    }
 }
