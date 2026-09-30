@@ -4,7 +4,15 @@ import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath } from 'node:url';
 
 
+// 构建时间戳（MMDDHHMM 本地时间）：区分每次打包（dev 下为启动时刻）。
+const now = new Date();
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const buildStamp = `${pad2(now.getMonth() + 1)}${pad2(now.getDate())}${pad2(now.getHours())}${pad2(now.getMinutes())}`;
+
 export default defineConfig({
+  define: {
+    __BUILD_STAMP__: JSON.stringify(buildStamp),
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

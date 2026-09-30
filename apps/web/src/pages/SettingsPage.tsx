@@ -33,7 +33,7 @@ import { useJobs } from '../stores/jobs.ts';
 import { isTauri, nativePickDirectory } from '../lib/tauri.ts';
 import { pickFiles } from '../lib/files.ts';
 import { formatBytes } from '../lib/format.ts';
-import { APP_VERSION } from '../lib/version.ts';
+import { DISPLAY_VERSION } from '../lib/version.ts';
 
 const PATTERN_TOKENS = [
   { token: '{name}', key: 'patternToken.name' },
@@ -623,7 +623,7 @@ function AboutTab() {
             </a>
           </DefinitionRow>
           <DefinitionRow term={t('settings.version')}>
-            <span className="font-mono">app {APP_VERSION} · engine {info?.version ?? '—'}</span>
+            <span className="font-mono">{DISPLAY_VERSION}</span>
           </DefinitionRow>
           <DefinitionRow term={t('settings.runMode')}>
             {transportMode() === 'tauri' ? t('settings.engineMode.tauri') : t('settings.engineMode.web')}

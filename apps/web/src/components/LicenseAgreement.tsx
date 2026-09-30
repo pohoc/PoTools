@@ -1,5 +1,5 @@
 import { Button } from '@potools/ui';
-import { APP_VERSION } from '../lib/version.ts';
+import { DISPLAY_VERSION } from '../lib/version.ts';
 import { useI18n } from '../i18n/index.tsx';
 import { useSettings } from '../lib/settings.ts';
 import { AppLogo } from './AppLogo.tsx';
@@ -22,7 +22,7 @@ export function LicenseAgreement({ onAccept, onDecline }: { onAccept: () => void
         <section className="mx-auto flex min-h-full w-full max-w-[900px] flex-col px-6 py-7 md:px-10 md:py-9">
           <header className="mb-5 shrink-0">
             <h1 className="text-[23px] font-semibold tracking-[-.025em]">{t('license.title')}</h1>
-            <p className="mt-1.5 text-[12px] text-muted">{tf('license.subtitle', { version: APP_VERSION })}</p>
+            <p className="mt-1.5 text-[12px] text-muted">{tf('license.subtitle', { version: DISPLAY_VERSION })}</p>
           </header>
 
           <div

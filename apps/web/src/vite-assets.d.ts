@@ -1,3 +1,4 @@
+declare const __BUILD_STAMP__: string;
 declare module '*?url' {
   const assetUrl: string;
   export default assetUrl;

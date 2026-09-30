@@ -12,7 +12,7 @@ import { useMediaQuery } from '../lib/useMediaQuery.ts';
 import { rowClass } from '../lib/rows.ts';
 import type { ToolId } from 'core';
 import { TOOLS } from '../lib/core-bindings.ts';
-import { APP_VERSION } from '../lib/version.ts';
+import { DISPLAY_VERSION } from '../lib/version.ts';
 
 const NAV = [
   { to: '/', key: 'nav.tools', icon: 'layout-grid', end: true },
@@ -237,7 +237,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     title={`${t('settings.copyright')} · pohoc <po.hoc4@gmail.com>`}
                   >
                     <Badge variant="outline" className="px-2 text-[10px]">
-                      <span className="font-mono">v{APP_VERSION}</span> · MIT · pohoc
+                      <span className="font-mono">{DISPLAY_VERSION}</span> · MIT · pohoc
                     </Badge>
                   </a>
                 </div>

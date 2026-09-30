@@ -58,8 +58,10 @@ if (platform === 'macos') {
   const source = path.join(root, config.source);
   const dmg = (await readdir(source)).find((name) => config.pattern.test(name));
   if (!dmg) throw new Error(`No macOS DMG found in ${source}`);
-  await cp(path.join(source, dmg), path.join(destination, dmg));
-  console.log(`[release] copied ${dmg} to ${destination}`);
+  const stamp = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).replace(/[-: T]/g, '').slice(4, 12);
+  const stamped = dmg.replace(/^(PoTools_[0-9.]+?)(_x64|_i686|_aarch64)?\.dmg$/, `$1-${stamp}$2.dmg`);
+  await cp(path.join(source, dmg), path.join(destination, stamped));
+  console.log(`[release] copied ${stamped} to ${destination}`);
 } else if (platform === 'windows') {
   const files = architecture ? config.files[architecture] : Object.values(config.files).flat();
   for (const relative of files) {
