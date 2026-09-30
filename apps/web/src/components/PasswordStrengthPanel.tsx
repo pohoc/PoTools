@@ -33,7 +33,7 @@ export function PasswordStrengthPanel() {
           />
           <button
             type="button"
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-control border border-line bg-panel px-3 text-[12px] text-muted hover:bg-hover"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-control border border-control-line bg-panel px-3 text-[12px] text-muted hover:bg-hover"
             onClick={() => setVisible((value) => !value)}
             aria-pressed={visible}
           >

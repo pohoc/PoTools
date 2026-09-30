@@ -41,7 +41,7 @@ export function LicenseAgreement({ onAccept, onDecline }: { onAccept: () => void
               <span>{t('license.language')}</span>
               <select
                 aria-label={t('license.language')}
-                className="h-9 min-w-36 rounded-control border border-line bg-surface px-3 text-[12px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                className="h-9 min-w-36 rounded-control border border-control-line bg-surface px-3 text-[12px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                 value={settings.locale}
                 onChange={(event) => settings.set('locale', event.currentTarget.value as 'zh-CN' | 'en')}
               >

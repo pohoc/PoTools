@@ -3,7 +3,6 @@ import { Icon, Input as HeroInput, Textarea as HeroTextarea } from '@potools/ui'
 import type { FieldValue, ToolField } from 'core';
 import { isValidPageRanges, visibleFields } from '../lib/core-bindings.ts';
 import { Button, Toggle } from '@potools/ui';
-import { CONTROL_CLASS } from '@potools/ui';
 import { Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Slider, Collapsible, CollapsibleContent, CollapsibleTrigger } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { cn } from '@potools/ui';
@@ -235,7 +234,7 @@ function Group({
       {blocks.map((block) => {
         const [first] = block.fields;
         if (!block.row) {
-          return <Field key={first.key} field={first} value={values[first.key]} onChange={onChange} values={values} />;
+          return <Field key={first.key} field={first} value={values[first.key]} onChange={onChange} />;
         }
         return (
           <div
@@ -248,7 +247,6 @@ function Group({
                   field={field}
                   value={values[field.key]}
                   onChange={onChange}
-                  values={values}
                 />
               </div>
             ))}
@@ -266,12 +264,10 @@ function Group({
 function Field({
   field,
   value,
-  values,
   onChange,
 }: {
   field: ToolField;
   value: FieldValue | undefined;
-  values: Values;
   onChange: (key: string, value: FieldValue) => void;
 }) {
   const { t } = useI18n();
@@ -305,7 +301,7 @@ function Field({
   return (
     <div className="form-field">
       <Label id={`${id}-label`} htmlFor={id} className="form-label">{(field.type === 'text' || field.type === 'password' || field.type === 'textarea' || field.type === 'dateTime') ? <>{label}{field.required ? <span className="ml-1 text-bad">*</span> : null}</> : label}</Label>
-      <Control id={id} labelId={`${id}-label`} field={field} value={value} values={values} onChange={onChange} />
+      <Control id={id} labelId={`${id}-label`} field={field} value={value} onChange={onChange} />
       {helpText ? <p className="form-hint">{helpText}</p> : null}
       {errorText ? <p className="text-[11px] leading-4 text-bad" role="alert">{errorText}</p> : null}
     </div>
@@ -317,14 +313,12 @@ function Control({
   labelId,
   field,
   value,
-  values,
   onChange,
 }: {
   id: string;
   labelId: string;
   field: ToolField;
   value: FieldValue | undefined;
-  values: Values;
   onChange: (key: string, value: FieldValue) => void;
 }) {
   const { t } = useI18n();

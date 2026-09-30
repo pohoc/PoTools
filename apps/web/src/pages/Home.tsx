@@ -121,7 +121,7 @@ export function Home() {
 
       <nav className="home-categories flex flex-wrap gap-1 border-b border-line py-2" aria-label={t('home.categories')}>
           {categoryGroups.map((category) => (
-            <Button key={category.id} type="button" variant="ghost" aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setActiveSubcategory('all'); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'ui-button-active border-line bg-surface font-medium text-ink shadow-sm hover:bg-surface' : 'border-transparent bg-transparent text-muted'}`}>
+            <Button key={category.id} type="button" variant="ghost" aria-pressed={activeCategory === category.id} onClick={() => { setActiveCategory(category.id); setActiveSubcategory('all'); setQuery(''); try { sessionStorage.setItem('potools.lastCategory', category.id); } catch { /* ignore */ } }} className={`h-8 shrink-0 px-2.5 text-[11.5px] ${activeCategory === category.id ? 'ui-button-active border-control-line bg-surface font-medium text-ink shadow-sm hover:bg-surface' : 'border-transparent bg-transparent text-muted'}`}>
               {t(category.label)}
             </Button>
           ))}

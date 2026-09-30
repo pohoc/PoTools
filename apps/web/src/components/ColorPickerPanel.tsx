@@ -211,7 +211,7 @@ export function ColorPickerPanel() {
           aria-label={t('colorPicker.chooseColor')}
           value={pickerHex}
           onChange={(event) => updateColor(hexToRgb(event.target.value))}
-          className="h-9 w-10 shrink-0 cursor-pointer rounded border border-line bg-white p-1"
+          className="h-9 w-10 shrink-0 cursor-pointer rounded border border-control-line bg-white p-1"
         />
         <span aria-label={`${t('colorPicker.preview')}: ${pickerHex}`} className="h-10 w-10 shrink-0 rounded-md border border-black/10 shadow-sm" style={{ backgroundColor: pickerHex }} />
         <code className="font-mono text-[14px] font-semibold tracking-wide text-ink">{pickerHex}</code>

@@ -3,7 +3,7 @@ import type { DragEvent } from 'react';
 import { Icon } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
 import { filesFromDataTransfer, fromPaths, pickFiles, type PickedFile } from '../lib/files.ts';
-import { isTauri, ACCEPT_EXTENSIONS, type AcceptKind } from '../lib/tauri.ts';
+import { isTauri, type AcceptKind } from '../lib/tauri.ts';
 
 /**
  * Tauri intercepts HTML5 drag & drop (dragDropEnabled), so on the desktop the
@@ -104,7 +104,7 @@ export function DropZone({
           }
         }}
         className={`tool-drop-zone group flex w-full cursor-pointer flex-col items-center justify-center rounded-control border border-dashed text-center outline-none transition focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30 ${
-          over ? 'drag-over border-accent bg-accent-soft/35' : 'border-line bg-surface hover:border-accent/60'
+          over ? 'drag-over border-accent bg-accent-soft/35' : 'border-control-line bg-surface hover:border-accent/60'
         } ${compact ? 'gap-2 px-3 py-4' : 'gap-2.5 px-4 py-6'}`}
       >
         <span

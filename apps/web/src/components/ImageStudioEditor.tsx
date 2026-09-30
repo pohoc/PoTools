@@ -284,7 +284,7 @@ function PreviewTile({ title, src, empty, onOpen, checkerboard = false }: { titl
         aria-label={t('imageStudio.previewOpen')}
         disabled={empty}
         onClick={onOpen}
-        className={`flex h-[248px] w-full items-center justify-center overflow-hidden rounded-control border border-line bg-canvas outline-none focus-visible:ring-2 focus-visible:ring-accent ${checkerboard ? 'checkerboard' : ''} ${empty ? 'cursor-default' : 'cursor-zoom-in'}`}
+        className={`flex h-[248px] w-full items-center justify-center overflow-hidden rounded-control border border-control-line bg-canvas outline-none focus-visible:ring-2 focus-visible:ring-accent ${checkerboard ? 'checkerboard' : ''} ${empty ? 'cursor-default' : 'cursor-zoom-in'}`}
       >
         {src ? <img src={src} alt="" className="max-h-full max-w-full object-contain" /> : <span className="px-4 text-center text-[11px] leading-5 text-faint">{t('imageStudio.preview')}</span>}
       </button>
