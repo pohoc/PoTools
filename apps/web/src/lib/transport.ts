@@ -5,6 +5,7 @@ import { callEmbeddedRpc, configureEmbeddedWorkerPool, embeddedWorkerCount, shut
 import { EmbeddedJobRunner, textToolRuntimeData } from './embedded-jobs.ts';
 import { scanInvoices as scanInvoicesInWeb } from './invoice-scan.ts';
 import { authorizeOutputDir, authorizeTempDir, engineBridge, isTauri } from './tauri.ts';
+import { timed } from './timing.ts';
 import { BaseTransport, decodeBase64, encodeBase64, RpcError, type Transport } from './transport-shared.ts';
 import { APP_VERSION } from './version.ts';
 
@@ -125,7 +126,15 @@ class TauriTransport extends BaseTransport {
   // (the health check asks for 2.5s), but this implementation does not enforce
   // one yet: an unenforced deadline is preferable to a wrong one that would
   // abort legitimate long conversions.
+  /**
+   * Times every RPC through one choke point, which is what makes the three
+   * chains (start-up, preview, tool run) measurable without sprinkling logging.
+   */
   async call<T>(method: RpcMethodName, params: Record<string, unknown>, _timeoutMs = 120_000): Promise<T> {
+    return timed(`rpc:${method}`, () => this.callInner<T>(method, params, _timeoutMs));
+  }
+
+  private async callInner<T>(method: RpcMethodName, params: Record<string, unknown>, _timeoutMs = 120_000): Promise<T> {
     if (method === 'engine.info') return this.localInfo<T>();
     if (method === 'engine.ping') {
       return { pong: Date.now() } as T;

@@ -1,6 +1,7 @@
 import type { PageThumb } from 'core';
 import UTIF from 'utif';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { mark, now } from './timing.ts';
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -137,9 +138,11 @@ async function documentFor(input: { id: string; bytes: Uint8Array }): Promise<Lo
   }
   // Copied once: pdf.js takes ownership of the buffer it is given, and the
   // caller's bytes stay live for the rest of the session.
+  const startedAt = now();
   const data = Uint8Array.from(input.bytes);
   const document = await getDocument({ data, isEvalSupported: false }).promise;
   loaded = { key, document };
+  mark('preview:parse', startedAt, { bytes: input.bytes.byteLength, pages: document.numPages });
   return document;
 }
 
