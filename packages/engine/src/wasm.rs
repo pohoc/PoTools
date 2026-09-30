@@ -394,8 +394,9 @@ pub fn pdf_image_rects(bytes: Vec<u8>) -> Result<JsValue, JsValue> {
 }
 
 /// Returns catalog tools routed by the Rust engine, including tools that
-/// return a validation error when called without their required input.
+/// return a validation error when called without their required input, plus the
+/// engine-only entry points that the catalog does not expose.
 #[wasm_bindgen(js_name = toolCapabilities)]
 pub fn tool_capabilities() -> Result<JsValue, JsValue> {
-    to_js_json(crate::tools::capabilities::SUPPORTED)
+    to_js_json(&crate::tools::capabilities::advertised())
 }

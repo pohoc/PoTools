@@ -193,34 +193,73 @@ pub(crate) struct OfdDoc {
     pub fonts: Vec<(String, Vec<u8>)>,
 }
 
+/// Decompression budget for one OFD package.
+///
+/// An OFD is a zip, so a small file can expand to an arbitrary size ("zip
+/// bomb"). Every entry read is capped individually *and* charged against a
+/// package-wide budget, which mirrors the decode limits the rest of the engine
+/// enforces before allocating.
+const MAX_OFD_ENTRIES: usize = 4_096;
+const MAX_OFD_ENTRY_BYTES: u64 = 64 * 1024 * 1024;
+const MAX_OFD_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
+
+/// Reads at most `limit` bytes. Returns `None` when the source yields more than
+/// `limit` — i.e. when the zip header's declared size lied — or fails mid-read.
+fn read_entry_bounded<R: std::io::Read>(reader: R, limit: u64) -> Option<Vec<u8>> {
+    let mut out = Vec::new();
+    reader.take(limit + 1).read_to_end(&mut out).ok()?;
+    if out.len() as u64 > limit {
+        return None;
+    }
+    Some(out)
+}
+
 /// Reads the OFD zip into page geometry, text runs and images. Invalid zip →
 /// `unreadable_file` with the TS `error.notOfd` hint.
 pub(crate) fn read_ofd(bytes: &[u8]) -> EngineResult<OfdDoc> {
     let mut archive = ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|_| {
         EngineError::new("unreadable_file", "文件不是有效的 OFD 包").with_hint("error.notOfd")
     })?;
-    let read = |archive: &mut ZipArchive<_>, path: &str| -> String {
-        for candidate in [path, &path.replace('\\', "/")] {
-            if let Ok(mut entry) = archive.by_name(candidate) {
-                let mut out = String::new();
-                let _ = entry.read_to_string(&mut out);
-                return out;
-            }
+    if archive.len() > MAX_OFD_ENTRIES {
+        return Err(
+            EngineError::new("unsupported", "OFD 包内条目过多，已拒绝处理")
+                .with_hint("error.notOfd"),
+        );
+    }
+    let remaining = std::cell::Cell::new(MAX_OFD_TOTAL_BYTES);
+
+    // Returns `None` when the entry is missing, oversized, or would exceed the
+    // remaining package budget.
+    let load = |archive: &mut ZipArchive<_>, path: &str| -> Option<Vec<u8>> {
+        let limit = remaining.get().min(MAX_OFD_ENTRY_BYTES);
+        if limit == 0 {
+            return None;
         }
-        String::new()
-    };
-    let read_bytes = |archive: &mut ZipArchive<_>, path: &str| -> Option<Vec<u8>> {
-        for candidate in [path, &path.replace('\\', "/")] {
-            if let Ok(mut entry) = archive.by_name(candidate) {
-                let mut out = Vec::new();
-                if entry.read_to_end(&mut out).is_ok() {
-                    return Some(out);
-                }
+        for candidate in [path.to_owned(), path.replace('\\', "/")] {
+            let Ok(entry) = archive.by_name(&candidate) else {
+                continue;
+            };
+            // The declared size is attacker-controlled, but it is still worth
+            // rejecting outright before decompressing anything.
+            if entry.size() > limit {
                 return None;
             }
+            // Read one byte past the limit so a lying declared size is caught
+            // instead of silently truncating into a "valid" document.
+            let out = read_entry_bounded(entry, limit)?;
+            remaining.set(remaining.get() - out.len() as u64);
+            return Some(out);
         }
         None
     };
+    let read = |archive: &mut ZipArchive<_>, path: &str| -> String {
+        match load(archive, path) {
+            Some(bytes) => String::from_utf8(bytes).unwrap_or_default(),
+            None => String::new(),
+        }
+    };
+    let read_bytes =
+        |archive: &mut ZipArchive<_>, path: &str| -> Option<Vec<u8>> { load(archive, path) };
 
     let root = element(parse_xml(&read(&mut archive, "OFD.xml")), "OFD");
     let body = root.as_ref().and_then(|ofd| ofd.child("DocBody"));
@@ -434,10 +473,32 @@ mod tests {
     #[test]
     fn invalid_zip_is_rejected_with_not_ofd() {
         let error = match read_ofd(b"not a zip") {
-            Err(error) => error,
             Ok(_) => panic!("invalid zip accepted"),
+            Err(error) => error,
         };
         assert_eq!(error.code, "unreadable_file");
         assert_eq!(error.hint_key, Some("error.notOfd"));
+    }
+
+    /// The zip header's uncompressed size is attacker-controlled; a source that
+    /// keeps producing bytes must be cut off rather than buffered.
+    #[test]
+    fn bounded_read_refuses_to_exceed_the_limit() {
+        // An endless source is truncated at limit+1 and therefore rejected.
+        assert!(read_entry_bounded(std::io::repeat(0), 1024).is_none());
+        assert!(read_entry_bounded(std::io::Cursor::new(vec![7_u8; 1025]), 1024).is_none());
+        // Exactly at the limit is still accepted.
+        assert_eq!(
+            read_entry_bounded(std::io::Cursor::new(vec![7_u8; 1024]), 1024)
+                .expect("exactly at limit")
+                .len(),
+            1024
+        );
+        assert_eq!(
+            read_entry_bounded(std::io::Cursor::new(b"abc".to_vec()), 1024).expect("under limit"),
+            b"abc"
+        );
+        // A zero budget reads nothing and rejects any non-empty entry.
+        assert!(read_entry_bounded(std::io::Cursor::new(b"a".to_vec()), 0).is_none());
     }
 }
