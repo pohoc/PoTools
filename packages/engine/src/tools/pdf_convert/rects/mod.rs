@@ -169,7 +169,7 @@ fn image_resource_names(document: &Document, page_id: lopdf::ObjectId) -> HashSe
     let Ok(xobject) = resources.get(b"XObject") else {
         return found;
     };
-    let Some(xobject) = as_dictionary(document, &xobject) else {
+    let Some(xobject) = as_dictionary(document, xobject) else {
         return found;
     };
     for (name, value) in xobject.iter() {

@@ -64,7 +64,9 @@ pub fn assess_password_strength(password: &str) -> PasswordStrengthAssessment {
     let upper = password.chars().any(char::is_uppercase);
     let digits = password.chars().any(char::is_numeric);
     let symbols = password.chars().any(|c| !c.is_alphanumeric());
-    let unicode = password.chars().any(|c| !c.is_ascii());
+    // A char is non-ASCII exactly when its UTF-8 bytes are, so this matches
+    // `chars().any(|c| !c.is_ascii())` without the iterator.
+    let unicode = !password.is_ascii();
     let classes = [lower, upper, digits, symbols, unicode]
         .into_iter()
         .filter(|v| *v)

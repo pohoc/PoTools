@@ -201,7 +201,7 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
     table.extend(rows.iter().map(|values| render(values)));
     let sep = fmt::rest_sep(ui);
     let mut blocks = vec![
-        fmt::section(&fmt::msg(
+        fmt::section(fmt::msg(
             ui,
             &format!(
                 "时区对照表 · {} 个时区 · 基准 {}",
@@ -285,7 +285,7 @@ pub(super) fn run_timezone_board(ctx: &RunContext<'_>) -> Result<ToolResult, Eng
             )
             .to_string(),
         );
-        blocks.push(fmt::section(&fmt::msg(
+        blocks.push(fmt::section(fmt::msg(
             ui,
             &format!("无法识别的时区（{} 行）", invalid.len()),
             &format!("Unrecognized time zones, {} skipped", invalid.len()),

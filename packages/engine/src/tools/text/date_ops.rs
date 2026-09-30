@@ -15,12 +15,13 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     }
 }
 
+/// Resolves the wording locale for date phrases: the UI locale wins, otherwise
+/// an explicit `locale` option beginning with "e" selects English.
 fn phrase_locale(ctx: &RunContext<'_>) -> fmt::LocaleCode {
-    if is_en(ctx) {
-        fmt::EN_US
-    } else if string(ctx, "locale", "zh-CN")
-        .to_lowercase()
-        .starts_with('e')
+    if is_en(ctx)
+        || string(ctx, "locale", "zh-CN")
+            .to_lowercase()
+            .starts_with('e')
     {
         fmt::EN_US
     } else {
@@ -99,7 +100,7 @@ pub(super) fn run_timestamp(ctx: &RunContext<'_>) -> Result<ToolResult, EngineEr
         format!("Unix {}", fmt::unit_name(unit, ui))
     };
     let mut blocks = vec![
-        fmt::section(&fmt::msg(
+        fmt::section(fmt::msg(
             ui,
             &format!("时间戳转换 · {} 条 · {}", lines.len(), tz.name()),
             &format!(
@@ -150,7 +151,7 @@ pub(super) fn run_timestamp(ctx: &RunContext<'_>) -> Result<ToolResult, EngineEr
         let mut parts: Vec<String> = vec![fmt::section(&format!("#{} {line}", index + 1))];
         parts.push(full_rows(ctx, at, tz, now, locale, ui));
         if show_range {
-            parts.push(fmt::section(&fmt::msg(
+            parts.push(fmt::section(fmt::msg(
                 ui,
                 "周期边界（Unix 秒 · 周起始 周一）",
                 "Period bounds (Unix seconds, week starts Monday)",
@@ -266,11 +267,7 @@ fn range_rows(at: DateTime<Utc>, tz: chrono_tz::Tz, ui: &str) -> String {
             (fmt::msg(ui, "起点", "start"), period_start(at, tz, unit)),
             (fmt::msg(ui, "终点", "end"), period_end(at, tz, unit)),
         ] {
-            let label = if fmt::is_zh(ui) {
-                format!("{period} {kind}")
-            } else {
-                format!("{period} {kind}")
-            };
+            let label = format!("{period} {kind}");
             let seconds = bound.timestamp();
             rows.push(row(
                 label,

@@ -22,7 +22,7 @@ fn split_groups(ctx: &RunContext<'_>, total: usize) -> EngineResult<Vec<Vec<u32>
                 .collect())
         }
         "halves" => {
-            let middle = (total + 1) / 2;
+            let middle = total.div_ceil(2);
             let mut groups = vec![
                 (1..=middle as u32).collect::<Vec<_>>(),
                 (((middle + 1) as u32)..=total as u32).collect::<Vec<_>>(),
@@ -294,8 +294,10 @@ pub(super) fn run_organize(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
             .map(|n| n as i32);
         selected.push((page_id, rotation));
     }
-    let mut result = ToolResult::default();
-    result.warnings = warnings;
+    let mut result = ToolResult {
+        warnings,
+        ..ToolResult::default()
+    };
     if string(ctx.options, "pageSize", "keep") != "keep" {
         result
             .warnings

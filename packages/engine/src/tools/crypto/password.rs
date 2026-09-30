@@ -21,7 +21,7 @@ fn password_strength(password: &str) -> (&'static str, u8, usize, Vec<&'static s
     let upper = password.chars().any(|c| c.is_ascii_uppercase());
     let digits = password.chars().any(|c| c.is_ascii_digit());
     let symbols = password.chars().any(|c| !c.is_alphanumeric());
-    let unicode = password.chars().any(|c| !c.is_ascii());
+    let unicode = !password.is_ascii();
     let classes = [lower, upper, digits, symbols, unicode]
         .iter()
         .filter(|x| **x)

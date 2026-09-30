@@ -208,7 +208,7 @@ pub fn run(ctx: &RunContext<'_>) -> RunResult {
         let outcome = if alg.starts_with("hs") {
             Ok(verify_hs(&alg, secret.as_bytes(), signing.as_bytes(), &sig))
         } else {
-            verify_asym(&alg, &secret, signing.as_bytes(), &sig).map_err(|e| e)
+            verify_asym(&alg, &secret, signing.as_bytes(), &sig)
         };
         match outcome {
             Ok(true) => {

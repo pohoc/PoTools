@@ -347,36 +347,76 @@ pub fn format_relative(amount: i64, unit: &str, locale: LocaleCode, numeric_auto
 pub fn unit_name(unit: &str, ui_locale: &str) -> String {
     let zh = is_zh(ui_locale);
     match unit {
-        "s" | "second" | "seconds" => zh
-            .then(|| "秒".to_string())
-            .unwrap_or_else(|| "seconds".into()),
-        "min" | "minute" | "minutes" => zh
-            .then(|| "分钟".to_string())
-            .unwrap_or_else(|| "minutes".into()),
-        "h" | "hour" | "hours" => zh
-            .then(|| "小时".to_string())
-            .unwrap_or_else(|| "hours".into()),
-        "d" | "day" | "days" => zh
-            .then(|| "天".to_string())
-            .unwrap_or_else(|| "days".into()),
-        "w" | "week" | "weeks" => zh
-            .then(|| "周".to_string())
-            .unwrap_or_else(|| "weeks".into()),
-        "ms" => zh
-            .then(|| "毫秒".to_string())
-            .unwrap_or_else(|| "milliseconds".into()),
-        "us" => zh
-            .then(|| "微秒".to_string())
-            .unwrap_or_else(|| "microseconds".into()),
-        "ns" => zh
-            .then(|| "纳秒".to_string())
-            .unwrap_or_else(|| "nanoseconds".into()),
-        "years" => zh
-            .then(|| "年".to_string())
-            .unwrap_or_else(|| "years".into()),
-        "months" => zh
-            .then(|| "个月".to_string())
-            .unwrap_or_else(|| "months".into()),
+        "s" | "second" | "seconds" => {
+            if zh {
+                "秒".to_string()
+            } else {
+                "seconds".into()
+            }
+        }
+        "min" | "minute" | "minutes" => {
+            if zh {
+                "分钟".to_string()
+            } else {
+                "minutes".into()
+            }
+        }
+        "h" | "hour" | "hours" => {
+            if zh {
+                "小时".to_string()
+            } else {
+                "hours".into()
+            }
+        }
+        "d" | "day" | "days" => {
+            if zh {
+                "天".to_string()
+            } else {
+                "days".into()
+            }
+        }
+        "w" | "week" | "weeks" => {
+            if zh {
+                "周".to_string()
+            } else {
+                "weeks".into()
+            }
+        }
+        "ms" => {
+            if zh {
+                "毫秒".to_string()
+            } else {
+                "milliseconds".into()
+            }
+        }
+        "us" => {
+            if zh {
+                "微秒".to_string()
+            } else {
+                "microseconds".into()
+            }
+        }
+        "ns" => {
+            if zh {
+                "纳秒".to_string()
+            } else {
+                "nanoseconds".into()
+            }
+        }
+        "years" => {
+            if zh {
+                "年".to_string()
+            } else {
+                "years".into()
+            }
+        }
+        "months" => {
+            if zh {
+                "个月".to_string()
+            } else {
+                "months".into()
+            }
+        }
         other => other.into(),
     }
 }

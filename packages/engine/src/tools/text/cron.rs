@@ -192,11 +192,11 @@ fn run_cron(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     } else {
         parse_at(from_raw, tz)?
     };
-    let locale = if is_en(ctx) {
-        "en-US"
-    } else if option_string(ctx, "locale", "zh-CN")
-        .to_ascii_lowercase()
-        .starts_with("en")
+    // UI locale wins; otherwise an explicit `locale` option selects English.
+    let locale = if is_en(ctx)
+        || option_string(ctx, "locale", "zh-CN")
+            .to_ascii_lowercase()
+            .starts_with("en")
     {
         "en-US"
     } else {
@@ -279,7 +279,7 @@ fn run_cron(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     Ok(report::render(
         expr,
         &canonical,
-        &from_raw,
+        from_raw,
         zone_name,
         tz,
         from,

@@ -140,7 +140,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
                 (shifted_ms / fmt::SEC_MS).to_string(),
             ),
         ]),
-        fmt::section(&fmt::msg(
+        fmt::section(fmt::msg(
             ui,
             &format!("日期加减 · {}", tz.name()),
             &format!("Date arithmetic · {}", tz.name()),
@@ -206,13 +206,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
                 format!(
                     "{}{}",
                     if signed_value < 0 { "−" } else { "+" },
-                    fmt::span_text(
-                        &fmt::CalendarSpan {
-                            sign: 1,
-                            ..span.clone()
-                        },
-                        en_phrase
-                    )
+                    fmt::span_text(&fmt::CalendarSpan { sign: 1, ..span }, en_phrase)
                 ),
             ),
         ]),

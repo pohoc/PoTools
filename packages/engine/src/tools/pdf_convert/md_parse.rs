@@ -33,7 +33,7 @@ pub(crate) enum MdBlock {
     PageBreak,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub(crate) struct MdStyle {
     pub bold: bool,
     pub italic: bool,
@@ -222,16 +222,6 @@ fn run_of(text: &str, style: MdStyle) -> InlineRun {
     InlineRun {
         text: text.to_owned(),
         style,
-    }
-}
-
-impl Default for MdStyle {
-    fn default() -> Self {
-        Self {
-            bold: false,
-            italic: false,
-            code: false,
-        }
     }
 }
 

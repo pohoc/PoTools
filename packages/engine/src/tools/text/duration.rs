@@ -208,7 +208,7 @@ pub(super) fn run_duration(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
         fmt::msg(ui, "正向", "Positive")
     };
     let blocks = vec![
-        fmt::section(&fmt::msg(
+        fmt::section(fmt::msg(
             ui,
             &format!("时长换算 · {} {}", decimal_trim(numeric.abs(), 9), unit_label),
             &format!("Duration conversion · {} {}", decimal_trim(numeric.abs(), 9), unit_label),
@@ -365,9 +365,7 @@ pub(super) fn valid_decimal_number(raw: &str) -> bool {
     let fraction = parts.next();
     !whole.is_empty()
         && whole.bytes().all(|b| b.is_ascii_digit())
-        && fraction.map_or(true, |f| {
-            !f.is_empty() && f.bytes().all(|b| b.is_ascii_digit())
-        })
+        && fraction.is_none_or(|f| !f.is_empty() && f.bytes().all(|b| b.is_ascii_digit()))
         && parts.next().is_none()
 }
 

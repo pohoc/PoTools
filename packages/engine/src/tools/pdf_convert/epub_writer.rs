@@ -437,7 +437,7 @@ mod tests {
         assert!(!uid.is_empty());
         assert!(uid
             .chars()
-            .all(|c| c.is_ascii_digit() || ('a'..='z').contains(&c)));
+            .all(|c: char| c.is_ascii_digit() || c.is_ascii_lowercase()));
     }
 
     #[test]

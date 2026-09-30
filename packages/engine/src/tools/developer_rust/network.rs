@@ -94,7 +94,7 @@ fn ipv6_groups(ctx: &RunContext<'_>, input: &str) -> Result<Vec<u16>, EngineErro
     let mut groups = Vec::new();
     for item in left
         .iter()
-        .chain(std::iter::repeat(&"0").take(missing))
+        .chain(std::iter::repeat_n(&"0", missing))
         .chain(right.iter())
     {
         if item.is_empty() || item.len() > 4 || !item.bytes().all(|b| b.is_ascii_hexdigit()) {

@@ -26,11 +26,11 @@ fn no_pages(file_name: &str) -> EngineError {
 }
 
 /// Looks up the cropped PNG for one region source.
-fn region_bytes<'a>(
-    images: &'a [super::model::PdfImagePlacement],
+fn region_bytes(
+    images: &[super::model::PdfImagePlacement],
     page: u32,
     index: u32,
-) -> Option<&'a [u8]> {
+) -> Option<&[u8]> {
     images
         .iter()
         .find(|image| image.page == page && image.index == index)
@@ -132,7 +132,7 @@ pub(super) fn run_word(ctx: &RunContext<'_>) -> RunResult {
             }
         };
         let bytes = write_docx(&DocxInput {
-            title: &stem,
+            title: stem,
             blocks: &blocks,
             image_for: &image_for,
             page_breaks,
@@ -200,7 +200,7 @@ pub(super) fn run_epub(ctx: &RunContext<'_>) -> RunResult {
         };
         let chapters: Vec<EpubChapter> = chapterize(&flow, chapter_by);
         let bytes = write_epub(&EpubInput {
-            title: &stem,
+            title: stem,
             author: "PoTools",
             chapters,
             images: book_images,
@@ -267,7 +267,7 @@ pub(super) fn run_html(ctx: &RunContext<'_>) -> RunResult {
                 })
                 .nth(ordinal.checked_sub(1)?)
         };
-        let html = flow_to_html(&flow, &stem, &mut |ordinal| image_src(ordinal));
+        let html = flow_to_html(&flow, stem, &mut |ordinal| image_src(ordinal));
         emit(
             ctx,
             &mut result,
@@ -289,7 +289,7 @@ mod tests {
 
     #[test]
     fn ocr_text_lookup_treats_blank_as_missing() {
-        let entries = vec![super::super::model::PdfOcrPage {
+        let entries = [super::super::model::PdfOcrPage {
             page: 2,
             text: "  \n ".to_owned(),
         }];

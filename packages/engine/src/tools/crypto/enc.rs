@@ -22,7 +22,7 @@ pub(super) fn group_digits(value: usize) -> String {
     let mut out = String::new();
     let bytes = digits.as_bytes();
     for (index, byte) in bytes.iter().enumerate() {
-        if index > 0 && (bytes.len() - index) % 3 == 0 {
+        if index > 0 && (bytes.len() - index).is_multiple_of(3) {
             out.push(',');
         }
         out.push(*byte as char);

@@ -291,9 +291,7 @@ pub(super) fn is_numeric(raw: &str) -> bool {
     let fraction = split.next();
     !whole.is_empty()
         && whole.bytes().all(|b| b.is_ascii_digit())
-        && fraction.map_or(true, |f| {
-            !f.is_empty() && f.bytes().all(|b| b.is_ascii_digit())
-        })
+        && fraction.is_none_or(|f| !f.is_empty() && f.bytes().all(|b| b.is_ascii_digit()))
         && split.next().is_none()
 }
 

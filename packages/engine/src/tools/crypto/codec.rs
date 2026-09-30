@@ -55,7 +55,7 @@ pub(super) fn base32_encode(bytes: &[u8], alphabet: &[u8], padded: bool) -> Stri
         out.push(alphabet[((acc << (5 - bits)) & 31) as usize] as char);
     }
     if padded {
-        while out.len() % 8 != 0 {
+        while !out.len().is_multiple_of(8) {
             out.push('=');
         }
     }

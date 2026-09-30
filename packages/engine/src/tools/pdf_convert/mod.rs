@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn block_page_covers_all_non_break_blocks() {
-        let blocks = vec![
+        let blocks = [
             FlowBlock::Heading {
                 level: 1,
                 text: "t".into(),

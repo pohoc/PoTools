@@ -107,11 +107,11 @@ pub(super) fn file_checksum(ctx: &RunContext<'_>) -> Result<ToolResult, EngineEr
     let expected_raw = string(ctx, "expected", "").trim();
     let mut expected = Vec::<(Option<String>, String)>::new();
     for token in expected_raw
-        .split(|c: char| c == '\r' || c == '\n' || c == ',' || c == ';')
+        .split(['\r', '\n', ',', ';'])
         .flat_map(str::split_whitespace)
     {
         let (tag, value) = token
-            .find(|c| c == '=' || c == ':')
+            .find(['=', ':'])
             .map(|i| (Some(token[..i].to_ascii_lowercase()), token[i + 1..].trim()))
             .unwrap_or((None, token));
         let hex_like = value.len() >= 16 && value.bytes().all(|b| b.is_ascii_hexdigit());
@@ -122,7 +122,7 @@ pub(super) fn file_checksum(ctx: &RunContext<'_>) -> Result<ToolResult, EngineEr
             && base64_body
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b == b'+' || b == b'/');
-        let tag_valid = tag.as_deref().map_or(true, |t| {
+        let tag_valid = tag.as_deref().is_none_or(|t| {
             ["md5", "sha1", "sha256", "sha384", "sha512", "blake2b512"].contains(&t)
         });
         if tag_valid && (hex_like || b64_like) {
@@ -133,7 +133,7 @@ pub(super) fn file_checksum(ctx: &RunContext<'_>) -> Result<ToolResult, EngineEr
     if !expected_raw.is_empty() && expected.is_empty() {
         warnings.push("No recognizable expected checksum was supplied".to_string())
     }
-    if expected.len() > 0 && ctx.inputs.len() > 1 {
+    if !expected.is_empty() && ctx.inputs.len() > 1 {
         warnings.push(format!(
             "{} expected checksum(s) supplied for multiple files",
             expected.len()
@@ -161,7 +161,7 @@ pub(super) fn file_checksum(ctx: &RunContext<'_>) -> Result<ToolResult, EngineEr
             ));
             if !expected.is_empty() {
                 let hit = expected.iter().any(|(tag, value)| {
-                    tag.as_deref().map_or(true, |t| t == *algo)
+                    tag.as_deref().is_none_or(|t| t == *algo)
                         && (value.eq_ignore_ascii_case(&h) || *value == b)
                 });
                 if hit {

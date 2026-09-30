@@ -340,9 +340,7 @@ pub(super) fn jpeg_components(bytes: &[u8]) -> Option<u8> {
             offset += 1;
             continue;
         }
-        let Some(marker) = bytes.get(offset + 1).copied() else {
-            return None;
-        };
+        let marker = bytes.get(offset + 1).copied()?;
         if matches!(marker, 0xd8 | 0xd9 | 0x01 | 0xd0..=0xd7) {
             offset += 2;
             continue;

@@ -55,8 +55,8 @@ fn binary(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
 fn words(s: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
-    let mut chars = s.chars().peekable();
-    while let Some(c) = chars.next() {
+    let chars = s.chars().peekable();
+    for c in chars {
         if c.is_alphanumeric() {
             if c.is_uppercase()
                 && !cur.is_empty()

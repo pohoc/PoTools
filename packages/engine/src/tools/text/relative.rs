@@ -13,20 +13,18 @@ fn span_with_positive_sign(span: &fmt::CalendarSpan) -> fmt::CalendarSpan {
 pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let ui = ctx.locale;
     let tz = zone(ctx)?;
-    let locale: fmt::LocaleCode = if !fmt::is_zh(ui) {
-        fmt::EN_US
-    } else if string(ctx, "locale", "zh-CN")
-        .to_lowercase()
-        .starts_with('e')
+    // UI locale wins; otherwise an explicit `locale` option selects English.
+    // (`!is_zh` rather than `is_en` here, matching the original predicate.)
+    let locale: fmt::LocaleCode = if !fmt::is_zh(ui)
+        || string(ctx, "locale", "zh-CN")
+            .to_lowercase()
+            .starts_with('e')
     {
         fmt::EN_US
     } else {
         fmt::ZH_CN
     };
-    let numeric_auto = match string(ctx, "style", "auto") {
-        "always" => false,
-        _ => true,
-    };
+    let numeric_auto = string(ctx, "style", "auto") != "always";
     let show_countdown = boolean(ctx, "showCountdown", true);
     let target = parse_at(string(ctx, "input", ""), tz)?;
     let base_raw = string(ctx, "base", "now").trim();

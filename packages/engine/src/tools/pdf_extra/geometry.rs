@@ -64,7 +64,11 @@ fn run_resize(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
             } else {
                 1.0
             };
-            let scale = ratio.min(1.0).max(0.0).min(8.0);
+            // The original min/max chain coalesced NaN to 1.0 (f64::min returns
+            // the non-NaN operand); `clamp` propagates NaN instead, so normalise
+            // first to keep malformed geometry from poisoning the scale.
+            let ratio = if ratio.is_nan() { 1.0 } else { ratio };
+            let scale = ratio.clamp(0.0, 1.0);
             let draw_w = form.size.width * scale;
             let draw_h = form.size.height * scale;
             let x = margin + (available_w - draw_w) / 2.0;

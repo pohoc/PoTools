@@ -343,7 +343,7 @@ pub(crate) fn rows_of(page: &Page, gap_limit: f64) -> Vec<Vec<String>> {
             let mut buffer = String::new();
             let mut previous_end: Option<f64> = None;
             for line in sorted {
-                if previous_end.map_or(false, |end| line.x - end > gap_limit) {
+                if previous_end.is_some_and(|end| line.x - end > gap_limit) {
                     cells.push(js_trim(&buffer));
                     buffer.clear();
                 } else if !buffer.is_empty() {

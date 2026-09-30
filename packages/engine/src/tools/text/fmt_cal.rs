@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 pub fn iso_week_of(year: i32, month: u32, day: u32) -> (i32, u32, u32) {
     let midday = NaiveDate::from_ymd_opt(year, month, day).unwrap_or_else(epoch_date);
     let weekday = ((midday.weekday().num_days_from_sunday() as i64 + 6) % 7 + 1) as u32;
-    let thursday = midday + Duration::days((4 - weekday as i64) as i64);
+    let thursday = midday + Duration::days(4 - weekday as i64);
     let first_jan = NaiveDate::from_ymd_opt(thursday.year(), 1, 1).unwrap_or_else(epoch_date);
     let week = (thursday - first_jan).num_days() as u32 / 7 + 1;
     (thursday.year(), week, weekday)
@@ -181,18 +181,17 @@ pub fn roll_to_working_day(
     weekend: &[u32],
     holidays: &BTreeMap<String, String>,
 ) -> (i64, Vec<DayCell>) {
-    let mut cursor = start_index;
     let mut skipped = Vec::new();
     if weekend.is_empty() && holidays.is_empty() {
-        return (cursor, skipped);
+        return (start_index, skipped);
     }
-    for _ in 0..=28 {
+    for offset in 0..=28 {
+        let cursor = start_index + offset;
         let cell = day_cell(cursor);
         if !weekend.contains(&cell.weekday) && !holidays.contains_key(&cell.key) {
             return (cursor, skipped);
         }
         skipped.push(cell);
-        cursor += 1;
     }
     (start_index, Vec::new())
 }
@@ -203,7 +202,7 @@ pub fn resolve_wall_time(tz: Tz, wall: NaiveDateTime) -> (DateTime<Utc>, bool) {
     let resolved = resolve_local(tz, wall).unwrap_or_else(|_| {
         Utc.timestamp_millis_opt(0)
             .single()
-            .unwrap_or_else(|| Utc::now())
+            .unwrap_or_else(Utc::now)
     });
     let back = local(resolved, tz);
     let same = back.date_naive() == wall.date()

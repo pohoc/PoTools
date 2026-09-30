@@ -146,7 +146,7 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
                 Some(reason) => format!(
                     "{}{}{}",
                     fmt::msg(ui, "休息日（", "Rest day ("),
-                    format!("{reason}"),
+                    reason,
                     fmt::msg(ui, "）", ")")
                 ),
                 None => fmt::msg(ui, "工作日", "Workday").to_string(),
@@ -373,7 +373,7 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
     };
     // The engine hoists the result block directly under the title section.
     let mut blocks = vec![
-        fmt::section(&fmt::msg(
+        fmt::section(fmt::msg(
             ui,
             &format!("工作日计算 · {}", tz.name()),
             &format!("Workdays · {}", tz.name()),
@@ -406,7 +406,7 @@ pub(super) fn run_workdays(ctx: &RunContext<'_>) -> Result<ToolResult, EngineErr
                 })
                 .collect::<Vec<_>>()
                 .join("\n");
-            blocks.push(fmt::section(&fmt::msg(
+            blocks.push(fmt::section(fmt::msg(
                 ui,
                 &format!("工作日区间（{} 天，按连续段合并）", scan.working),
                 &format!(

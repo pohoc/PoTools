@@ -222,7 +222,7 @@ pub fn table_rows(lines: &[OcrLine], width: f64) -> Vec<Vec<String>> {
         return Vec::new();
     }
     let mut lefts: Vec<f64> = positioned.iter().map(|line| line.left).collect();
-    lefts.sort_by(|a, b| asc(a, b));
+    lefts.sort_by(asc);
     let mut rows: Vec<Vec<PositionedLine>> = Vec::new();
     for line in positioned {
         let line_center = (line.top + line.bottom) / 2.0;
@@ -263,7 +263,7 @@ pub fn table_rows(lines: &[OcrLine], width: f64) -> Vec<Vec<String>> {
             None => anchors.push(left),
         }
     }
-    anchors.sort_by(|a, b| asc(a, b));
+    anchors.sort_by(asc);
     rows.iter()
         .map(|row| {
             let mut cells = vec![String::new(); anchors.len()];

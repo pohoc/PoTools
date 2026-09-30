@@ -126,7 +126,7 @@ pub fn temp_clean(
     let mut kept_jobs = 0;
     for subdirectory in ["jobs", "inbox"] {
         let mut groups = temp_groups(&path, subdirectory);
-        groups.sort_by(|left, right| right.2.cmp(&left.2));
+        groups.sort_by_key(|group| std::cmp::Reverse(group.2));
         for (index, (directory, name, modified_ms)) in groups.into_iter().enumerate() {
             let modified = UNIX_EPOCH + Duration::from_millis(modified_ms);
             let too_recent = cutoff.is_some_and(|limit| modified > limit);

@@ -81,13 +81,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let span_value = format!(
         "{}{}",
         if delta < 0 { "−" } else { "" },
-        fmt::span_text(
-            &fmt::CalendarSpan {
-                sign: 1,
-                ..span.clone()
-            },
-            locale == fmt::EN_US
-        )
+        fmt::span_text(&fmt::CalendarSpan { sign: 1, ..span }, locale == fmt::EN_US)
     );
     let mut result_rows = vec![
         row(
@@ -109,7 +103,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
     let mut blocks = vec![
         fmt::section(fmt::msg(ui, "结果", "Result")),
         fmt::align_rows(&result_rows),
-        fmt::section(&fmt::msg(
+        fmt::section(fmt::msg(
             ui,
             &format!("日期差 · {}", tz.name()),
             &format!("Date difference · {}", tz.name()),
@@ -210,13 +204,12 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<ToolResult, EngineError> {
                         ""
                     };
                     format!(
-                        "{}{}",
+                        "{}{list}{more}",
                         fmt::msg(
                             ui,
                             &format!("{} 天：", holidays.len()),
                             &format!("{} listed: ", holidays.len())
                         ),
-                        format!("{list}{more}")
                     )
                 },
             ),

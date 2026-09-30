@@ -142,7 +142,7 @@ fn decode(input: &str, f: Format, ctx: &RunContext<'_>) -> Result<Vec<u8>, Engin
     let compact: String = input.chars().filter(|c| !c.is_whitespace()).collect();
     if matches!(f, Format::Hex) {
         if compact.is_empty()
-            || compact.len() % 2 != 0
+            || !compact.len().is_multiple_of(2)
             || !compact.bytes().all(|b| b.is_ascii_hexdigit())
         {
             return Err(badmsg(

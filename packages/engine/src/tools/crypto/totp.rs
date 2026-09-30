@@ -242,8 +242,7 @@ fn at_ms(raw: &str, ctx: &RunContext<'_>) -> Result<(i64, String), EngineError> 
                 format!("{raw}（按毫秒时间戳解释）")
             } else {
                 format!("{raw}（按秒时间戳解释）")
-            }
-            .into(),
+            },
         ));
     }
     let parsed = DateTime::parse_from_rfc3339(s)

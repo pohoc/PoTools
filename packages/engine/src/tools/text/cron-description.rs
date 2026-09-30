@@ -90,7 +90,7 @@ fn clock(h: u32, m: u32, s: u32, seconds: bool, twelve: bool) -> String {
         format!("{h:02}:{m:02}{tail}")
     } else {
         let period = if h >= 12 { "PM" } else { "AM" };
-        let hour = if h % 12 == 0 { 12 } else { h % 12 };
+        let hour = if h.is_multiple_of(12) { 12 } else { h % 12 };
         format!("{hour}:{m:02}{tail} {period}")
     }
 }

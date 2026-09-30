@@ -28,7 +28,7 @@ pub(super) fn int_upper(mut n: u128) -> Result<String, EngineError> {
             continue;
         }
         if !out.is_empty() && (skipped || g < 1000) && !out.ends_with("零") {
-            out.push_str("零");
+            out.push('零');
         }
         let ds = [g / 1000, (g / 100) % 10, (g / 10) % 10, g % 10];
         let us = ["仟", "佰", "拾", ""];
@@ -41,7 +41,7 @@ pub(super) fn int_upper(mut n: u128) -> Result<String, EngineError> {
                 continue;
             }
             if pending {
-                out.push_str("零");
+                out.push('零');
                 pending = false;
             }
             out.push_str(DIGITS[*d as usize]);
@@ -84,7 +84,7 @@ pub(super) fn amount_upper(input: &str) -> Result<String, EngineError> {
     let j = digits.as_bytes()[0] - b'0';
     let f = digits.as_bytes()[1] - b'0';
     if j == 0 && f == 0 {
-        out.push_str("整")
+        out.push('整')
     } else {
         if j > 0 {
             out.push_str(DIGITS[j as usize]);
@@ -92,14 +92,14 @@ pub(super) fn amount_upper(input: &str) -> Result<String, EngineError> {
         }
         if f > 0 {
             if j == 0 {
-                out.push_str("零");
+                out.push('零');
             }
             out.push_str(DIGITS[f as usize]);
             out.push('分');
         }
     }
     if neg {
-        out.insert_str(0, "负");
+        out.insert(0, '负');
     }
     Ok(out)
 }

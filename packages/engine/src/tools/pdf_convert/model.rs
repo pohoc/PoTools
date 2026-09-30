@@ -213,8 +213,8 @@ pub fn font_resources(ctx: &RunContext<'_>) -> Vec<FontResource> {
             let name = item.get("name")?.as_str()?.to_owned();
             let bytes = item
                 .get("bytes")
-                .and_then(|value| byte_array(value))
-                .or_else(|| item.get("bytesBase64").and_then(|value| byte_array(value)))?;
+                .and_then(byte_array)
+                .or_else(|| item.get("bytesBase64").and_then(byte_array))?;
             Some(FontResource { name, bytes })
         })
         .collect()

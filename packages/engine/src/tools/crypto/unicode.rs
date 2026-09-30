@@ -14,15 +14,8 @@ pub(super) fn unknown_html_entities(s: &str) -> usize {
         rest = &rest[start + 1..];
         let Some(end) = rest.find(';') else { break };
         let body = &rest[..end];
-        let numeric = body
-            .strip_prefix("#x")
-            .or_else(|| body.strip_prefix("#X"))
-            .map_or(false, |x| {
-                !x.is_empty() && x.bytes().all(|b| b.is_ascii_hexdigit())
-            })
-            || body.strip_prefix('#').map_or(false, |x| {
-                !x.is_empty() && x.bytes().all(|b| b.is_ascii_digit())
-            });
+        // Numeric references (`&#38;` / `&#x26;`) are excluded by `named`
+        // itself, which requires an ASCII-alphabetic first byte.
         let named = body.len() >= 2
             && body.len() <= 32
             && body.as_bytes()[0].is_ascii_alphabetic()
@@ -30,11 +23,7 @@ pub(super) fn unknown_html_entities(s: &str) -> usize {
         if named && !KNOWN.contains(&body) {
             count += 1
         }
-        if !numeric && !named {
-            rest = &rest[end + 1..]
-        } else {
-            rest = &rest[end + 1..]
-        }
+        rest = &rest[end + 1..];
     }
     count
 }

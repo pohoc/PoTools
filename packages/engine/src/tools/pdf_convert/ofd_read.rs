@@ -324,7 +324,7 @@ pub(crate) fn read_ofd(bytes: &[u8]) -> EngineResult<OfdDoc> {
         // TS: metaTree?.Area?.PhysicalBox ? boxOf(...) : docBox — an absent
         // or empty element falls back to the document box.
         let box_values = match meta_box {
-            Some(node) if !node.text.trim().is_empty() => box_of(Some(&node)),
+            Some(node) if !node.text.trim().is_empty() => box_of(Some(node)),
             _ => doc_box,
         };
         let mut page = ReadPage {

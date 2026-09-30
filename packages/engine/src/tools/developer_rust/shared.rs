@@ -73,7 +73,7 @@ pub fn output(name: impl Into<String>, text: String, extra: Map<String, Value>) 
     result
 }
 pub fn utf8_len(s: &str) -> usize {
-    s.as_bytes().len()
+    s.len()
 }
 pub fn msg(ctx: &RunContext<'_>, key: &str) -> &'static str {
     let zh = ctx.locale.starts_with("zh");

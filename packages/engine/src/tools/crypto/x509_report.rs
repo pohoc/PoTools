@@ -514,8 +514,7 @@ pub(super) fn render(
         }
         out.push(join_blocks(blocks.iter().map(String::as_str)));
     }
-    let notes = vec![
-        sec(
+    let notes = [sec(
             en,
             "· 主体、issuer、序列号、公钥及扩展从证书 DER 解析；指纹使用 SHA-1/SHA-256/SHA-512 计算。本工具不验证证书链是否受系统信任。",
             "- Subject, issuer, serial, public key and extensions are parsed from the certificate DER; SHA-1/SHA-256/SHA-512 fingerprints are calculated locally. This tool does not verify the chain against system trust.",
@@ -552,8 +551,7 @@ pub(super) fn render(
             en,
             "· output=summary：只看摘要，可用 full-json 导出结构化数据。",
             "- output=summary: summary only; use full-json to export structured data.",
-        ),
-    ];
+        )];
     out.push(join_blocks([
         section(&sec(en, "说明", "Notes")).as_str(),
         notes.join("\n").as_str(),

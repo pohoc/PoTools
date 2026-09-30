@@ -146,7 +146,7 @@ impl Font {
             // added glyphs have outlines in the embedded file.
             let face = Face::parse(&font_subset.file, font_subset.face_index)
                 .map_err(|_| EngineError::new("unsupported", "系统字体文件格式无效"))?;
-            let has_variations = face.variation_axes().len() > 0;
+            let has_variations = !face.variation_axes().is_empty();
             let program = if has_variations {
                 subset_with_variations(
                     &font_subset.file,
@@ -378,7 +378,7 @@ pub(crate) fn embed_face(
     // variable fonts to their default weight) so a 17 MB CJK font does not
     // end up inside every output PDF. Falls back to the full program if the
     // subsetter cannot handle the face.
-    let has_variations = face.variation_axes().len() > 0;
+    let has_variations = !face.variation_axes().is_empty();
     let font_program = if has_variations {
         subset_with_variations(bytes, face_index, &[(Tag::new(b"wght"), 400.0)], &remapper)
     } else {

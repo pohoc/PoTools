@@ -33,17 +33,22 @@ const crates = (process.env.POTOOLS_CARGO_CRATES ?? DEFAULT_CRATES.join(','))
   .filter(Boolean);
 const offline = process.env.POTOOLS_CARGO_OFFLINE === '1' ? ['--offline'] : [];
 
+// `--offline` is a cargo flag, so it has to stay on cargo's side of the `--`
+// separator; appending it after the separator would hand it to rustc/clippy.
+const separator = args.indexOf('--');
+const cargoArgs = separator === -1 ? [...args, ...offline] : [...args.slice(0, separator), ...offline, ...args.slice(separator)];
+
 const failures = [];
 for (const crate of crates) {
   const cwd = path.join(root, crate);
-  console.log(`\n===== cargo ${args.join(' ')} (${crate}) =====`);
-  const result = spawnSync('cargo', [...args, ...offline], { cwd, stdio: 'inherit' });
+  console.log(`\n===== cargo ${cargoArgs.join(' ')} (${crate}) =====`);
+  const result = spawnSync('cargo', cargoArgs, { cwd, stdio: 'inherit' });
   if (result.error) throw result.error;
   if (result.status !== 0) failures.push(crate);
 }
 
 if (failures.length) {
-  console.error(`\n[rust] cargo ${args.join(' ')} failed in: ${failures.join(', ')}`);
+  console.error(`\n[rust] cargo ${cargoArgs.join(' ')} failed in: ${failures.join(', ')}`);
   process.exit(1);
 }
-console.log(`\n[rust] cargo ${args.join(' ')} passed in all ${crates.length} crate(s)`);
+console.log(`\n[rust] cargo ${cargoArgs.join(' ')} passed in all ${crates.length} crate(s)`);

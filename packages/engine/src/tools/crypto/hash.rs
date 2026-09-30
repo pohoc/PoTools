@@ -58,12 +58,12 @@ pub(super) fn artifact(
     text: String,
     extra: serde_json::Map<String, Value>,
 ) -> ToolResult {
-    let mut out = ToolResult::default();
-    out.text = Some(text.clone());
-    out.artifacts
-        .push(Artifact::new(name, "text", text.into_bytes()));
-    out.extra = extra;
-    out
+    ToolResult {
+        text: Some(text.clone()),
+        artifacts: vec![Artifact::new(name, "text", text.into_bytes())],
+        extra,
+        ..ToolResult::default()
+    }
 }
 
 pub(super) fn hex(bytes: &[u8], upper: bool) -> String {
@@ -160,7 +160,7 @@ pub(super) fn decode_hex(raw: &str) -> Result<Vec<u8>, EngineError> {
         .chars()
         .filter(|c| !c.is_whitespace() && !",:._-".contains(*c))
         .collect();
-    if compact.is_empty() || compact.len() % 2 != 0 {
+    if compact.is_empty() || !compact.len().is_multiple_of(2) {
         return Err(bad("input", "hex input must contain complete byte pairs"));
     }
     let mut out = Vec::new();
@@ -402,8 +402,7 @@ fn hmac_report(
     use super::enc::{self, fill, Tmpl};
     use crate::tools::text::fmt::{align_rows, join_blocks, row, section};
     let en = enc::is_en(ctx);
-    let blocks = vec![
-        section(enc::t(en, "签名结果", "Signatures")),
+    let blocks = [section(enc::t(en, "签名结果", "Signatures")),
         align_rows(&[row(algo, primary)]),
         section(&format!(
             "{}{alt_label}",
@@ -458,8 +457,7 @@ fn hmac_report(
             ),
             enc::t(en, "· 签名密钥不会写入结果内容。", "- The signing key is omitted from the result."),
         ]
-        .join("\n"),
-    ];
+        .join("\n")];
     // emitText convention: one trailing newline.
     format!(
         "{}\n",

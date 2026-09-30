@@ -290,9 +290,9 @@ mod tests {
 
     #[test]
     fn heading_style_index_matches_ts_array() {
-        assert_eq!(HEADING_STYLES[1usize.min(5) - 1], "Title");
-        assert_eq!(HEADING_STYLES[3usize.min(5) - 1], "Heading2");
-        assert_eq!(HEADING_STYLES[9usize.min(5) - 1], "Heading4");
+        assert_eq!(HEADING_STYLES[1usize - 1], "Title");
+        assert_eq!(HEADING_STYLES[3usize - 1], "Heading2");
+        assert_eq!(HEADING_STYLES[5 - 1], "Heading4");
     }
 
     #[test]

@@ -54,3 +54,14 @@ subsetter = "0.2.6"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom-02 = { package = "getrandom", version = "0.2", features = ["js"] }
 getrandom-04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
+
+[lints.clippy]
+# Tool entry points receive their option surface as positional parameters by
+# design and are called once from the dispatch table; grouping them into structs
+# is a pure refactor with no behavior change, so it is not gated here.
+too_many_arguments = "allow"
+# `Key` (rsa) and `FontKind` (pdfdoc) hold a small variant next to a
+# deliberately large one. Both values are short-lived and never stored in
+# collections where the size difference would matter; boxing would only add
+# indirection to every use site.
+large_enum_variant = "allow"

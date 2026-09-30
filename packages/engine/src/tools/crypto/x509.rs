@@ -236,10 +236,10 @@ fn parse(der: Vec<u8>) -> Result<CertInfo, String> {
                 }
                 eku.extend(u.other.iter().map(|oid| oid.to_id_string()));
             }
-            ParsedExtension::SubjectKeyIdentifier(id) => ski = hex(&id.0, true),
+            ParsedExtension::SubjectKeyIdentifier(id) => ski = hex(id.0, true),
             ParsedExtension::AuthorityKeyIdentifier(id) => {
                 if let Some(key) = &id.key_identifier {
-                    aki = hex(&key.0, true);
+                    aki = hex(key.0, true);
                 }
             }
             _ => {}
@@ -450,7 +450,7 @@ pub fn run(ctx: &RunContext<'_>) -> RunResult {
     let mut result = report;
 
     if output == "full-json" {
-        let vals = shown.iter().map(|c| json_cert(c)).collect::<Vec<_>>();
+        let vals = shown.iter().map(json_cert).collect::<Vec<_>>();
         let payload = if vals.len() == 1 {
             vals[0].clone()
         } else {
