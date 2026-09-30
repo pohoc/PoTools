@@ -93,7 +93,13 @@ function createWorker(slot: WorkerSlot): Worker {
     else call.resolve({ handled: response.handled === true, result: response.result, jobResult: response.jobResult });
   });
   worker.addEventListener('error', (event) => {
-    replaceWorker(slot, new Error(event.message || '内嵌工具线程异常退出'));
+    // A worker that dies with a message of its own still carries that specific
+    // text; one that dies silently only had this Chinese fallback, so give that
+    // case a code the tables can resolve.
+    replaceWorker(
+      slot,
+      event.message ? new Error(event.message) : new RpcError('workerCrash', '内嵌工具线程异常退出'),
+    );
   });
   return worker;
 }
