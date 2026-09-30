@@ -138,6 +138,7 @@ async function main(): Promise<void> {
   const { CANONICAL_VERSION } = await import('../harness/canonical-artifact.ts');
   const keysFilter = process.argv.find((arg) => arg.startsWith('--keys='))?.slice(7)
     .split(',').map((item) => item.trim()).filter(Boolean) ?? [];
+  const updateBaseline = process.argv.includes('--update');
   const golden = JSON.parse(await readFile(GOLDEN_PATH, 'utf8')) as { entries: Record<string, GoldenEntry>; canonicalVersion?: number };
   if (golden.canonicalVersion !== CANONICAL_VERSION) {
     console.error(`golden file canonicalVersion=${golden.canonicalVersion ?? '(none)'} but code is v${CANONICAL_VERSION} — re-run 'pnpm --filter @potools/web test:golden:browser' first`);
@@ -207,8 +208,10 @@ async function main(): Promise<void> {
   const outcomes: Array<Record<string, unknown>> = [];
   let page = await context.newPage();
   page.on('pageerror', (error) => console.error('[pageerror]', error.message));
+  page.on('console', (msg) => { if (msg.text().includes('[merge-probe]')) console.error(msg.text()); });
 
-  await page.exposeFunction('__goldenProgress', (key: string, index: number, total: number) => {
+  await page.evaluate((v) => { (globalThis as unknown as { __goldenUpdate?: boolean }).__goldenUpdate = v; }, updateBaseline);
+    await page.exposeFunction('__goldenProgress', (key: string, index: number, total: number) => {
     if (index % 25 === 0) console.error(`[progress] ${index}/${total} ${key}`);
   });
   const openHarness = async () => {
@@ -224,8 +227,8 @@ async function main(): Promise<void> {
     const chunk = cases.slice(start, start + CHUNK);
     try {
       const part = (await page.evaluate(
-        async (payload: CasePayload[]) => await (globalThis as unknown as { __golden: { run(c: CasePayload[]): Promise<unknown[]> } }).__golden.run(payload),
-        chunk,
+        async (payload: { cases: CasePayload[]; updateBaseline: boolean }) => await (globalThis as unknown as { __golden: { run(c: CasePayload[], o?: { updateBaseline?: boolean }): Promise<unknown[]> } }).__golden.run(payload.cases, payload),
+        { cases: chunk, updateBaseline },
       )) as Array<Record<string, unknown>>;
       outcomes.push(...part);
     } catch (error) {
@@ -239,8 +242,8 @@ async function main(): Promise<void> {
       try {
         await openHarness();
         const part = (await page.evaluate(
-          async (payload: CasePayload[]) => await (globalThis as unknown as { __golden: { run(c: CasePayload[]): Promise<unknown[]> } }).__golden.run(payload),
-          chunk,
+          async (payload: { cases: CasePayload[]; updateBaseline: boolean }) => await (globalThis as unknown as { __golden: { run(c: CasePayload[], o?: { updateBaseline?: boolean }): Promise<unknown[]> } }).__golden.run(payload.cases, payload),
+          { cases: chunk, updateBaseline },
         )) as Array<Record<string, unknown>>;
         outcomes.push(...part);
       } catch (retryError) {
@@ -267,6 +270,9 @@ async function main(): Promise<void> {
       console.error(`[dump] ${target}`);
     }
   }
+  const observed = updateBaseline
+    ? (await page.evaluate(() => (globalThis as unknown as { __goldenObserved?: unknown[] }).__goldenObserved ?? [])) as Array<Record<string, unknown>>
+    : [];
   await browser.close();
   await server.close();
 
@@ -281,6 +287,23 @@ async function main(): Promise<void> {
 
   for (const [key, entry] of Object.entries(selected)) {
     const outcome = byKey.get(key);
+    if (updateBaseline && outcome && !outcome.crash) {
+      const observedEntry: Record<string, unknown> = { ...entry, key };
+      if (entry.kind === 'text') {
+        const result = outcome.result as { text?: string; warnings?: string[] } | null;
+        observedEntry.text = result?.text ?? '';
+        observedEntry.warnings = result?.warnings ?? [];
+      } else {
+        const snapshot = (outcome.jobResult as { snapshot?: Record<string, unknown> } | null)?.snapshot ?? null;
+        observedEntry.state = (snapshot?.progress as { state?: string } | undefined)?.state ?? 'failed';
+        observedEntry.error = (snapshot?.error as Record<string, unknown> | undefined) ?? null;
+        observedEntry.warnings = (snapshot?.warnings as string[] | undefined) ?? [];
+        observedEntry.summary = snapshot?.summary ?? {};
+        observedEntry.artifacts = ((outcome.jobResult as { artifacts?: Array<{ name: string; kind: string; sha256: string }> } | null)?.artifacts ?? [])
+          .map((artifact) => ({ name: artifact.name, kind: artifact.kind, sha256: artifact.sha256 }));
+      }
+      observed.push(observedEntry);
+    }
     if (!outcome) {
       diff += 1;
       details.push(`DIFF  ${key}: 无回放结果`);
@@ -379,7 +402,7 @@ async function main(): Promise<void> {
       const digestsOk = artifacts.every((artifact, index) => artifact.sha256 === entry.artifacts?.[index]?.sha256);
       if (!digestsOk) {
         diff += 1;
-        details.push(`DIFF  ${key}: 产物 canonical digest 不一致`);
+        details.push(`DIFF  ${key}: 产物 canonical digest 不一致\n        期望 ${JSON.stringify(entry.artifacts?.map((a) => a.sha256))}\n        实际 ${JSON.stringify(artifacts.map((a) => a.sha256))}`);
         continue;
       }
     }
@@ -407,6 +430,16 @@ async function main(): Promise<void> {
   }
 
   console.log(`\nbrowser golden: ${pass} PASS, ${fallback} FALLBACK, ${diff} DIFF, ${crash} CRASH, ${known} KNOWN / ${Object.keys(golden.entries).length} entries`);
+  if (updateBaseline && observed.length) {
+    for (const entry of observed) {
+      const key = entry.key as string;
+      if (golden.entries[key]) golden.entries[key] = entry as never;
+    }
+    golden.capturedAt = new Date().toISOString().slice(0, 10);
+    golden.engine = 'rust-wasm';
+    await writeFile(GOLDEN_PATH, `${JSON.stringify(golden, null, 2)}\n`);
+    console.error(`[update] re-baselined ${observed.length} entries into ${GOLDEN_PATH}`);
+  }
   for (const note of knownNotes) console.log(note);
   if (details.length) console.log(`${details.join('\n')}\n`);
   if (diff > 0 || crash > 0) process.exitCode = 1;

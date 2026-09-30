@@ -353,7 +353,6 @@ pub(crate) fn embed_face(
     let mut glyphs = HashMap::new();
     let mut gids = Vec::new();
     let mut widths = HashMap::new();
-    let chars_count = chars.len();
     for character in chars {
         if glyphs.contains_key(&character) {
             continue;

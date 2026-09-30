@@ -131,7 +131,7 @@ async function runRustFileJob(id: number, job: JobRequest, inputs: ResolvedInput
       runtimeData,
     )) as RustReply;
   } catch (issue) {
-    const payload = issue as { source?: { message?: string; code?: string } ; message?: string };
+    const payload = issue as { source?: { message?: string; code?: string }; message?: string; code?: string };
     const inner = payload.source ?? payload;
     worker.postMessage({
       id,

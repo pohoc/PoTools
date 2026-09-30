@@ -10,7 +10,7 @@
 import JSZip from 'jszip';
 
 /** Bump when canonicalization changes; golden files record the version they were captured with. */
-export const CANONICAL_VERSION = 4;
+export const CANONICAL_VERSION = 5;
 
 const ENCODER = new TextEncoder();
 const ISO_DATE = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g;
@@ -20,7 +20,10 @@ export function stripTimestamps(text: string): string {
   return text
     .replace(/\(D:\d{4}[0-9+Z\-']*\)/g, '(D:19700101000000Z)')
     .replace(/(<xmp:(?:CreateDate|ModifyDate|MetadataDate)>)[^<]*(<\/xmp:)/g, '$11970-01-01T00:00:00Z$2')
-    .replace(ISO_DATE, '1970-01-01T00:00:00Z');
+    .replace(ISO_DATE, '1970-01-01T00:00:00Z')
+    // OFD 文档号（毫秒十六进制）与 EPUB 时间戳 uid 每次运行都会变化。
+    .replace(/<(?:[A-Za-z0-9-]+:)?DocID>[0-9a-fA-F]*<\/(?:[A-Za-z0-9-]+:)?DocID>/g, '<ofd:DocID>N</ofd:DocID>')
+    .replace(/urn:uuid:[0-9a-z]+/gi, 'urn:uuid:N');
 }
 
 function latin1(bytes: Uint8Array): string {

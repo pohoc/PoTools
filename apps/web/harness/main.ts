@@ -164,7 +164,9 @@ interface GoldenOutcome {
 (globalThis as unknown as { __golden: { run(cases: GoldenCase[]): Promise<GoldenOutcome[]> } }).__golden = {
   async run(cases: GoldenCase[]): Promise<GoldenOutcome[]> {
     const notify = (globalThis as unknown as { __goldenProgress?: (key: string, index: number, total: number) => void }).__goldenProgress;
+    const updateBaseline = (globalThis as unknown as { __goldenUpdate?: boolean }).__goldenUpdate === true;
     const outcomes: GoldenOutcome[] = [];
+    const observed: Array<Record<string, unknown>> = [];
     for (let index = 0; index < cases.length; index += 1) {
       const item = cases[index];
       try {
@@ -213,6 +215,14 @@ interface GoldenOutcome {
                 runtimeData,
               }, inputs.map((input) => input.bytes.buffer));
               const jobResult = (reply.jobResult as GoldenOutcome['jobResult']) ?? null;
+              if (item.tool === 'merge') {
+                const jr = jobResult as { snapshot?: { summary?: unknown }; artifacts?: Array<{ sha256?: string; bytes?: Uint8Array }> } | undefined;
+                const hashes = await Promise.all((jr?.artifacts ?? []).map(async (a) => {
+                  const raw = await crypto.subtle.digest('SHA-256', a.bytes as unknown as ArrayBuffer);
+                  return Array.from(new Uint8Array(raw)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 12) + ':len' + a.bytes.length;
+                }));
+                console.error('[merge-probe]', item.key, 'raw:', JSON.stringify(hashes));
+              }
               // Digest inside the page so multi-MB artifacts never pile up
               // in the renderer nor cross the Playwright serialization bridge.
               let digested = jobResult;
@@ -244,6 +254,7 @@ interface GoldenOutcome {
       }
       notify?.(item.key, index + 1, cases.length);
     }
+    (globalThis as unknown as { __goldenObserved?: unknown[] }).__goldenObserved = observed;
     return outcomes;
   },
 };

@@ -32,7 +32,23 @@ pub(super) fn run(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
             // streams with unsupported filters remain byte-preserving.
             document.compress();
         }
-        let bytes = save(&mut document)?;
+        // 重建后择优保存：小文件里对象流/xref 流的开销可能超过压缩收益，
+        // 不膨胀就不触发用户的体积警告。
+        let mut bytes = save(&mut document)?;
+        if bytes.len() > input.bytes.len() {
+            let options = lopdf::SaveOptions::builder()
+                .use_object_streams(false)
+                .use_xref_streams(false)
+                .build();
+            let mut compact = Vec::new();
+            if document
+                .save_with_options(&mut compact, options)
+                .is_ok()
+                && compact.len() < bytes.len()
+            {
+                bytes = compact;
+            }
+        }
         let ratio = if input.bytes.is_empty() {
             0
         } else {
