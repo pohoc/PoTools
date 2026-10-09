@@ -274,13 +274,31 @@ jobs:
             fi
             new=$(printf '%s' "$name" | sed -E "s/^(PoTools_[0-9][0-9.]*)_/\\1-${STAMP}_/")
             case "$name" in
-              *.rpm)
-                new=$(printf '%s' "$name" | sed -E "s/^PoTools-([0-9][0-9.]*)-[0-9]+\.(.+)\.rpm$/PoTools_\\1-${STAMP}_\\2.rpm/") ;;
+              *.rpm|*.rpm.sig)
+                new=$(printf '%s' "$name" | sed -E "s/^PoTools-([0-9][0-9.]*)-[0-9]+\.(.+)\.rpm(\.sig)?$/PoTools_\\1-${STAMP}_\\2.rpm\\3/") ;;
             esac
             if [ "$new" != "$name" ]; then
               gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -f name="$new" >/dev/null \
                 && echo "renamed ${name} -> ${new}" || echo "::warning::rename failed: ${name}"
             fi
+          done
+
+      # 终扫：改名/打戳后仍不带本轮戳的 PoTools 产物一律视为残留删除
+      #（未打戳重复、旧式命名、.sig 漏网等）；latest*.json 与无版本名的
+      # .app.tar.gz(+.sig)（updater darwin 产物，latest.json 引用它）除外。
+      - name: Sweep leftover un-stamped assets
+        run: |
+          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .id" | head -n1)
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
+            --jq '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r id name; do
+            case "$name" in
+              latest*.json|PoTools_x64.app.tar.gz|PoTools_x64.app.tar.gz.sig) continue ;;
+              PoTools_*-"$STAMP"_*|PoTools_*-"$STAMP".*.rpm|PoTools_*-"$STAMP".*.rpm.sig) continue ;;
+              PoTools*)
+                gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" >/dev/null \
+                  && echo "swept leftover ${name}" || echo "::warning::sweep failed: ${name}" ;;
+            esac
           done
 
       # 自动更新索引：latest.json 里的下载 URL 指向 tauri-action 上传时的原始
