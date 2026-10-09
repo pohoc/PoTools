@@ -293,6 +293,10 @@ jobs:
 
       - name: Stamp and organize assets
         run: |
+          # upload-artifact 多 glob 会按最小公共祖先保留子目录（bundles/dmg/…、
+          # bundles/macos/…），先拍平到 bundles 根再打戳改名。
+          find bundles -type f -exec mv {} bundles/ \;
+          find bundles -mindepth 1 -type d -empty -delete
           mkdir -p out
           mv bundles/PoTools_0.1.0_x64.dmg             "out/PoTools_0.1.0-${STAMP}_x64.dmg"
           mv bundles/PoTools.app.tar.gz                "out/PoTools_0.1.0-${STAMP}_x64.app.tar.gz"
