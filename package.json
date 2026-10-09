@@ -37,7 +37,7 @@
     "licenses:inventory": "node scripts/generate-license-inventory.mjs",
     "licenses:check": "node scripts/generate-license-inventory.mjs --check",
     "samples": "pnpm --filter @potools/scripts samples",
-    "icons": "node scripts/make-icons.mjs && pnpm --filter @potools/desktop exec tauri icon \"$PWD/apps/desktop/app-icon.png\"",
+    "icons": "node scripts/make-icons.mjs && node scripts/sync-app-icon.mjs",
     "test:tools": "pnpm --filter @potools/web test:golden:browser",
     "test:golden": "pnpm --filter @potools/web test:golden:browser",
     "check": "pnpm version:check && pnpm lint && pnpm typecheck && pnpm licenses:check && pnpm rust:fmt && pnpm rust:clippy && pnpm rust:test && pnpm rust:check:wasm"
