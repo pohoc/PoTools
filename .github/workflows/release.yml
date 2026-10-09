@@ -32,6 +32,8 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     needs: stamp
+    permissions:
+      contents: write
     env:
       POTOOLS_BUILD_STAMP: ${{ needs.stamp.outputs.stamp }}
     steps:
@@ -103,6 +105,18 @@ jobs:
         with:
           name: web-dist-desktop
           path: /tmp/dist-desktop
+
+      # 预创建草稿 Release：三个 tauri-action 并发 get-or-create 会竞态出多个
+      # release 对象（曾导致 Windows/Linux 资产落到孤儿草稿、发布页缺资产）。
+      # 先建好，后续 job 全部命中「已存在」路径；重推 tag 时已存在则容忍。
+      - name: Pre-create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --draft --title "PoTools ${GITHUB_REF_NAME}" \
+            --notes "所有工具在本机运行，不需要网络。" \
+            --repo "${GITHUB_REPOSITORY}" || echo "draft release already exists"
 
   # ── Tauri 原生构建（消费 prepare 的 web dist，只做平台原生构建） ────────
 
@@ -301,42 +315,56 @@ jobs:
             esac
           done
 
-      # 自动更新索引：latest.json 里的下载 URL 指向 tauri-action 上传时的原始
-      # 文件名，上面的重命名会让那些 URL 404——按同一规则改写 latest.json。
-      # 另生成两份国内镜像清单：资产 URL 也包同一代理前缀（清单与下载同源），
-      # updater 端点顺序 = 官方直连 → gh-proxy 镜像 → ghfast 镜像，直连失败自动落镜像。
-      - name: Rewrite latest.json and generate CN mirror manifests
+      # 自动更新清单：三个平台 job 并发生成的 latest.json 会互相覆盖（最终只剩
+      # 单平台条目），所以这里不信任它——直接从三个 .sig 签名文件组装三平台
+      # 齐全的清单。官方直连 + 两份国内镜像（镜像的资产 URL 包同源代理前缀，
+      # 清单与下载同源）；版本/说明字段取自 tauri-action 的 base latest.json。
+      - name: Generate updater manifests (all platforms)
         run: |
-          TAG="${GITHUB_REF_NAME}"
           RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
-            --jq ".[] | select(.tag_name == \"${TAG}\") | .id" | head -n1)
-          ASSET_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
-            --jq '.[] | select(.name == "latest.json") | .id')
-          if [ -z "$ASSET_ID" ]; then
-            echo "::error::latest.json missing — updater manifest was not uploaded"; exit 1
-          fi
-          gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${ASSET_ID}" \
-            -H "Accept: application/octet-stream" > latest.json
-          jq --arg stamp "$STAMP" '
-            .platforms |= with_entries(
-              .value.url |= sub("(?<v>PoTools_[0-9][0-9.]*)_"; "\(.v)-\($stamp)_")
-            )' latest.json > latest.stamped.json
-          if cmp -s latest.json latest.stamped.json; then
-            echo "::warning::latest.json URLs unchanged — check the rename pattern"
-          fi
-          mv latest.stamped.json latest.json
-          gh release upload "${TAG}" latest.json --clobber --repo "${GITHUB_REPOSITORY}"
-          echo "latest.json rewritten:"
-          cat latest.json
-          for pair in "gh-proxy.com|latest-cn.json" "ghfast.top|latest-cn-ghfast.json"; do
-            proxy="${pair%%|*}"; out="${pair##*|}"
-            jq --arg stamp "$STAMP" --arg prefix "https://${proxy}/" '
-              .platforms |= with_entries(
-                .value.url |= ($prefix + sub("(?<v>PoTools_[0-9][0-9.]*)_"; "\(.v)-\($stamp)_"))
-              )' latest.json > "$out"
-            gh release upload "${TAG}" "$out" --clobber --repo "${GITHUB_REPOSITORY}"
-            echo "uploaded ${out} (assets via ${proxy})"
-          done
+            --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .id" | head -n1)
+          dl() {
+            local aid
+            aid=$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
+              --jq ".[] | select(.name == \"$1\") | .id")
+            if [ -z "$aid" ]; then
+              echo "::error::asset missing: $1"; exit 1
+            fi
+            gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${aid}" \
+              -H "Accept: application/octet-stream" > "$2"
+          }
+          dl "PoTools_x64.app.tar.gz.sig" darwin.sig
+          dl "PoTools_0.1.0-${STAMP}_x64-setup.exe.sig" windows.sig
+          dl "PoTools_0.1.0-${STAMP}_amd64.AppImage.sig" linux.sig
+          dl "latest.json" base.json
+          gen() {
+            proxy="$1"; out="$2"
+            jq -n \
+              --arg version "$(jq -r '.version' base.json)" \
+              --arg notes "$(jq -r '.notes // ""' base.json)" \
+              --arg repo "${GITHUB_REPOSITORY}" --arg tag "${GITHUB_REF_NAME}" \
+              --arg proxy "$proxy" --arg stamp "$STAMP" \
+              --rawfile darwinsig darwin.sig --rawfile winsig windows.sig --rawfile linuxsig linux.sig \
+              '{
+                version: $version, notes: $notes,
+                pub_date: (now | todateiso8601),
+                platforms: {
+                  "windows-x86_64": { signature: $winsig,
+                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_x64-setup.exe") },
+                  "darwin-x86_64": { signature: $darwinsig,
+                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_x64.app.tar.gz") },
+                  "linux-x86_64": { signature: $linuxsig,
+                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_amd64.AppImage") }
+                }
+              }' > "$out"
+          }
+          gen "" latest.json
+          gen "https://gh-proxy.com/" latest-cn.json
+          gen "https://ghfast.top/" latest-cn-ghfast.json
+          gh release upload "${GITHUB_REF_NAME}" latest.json latest-cn.json latest-cn-ghfast.json \
+            --clobber --repo "${GITHUB_REPOSITORY}"
+          echo "=== manifest URLs:"
+          jq -r '.platforms | to_entries[] | "  \(.key): \(.value.url)"' latest.json
 
       - name: Download win7 installer
         uses: actions/download-artifact@v4
