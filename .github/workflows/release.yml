@@ -112,11 +112,11 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin --config tauri.ci.conf.json'
+            args: '--target x86_64-apple-darwin --config apps/desktop/tauri.ci.conf.json'
           - platform: 'ubuntu-22.04'
-            args: '--config tauri.ci.conf.json'
+            args: '--config apps/desktop/tauri.ci.conf.json'
           - platform: 'windows-latest'
-            args: '--config tauri.ci.conf.json'
+            args: '--config apps/desktop/tauri.ci.conf.json'
     runs-on: ${{ matrix.platform }}
     needs: [stamp, prepare]
     permissions:
