@@ -137,7 +137,17 @@ jobs:
       contents: write
     env:
       POTOOLS_BUILD_STAMP: ${{ needs.stamp.outputs.stamp }}
+      # mold 链接器：fat LTO 链接阶段的并行加速（仅 linux；首次运行因缓存
+      # 指纹变化多一次全量重编，之后每轮省 1-2 分钟）
+      RUSTFLAGS: ${{ matrix.platform == 'ubuntu-22.04' && '-C link-arg=-fuse-ld=mold' || '' }}
     steps:
+      # Windows runner 的 Defender 实时扫描会逐个检查 target 下数万个编译产物，
+      # 是 Rust CI 在 Windows 上最大的拖累；一次性 VM 上关闭属社区常规操作。
+      - name: Disable Windows Defender realtime scan (Rust CI speedup)
+        if: matrix.platform == 'windows-latest'
+        shell: powershell
+        run: Set-MpPreference -DisableRealtimeMonitoring $true
+
       - uses: actions/checkout@v4
 
       - name: Setup pnpm
@@ -171,7 +181,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev patchelf mold
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
