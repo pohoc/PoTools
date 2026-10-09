@@ -106,18 +106,6 @@ jobs:
           name: web-dist-desktop
           path: /tmp/dist-desktop
 
-      # 预创建草稿 Release：三个 tauri-action 并发 get-or-create 会竞态出多个
-      # release 对象（曾导致 Windows/Linux 资产落到孤儿草稿、发布页缺资产）。
-      # 先建好，后续 job 全部命中「已存在」路径；重推 tag 时已存在则容忍。
-      - name: Pre-create draft release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --draft --title "PoTools ${GITHUB_REF_NAME}" \
-            --notes "所有工具在本机运行，不需要网络。" \
-            --repo "${GITHUB_REPOSITORY}" || echo "draft release already exists"
-
   # ── Tauri 原生构建（消费 prepare 的 web dist，只做平台原生构建） ────────
 
   build-tauri:
@@ -126,11 +114,24 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin --config apps/desktop/tauri.ci.conf.json'
+            args: '--target x86_64-apple-darwin --config tauri.ci.conf.json'
+            bundles: |
+              apps/desktop/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+              apps/desktop/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
+              apps/desktop/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
           - platform: 'ubuntu-22.04'
-            args: '--config apps/desktop/tauri.ci.conf.json'
+            args: '--config tauri.ci.conf.json'
+            bundles: |
+              apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
+              apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage.sig
+              apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
+              apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
+              apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm.sig
           - platform: 'windows-latest'
-            args: '--config apps/desktop/tauri.ci.conf.json'
+            args: '--config tauri.ci.conf.json'
+            bundles: |
+              apps/desktop/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+              apps/desktop/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe.sig
     runs-on: ${{ matrix.platform }}
     needs: [stamp, prepare]
     permissions:
@@ -192,28 +193,23 @@ jobs:
           name: web-dist-desktop
           path: apps/web/dist
 
-      - uses: tauri-apps/tauri-action@v0
+      # 直接构建（不经 tauri-action）：产物留在工作区打包目录，由 publish
+      # 统一「下载 artifact → 本地打戳改名 → 建草稿一次性上传」。
+      # updater 产物（setup.exe / .app.tar.gz / AppImage）在此用 minisign
+      # 私钥签名；公钥在 tauri.conf.json（可提交），私钥只在仓库 secret。
+      - name: Build desktop bundles (tauri)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           POTOOLS_BUILD_STAMP: ${{ needs.stamp.outputs.stamp }}
-          # updater 产物（setup.exe / .app.tar.gz / AppImage）打包期用 minisign 私钥签名：
-          # 公钥在 tauri.conf.json（可提交），私钥只在仓库 secret。
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: pnpm --filter @potools/desktop tauri build ${{ matrix.args }}
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
         with:
-          # tag 推送（v*）→ 构建并上传到 GitHub Release（draft）
-          # workflow_dispatch → 仅构建验证，不创建 Release
-          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('PoTools {0}', github.ref_name) || '' }}
-          releaseBody: |
-            所有工具在本机运行，不需要网络。
-            - **Windows 10/11（x64）标准版**：`PoTools_<版本>-<构建戳>_x64-setup.exe`
-            - **Windows 7 兼容版**（Electron 22，32 位，浏览器模式功能集）：`PoTools_<版本>-<构建戳>_win7-ia32-setup.exe`
-            - **macOS（Intel）**：`PoTools_<版本>-<构建戳>_x64.dmg`
-            - **Linux**：`.AppImage` / `.deb` / `.rpm`
-          releaseDraft: ${{ startsWith(github.ref, 'refs/tags/') }}
-          prerelease: false
-          includeUpdaterJson: true
-          args: ${{ matrix.args }}
+          name: bundles-${{ matrix.platform }}
+          path: ${{ matrix.bundles }}
+          if-no-files-found: error
 
   # ── Windows 7 兼容包（Electron 22 ia32；消费 prepare 的浏览器变体 dist） ─
 
@@ -261,10 +257,11 @@ jobs:
           name: win7-setup
           path: apps/legacy-win7/release/*.exe
 
-  # ── 收尾：统一产物命名（与本地 collect-release-artifacts 一致） ────────
-  # tauri-action 上传的是 Tauri 默认命名（PoTools_0.1.0_x64-setup.exe，无构建戳）；
-  # 这里按本地约定重命名为 PoTools_<版本>-<MMDDHHMM>_<…>，并把 Win7 包补进 Release。
-  # 仅 tag 推送执行；workflow_dispatch 没有 Release，Win7 包留在 workflow artifact。
+  # ── 收尾：下载各平台 bundle artifact → 本地打戳改名 → 建草稿一次性上传 ──
+  # 全程基于本地文件操作，对 release 资产列表 API 零依赖（该列表有分钟级
+  # 传播延迟与并发写入不一致，曾连续两轮在它上面翻车）。
+  # 更新清单从三个 .sig 签名文件组装（三平台齐全），官方直连 + 国内双镜像
+  # （镜像的资产 URL 包同源代理前缀，清单与下载同源）。
 
   publish:
     if: startsWith(github.ref, 'refs/tags/')
@@ -276,82 +273,64 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       STAMP: ${{ needs.stamp.outputs.stamp }}
     steps:
-      # 资产列表有分钟级传播延迟（上一轮曾因此把未打戳的新资产当残留误扫）。
-      # 先等列表条数连续两次轮询不变（上传传播完毕）再动手。
-      - name: Wait for asset uploads to settle
-        run: |
-          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
-            --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .id" | head -n1)
-          if [ -z "$RELEASE_ID" ]; then
-            echo "::error::no release found for ${GITHUB_REF_NAME}"; exit 1
-          fi
-          echo "RELEASE_ID=$RELEASE_ID" >> "$GITHUB_ENV"
-          prev=-1
-          for i in $(seq 1 18); do
-            cur=$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?per_page=100" --jq 'length')
-            echo "poll $i: $cur assets"
-            if [ "$cur" = "$prev" ] && [ "$cur" != "0" ]; then break; fi
-            prev=$cur; sleep 10
-          done
+      - name: Download platform bundles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundles-*
+          merge-multiple: true
+          path: bundles
 
-      # 改名循环跑两遍：第二遍兜住第一遍之后才传播可见的资产。
-      # 每遍先删带旧戳的产物（PoTools_x.y.z-<旧戳>_…，每轮只留最新一代），
-      # 再统一打戳；未打戳资产只改名、绝不删除（可能是晚到的本轮资产）。
-      - name: Rename release assets with build stamp
-        run: |
-          for pass in 1 2; do
-            echo "── rename pass $pass"
-            gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?per_page=100" \
-              --jq '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r id name; do
-              old_stamp=$(printf '%s' "$name" | sed -nE 's/^PoTools_[0-9.]+-([0-9]{8})_.*/\1/p')
-              if [ -n "$old_stamp" ] && [ "$old_stamp" != "$STAMP" ]; then
-                gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" >/dev/null \
-                  && echo "removed stale build ${name}" || echo "::warning::delete failed: ${name}"
-                continue
-              fi
-              new=$(printf '%s' "$name" | sed -E "s/^(PoTools_[0-9][0-9.]*)_/\\1-${STAMP}_/")
-              case "$name" in
-                *.rpm|*.rpm.sig)
-                  new=$(printf '%s' "$name" | sed -E "s/^PoTools-([0-9][0-9.]*)-[0-9]+\.(.+)\.rpm(\.sig)?$/PoTools_\\1-${STAMP}_\\2.rpm\\3/") ;;
-              esac
-              if [ "$new" != "$name" ]; then
-                gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -f name="$new" >/dev/null \
-                  && echo "renamed ${name} -> ${new}" || echo "::warning::rename failed: ${name}"
-              fi
-            done
-            sleep 5
-          done
+      - name: Download win7 installer
+        uses: actions/download-artifact@v4
+        with:
+          name: win7-setup
+          path: win7
 
-      # 自动更新清单：三个平台 job 并发生成的 latest.json 会互相覆盖（最终只剩
-      # 单平台条目），所以这里不信任它——直接从三个 .sig 签名文件组装三平台
-      # 齐全的清单。官方直连 + 两份国内镜像（镜像的资产 URL 包同源代理前缀，
-      # 清单与下载同源）；版本/说明字段取自 tauri-action 的 base latest.json。
+      - name: Stamp and organize assets
+        run: |
+          mkdir -p out
+          mv bundles/PoTools_0.1.0_x64.dmg             "out/PoTools_0.1.0-${STAMP}_x64.dmg"
+          mv bundles/PoTools.app.tar.gz                "out/PoTools_0.1.0-${STAMP}_x64.app.tar.gz"
+          mv bundles/PoTools.app.tar.gz.sig            "out/PoTools_0.1.0-${STAMP}_x64.app.tar.gz.sig"
+          mv bundles/PoTools_0.1.0_x64-setup.exe       "out/PoTools_0.1.0-${STAMP}_x64-setup.exe"
+          mv bundles/PoTools_0.1.0_x64-setup.exe.sig   "out/PoTools_0.1.0-${STAMP}_x64-setup.exe.sig"
+          mv bundles/PoTools_0.1.0_amd64.AppImage      "out/PoTools_0.1.0-${STAMP}_amd64.AppImage"
+          mv bundles/PoTools_0.1.0_amd64.AppImage.sig  "out/PoTools_0.1.0-${STAMP}_amd64.AppImage.sig"
+          mv bundles/PoTools_0.1.0_amd64.deb           "out/PoTools_0.1.0-${STAMP}_amd64.deb"
+          mv bundles/PoTools_0.1.0_amd64.deb.sig       "out/PoTools_0.1.0-${STAMP}_amd64.deb.sig"
+          mv bundles/PoTools-0.1.0-1.x86_64.rpm        "out/PoTools_0.1.0-${STAMP}_x86_64.rpm"
+          mv bundles/PoTools-0.1.0-1.x86_64.rpm.sig    "out/PoTools_0.1.0-${STAMP}_x86_64.rpm.sig"
+          mv win7/PoTools_0.1.0-win7-ia32-setup.exe    "out/PoTools_0.1.0-${STAMP}_win7-ia32-setup.exe"
+          echo "=== 打戳后产物:"
+          ls out/
+
+      - name: Create draft release and upload
+        run: |
+          # 清掉历史遗留的同名草稿（tag 重指后旧草稿会残留）
+          gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+            --jq ".[] | select(.draft and .tag_name == \"${GITHUB_REF_NAME}\") | .id" \
+            | while read -r id; do
+                gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/$id" >/dev/null \
+                  && echo "removed old draft $id"
+              done
+          gh release create "${GITHUB_REF_NAME}" --draft \
+            --title "PoTools ${GITHUB_REF_NAME}" \
+            --notes "所有工具在本机运行，不需要网络。" \
+            --repo "${GITHUB_REPOSITORY}"
+          gh release upload "${GITHUB_REF_NAME}" out/* --repo "${GITHUB_REPOSITORY}"
+
       - name: Generate updater manifests (all platforms)
         run: |
-          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
-            --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .id" | head -n1)
-          dl() {
-            local aid
-            aid=$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
-              --jq ".[] | select(.name == \"$1\") | .id")
-            if [ -z "$aid" ]; then
-              echo "::error::asset missing: $1"; exit 1
-            fi
-            gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${aid}" \
-              -H "Accept: application/octet-stream" > "$2"
-          }
-          dl "PoTools_x64.app.tar.gz.sig" darwin.sig
-          dl "PoTools_0.1.0-${STAMP}_x64-setup.exe.sig" windows.sig
-          dl "PoTools_0.1.0-${STAMP}_amd64.AppImage.sig" linux.sig
-          dl "latest.json" base.json
           gen() {
             proxy="$1"; out="$2"
             jq -n \
-              --arg version "$(jq -r '.version' base.json)" \
-              --arg notes "$(jq -r '.notes // ""' base.json)" \
+              --arg version "${GITHUB_REF_NAME#v}" \
+              --arg notes "所有工具在本机运行，不需要网络。" \
               --arg repo "${GITHUB_REPOSITORY}" --arg tag "${GITHUB_REF_NAME}" \
               --arg proxy "$proxy" --arg stamp "$STAMP" \
-              --rawfile darwinsig darwin.sig --rawfile winsig windows.sig --rawfile linuxsig linux.sig \
+              --rawfile darwinsig "out/PoTools_0.1.0-${STAMP}_x64.app.tar.gz.sig" \
+              --rawfile winsig "out/PoTools_0.1.0-${STAMP}_x64-setup.exe.sig" \
+              --rawfile linuxsig "out/PoTools_0.1.0-${STAMP}_amd64.AppImage.sig" \
               '{
                 version: $version, notes: $notes,
                 pub_date: (now | todateiso8601),
@@ -359,7 +338,7 @@ jobs:
                   "windows-x86_64": { signature: $winsig,
                     url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_x64-setup.exe") },
                   "darwin-x86_64": { signature: $darwinsig,
-                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_x64.app.tar.gz") },
+                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_x64.app.tar.gz") },
                   "linux-x86_64": { signature: $linuxsig,
                     url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_amd64.AppImage") }
                 }
@@ -372,19 +351,3 @@ jobs:
             --clobber --repo "${GITHUB_REPOSITORY}"
           echo "=== manifest URLs:"
           jq -r '.platforms | to_entries[] | "  \(.key): \(.value.url)"' latest.json
-
-      - name: Download win7 installer
-        uses: actions/download-artifact@v4
-        with:
-          name: win7-setup
-          path: win7
-
-      - name: Upload stamped win7 installer to release
-        run: |
-          for f in win7/*.exe; do
-            base="$(basename "$f")"
-            new="$(printf '%s' "$base" | sed -E "s/^(PoTools_[0-9][0-9.]*)-win7/\\1-${STAMP}_win7/")"
-            mv "$f" "win7/${new}"
-            gh release upload "${GITHUB_REF_NAME}" "win7/${new}" --clobber --repo "${GITHUB_REPOSITORY}"
-            echo "uploaded ${new}"
-          done
