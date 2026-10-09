@@ -1,0 +1,13 @@
+{
+  "name": "@potools/desktop",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "author": "pohoc <po.hoc4@gmail.com>",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.5"
+  }
+}

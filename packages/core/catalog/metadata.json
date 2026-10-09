@@ -1,0 +1,193 @@
+[
+  {
+    "id": "metadata",
+    "nameKey": "tool.metadata.name",
+    "descKey": "tool.metadata.desc",
+    "category": "metadata",
+    "icon": "info",
+    "order": 90,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "metadata",
+    "artifactKind": "pdf",
+    "keywords": [
+      "元数据",
+      "属性",
+      "metadata"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.metadata.mode",
+        "default": "write",
+        "options": [
+          {
+            "value": "read",
+            "labelKey": "opt.metadata.mode.read"
+          },
+          {
+            "value": "write",
+            "labelKey": "opt.metadata.mode.write"
+          },
+          {
+            "value": "clear",
+            "labelKey": "opt.metadata.mode.clear"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "title",
+        "labelKey": "opt.metadata.title",
+        "default": "",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "write"
+          ]
+        }
+      },
+      {
+        "type": "text",
+        "key": "author",
+        "labelKey": "opt.metadata.author",
+        "default": "",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "write"
+          ]
+        }
+      },
+      {
+        "type": "text",
+        "key": "subject",
+        "labelKey": "opt.metadata.subject",
+        "default": "",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "write"
+          ]
+        }
+      },
+      {
+        "type": "text",
+        "key": "keywords",
+        "labelKey": "opt.metadata.keywords",
+        "default": "",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "write"
+          ]
+        }
+      },
+      {
+        "type": "text",
+        "key": "creator",
+        "labelKey": "opt.metadata.creator",
+        "default": "",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "write"
+          ]
+        }
+      },
+      {
+        "type": "text",
+        "key": "producer",
+        "labelKey": "opt.metadata.producer",
+        "default": "",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "write"
+          ]
+        }
+      },
+      {
+        "type": "boolean",
+        "key": "stripXmp",
+        "labelKey": "opt.metadata.stripXmp",
+        "descriptionKey": "opt.metadata.stripXmp.hint",
+        "default": true,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "write",
+            "clear"
+          ]
+        },
+        "section": "advanced"
+      }
+    ],
+    "workflow": "metadata",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "image-info",
+    "nameKey": "tool.imageInfo.name",
+    "descKey": "tool.imageInfo.desc",
+    "category": "metadata",
+    "icon": "info",
+    "order": 250,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "json",
+    "keywords": [
+      "图片信息",
+      "尺寸",
+      "分辨率",
+      "exif"
+    ],
+    "fields": [],
+    "workflow": "metadata",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "json"
+    ]
+  },
+  {
+    "id": "image-metadata-clean",
+    "nameKey": "tool.imageMetadataClean.name",
+    "descKey": "tool.imageMetadataClean.desc",
+    "category": "metadata",
+    "icon": "shield",
+    "order": 280,
+    "accept": "image/jpeg,image/png,image/webp,image/tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "image",
+    "keywords": [
+      "EXIF",
+      "GPS",
+      "隐私",
+      "metadata"
+    ],
+    "fields": [],
+    "workflow": "metadata",
+    "inputFormats": [
+      "jpg",
+      "png",
+      "webp",
+      "tiff"
+    ],
+    "outputFormats": [
+      "image"
+    ]
+  }
+]

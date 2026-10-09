@@ -1,0 +1,29 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "PoTools 工具箱",
+        "width": 1240,
+        "height": 820,
+        "minWidth": 860,
+        "minHeight": 580,
+        "center": true,
+        "resizable": true,
+        "dragDropEnabled": true,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 7, "y": 18.5 }
+      }
+    ]
+  },
+  "bundle": {
+    "targets": ["app", "dmg"],
+    "licenseFile": null,
+    "resources": {
+      "./resources/localization/en.lproj/Localizable.strings": "en.lproj/",
+      "./resources/localization/zh-Hans.lproj/Localizable.strings": "zh-Hans.lproj/"
+    }
+  }
+}

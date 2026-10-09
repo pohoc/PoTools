@@ -1,0 +1,790 @@
+[
+  {
+    "id": "pdf-to-images",
+    "nameKey": "tool.pdfToImages.name",
+    "descKey": "tool.pdfToImages.desc",
+    "category": "convert",
+    "icon": "images",
+    "order": 110,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "image-grid",
+    "artifactKind": "image",
+    "keywords": [
+      "转图片",
+      "png",
+      "jpg"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.images.format",
+        "default": "jpeg",
+        "row": "a",
+        "options": [
+          {
+            "value": "jpeg",
+            "labelKey": "opt.images.jpeg"
+          },
+          {
+            "value": "png",
+            "labelKey": "opt.images.png"
+          },
+          {
+            "value": "webp",
+            "labelKey": "opt.images.webp"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "dpi",
+        "labelKey": "opt.images.dpi",
+        "default": 150,
+        "min": 72,
+        "max": 600,
+        "step": 6,
+        "unit": "dpi",
+        "presets": [
+          {
+            "value": 96,
+            "labelKey": "opt.images.dpi.screen"
+          },
+          {
+            "value": 150,
+            "labelKey": "opt.images.dpi.standard"
+          },
+          {
+            "value": 300,
+            "labelKey": "opt.images.dpi.print"
+          }
+        ],
+        "section": "layout",
+        "row": "a"
+      },
+      {
+        "type": "slider",
+        "key": "quality",
+        "labelKey": "opt.images.quality",
+        "default": 88,
+        "min": 30,
+        "max": 100,
+        "step": 1,
+        "unit": "percent",
+        "presets": [
+          {
+            "value": 60,
+            "labelKey": "opt.image.quality.small"
+          },
+          {
+            "value": 85,
+            "labelKey": "opt.image.quality.standard"
+          },
+          {
+            "value": 95,
+            "labelKey": "opt.image.quality.high"
+          }
+        ],
+        "section": "layout",
+        "showIf": {
+          "field": "format",
+          "in": [
+            "jpeg",
+            "webp"
+          ]
+        }
+      },
+      {
+        "type": "boolean",
+        "key": "transparentBackground",
+        "labelKey": "opt.images.transparent",
+        "default": false,
+        "showIf": {
+          "field": "format",
+          "in": [
+            "png",
+            "webp"
+          ]
+        }
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "image"
+    ]
+  },
+  {
+    "id": "images-to-pdf",
+    "nameKey": "tool.imagesToPdf.name",
+    "descKey": "tool.imagesToPdf.desc",
+    "category": "convert",
+    "icon": "file-image",
+    "order": 120,
+    "accept": "image/*",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "orderSensitive": true,
+    "keywords": [
+      "图片转 pdf",
+      "jpg to pdf"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "pageSize",
+        "labelKey": "opt.pageSize",
+        "default": "auto",
+        "section": "layout",
+        "row": "a",
+        "options": [
+          {
+            "value": "auto",
+            "labelKey": "opt.pageSize.auto"
+          },
+          {
+            "value": "a4",
+            "labelKey": "opt.pageSize.a4"
+          },
+          {
+            "value": "letter",
+            "labelKey": "opt.pageSize.letter"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "orientation",
+        "labelKey": "opt.orientation",
+        "default": "auto",
+        "section": "layout",
+        "row": "a",
+        "options": [
+          {
+            "value": "auto",
+            "labelKey": "opt.orientation.auto"
+          },
+          {
+            "value": "portrait",
+            "labelKey": "opt.orientation.portrait"
+          },
+          {
+            "value": "landscape",
+            "labelKey": "opt.orientation.landscape"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "fit",
+        "labelKey": "opt.images.fit",
+        "default": "contain",
+        "section": "layout",
+        "row": "b",
+        "options": [
+          {
+            "value": "contain",
+            "labelKey": "opt.images.fitContain"
+          },
+          {
+            "value": "cover",
+            "labelKey": "opt.images.fitCover"
+          },
+          {
+            "value": "actual",
+            "labelKey": "opt.images.fitActual"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 0,
+        "min": 0,
+        "max": 72,
+        "step": 1,
+        "unit": "pt",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "b"
+      },
+      {
+        "type": "color",
+        "key": "background",
+        "labelKey": "opt.images.background",
+        "default": "#ffffff",
+        "section": "layout"
+      },
+      {
+        "type": "slider",
+        "key": "imageQuality",
+        "labelKey": "opt.compress.imageQuality",
+        "default": 85,
+        "min": 40,
+        "max": 100,
+        "step": 1,
+        "unit": "percent",
+        "section": "advanced"
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "image"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "pdf-to-word",
+    "nameKey": "tool.pdfToWord.name",
+    "descKey": "tool.pdfToWord.desc",
+    "category": "convert",
+    "icon": "word",
+    "order": 120,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "docx",
+    "keywords": [
+      "word",
+      "docx",
+      "转word"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "includeImages",
+        "labelKey": "opt.convert.includeImages",
+        "descriptionKey": "opt.convert.includeImages.hint",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "pageBreaks",
+        "labelKey": "opt.convert.pageBreaks",
+        "default": false
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "docx"
+    ]
+  },
+  {
+    "id": "pdf-to-excel",
+    "nameKey": "tool.pdfToExcel.name",
+    "descKey": "tool.pdfToExcel.desc",
+    "category": "convert",
+    "icon": "excel",
+    "order": 121,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "xlsx",
+    "keywords": [
+      "excel",
+      "xlsx",
+      "表格",
+      "转excel"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "sheetPerPage",
+        "labelKey": "opt.convert.sheetPerPage",
+        "default": true
+      },
+      {
+        "type": "number",
+        "key": "columnGap",
+        "labelKey": "opt.convert.columnGap",
+        "descriptionKey": "opt.convert.columnGap.hint",
+        "default": 8,
+        "min": 2,
+        "max": 60,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "section": "advanced"
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "xlsx"
+    ]
+  },
+  {
+    "id": "pdf-to-ppt",
+    "nameKey": "tool.pdfToPpt.name",
+    "descKey": "tool.pdfToPpt.desc",
+    "category": "convert",
+    "icon": "ppt",
+    "order": 122,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pptx",
+    "keywords": [
+      "ppt",
+      "pptx",
+      "幻灯片",
+      "演示"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "textLayer",
+        "labelKey": "opt.convert.textLayer",
+        "default": true
+      },
+      {
+        "type": "slider",
+        "key": "dpi",
+        "labelKey": "opt.images.dpi",
+        "default": 144,
+        "min": 72,
+        "max": 300,
+        "step": 6,
+        "unit": "dpi",
+        "descriptionKey": "opt.images.dpi.hint",
+        "presets": [
+          {
+            "value": 96,
+            "labelKey": "opt.images.dpi.screen"
+          },
+          {
+            "value": 150,
+            "labelKey": "opt.images.dpi.standard"
+          },
+          {
+            "value": 300,
+            "labelKey": "opt.images.dpi.print"
+          }
+        ]
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pptx"
+    ]
+  },
+  {
+    "id": "pdf-to-markdown",
+    "nameKey": "tool.pdfToMarkdown.name",
+    "descKey": "tool.pdfToMarkdown.desc",
+    "category": "convert",
+    "icon": "markdown",
+    "order": 130,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "md",
+    "keywords": [
+      "markdown",
+      "md",
+      "转 md"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "includeImages",
+        "labelKey": "opt.convert.includeImages",
+        "descriptionKey": "opt.convert.includeImages.hint",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "pageBreaks",
+        "labelKey": "opt.convert.pageBreaks",
+        "default": false
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "md"
+    ]
+  },
+  {
+    "id": "pdf-to-html",
+    "nameKey": "tool.pdfToHtml.name",
+    "descKey": "tool.pdfToHtml.desc",
+    "category": "convert",
+    "icon": "globe",
+    "order": 131,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "html",
+    "keywords": [
+      "html",
+      "网页"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "embedImages",
+        "labelKey": "opt.convert.embedImages",
+        "default": true
+      },
+      {
+        "type": "slider",
+        "key": "dpi",
+        "labelKey": "opt.images.dpi",
+        "default": 144,
+        "min": 72,
+        "max": 300,
+        "step": 6,
+        "unit": "dpi",
+        "descriptionKey": "opt.images.dpi.hint",
+        "presets": [
+          {
+            "value": 96,
+            "labelKey": "opt.images.dpi.screen"
+          },
+          {
+            "value": 150,
+            "labelKey": "opt.images.dpi.standard"
+          },
+          {
+            "value": 300,
+            "labelKey": "opt.images.dpi.print"
+          }
+        ]
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "html"
+    ]
+  },
+  {
+    "id": "pdf-to-csv",
+    "nameKey": "tool.pdfToCsv.name",
+    "descKey": "tool.pdfToCsv.desc",
+    "category": "convert",
+    "icon": "table",
+    "order": 132,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "csv",
+    "keywords": [
+      "csv",
+      "表格",
+      "逗号"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "delimiter",
+        "labelKey": "opt.convert.delimiter",
+        "default": "comma",
+        "row": "a",
+        "options": [
+          {
+            "value": "comma",
+            "labelKey": "opt.convert.comma"
+          },
+          {
+            "value": "semicolon",
+            "labelKey": "opt.convert.semicolon"
+          },
+          {
+            "value": "tab",
+            "labelKey": "opt.convert.tab"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "columnGap",
+        "labelKey": "opt.convert.columnGap",
+        "default": 8,
+        "min": 2,
+        "max": 60,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "row": "a"
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "csv"
+    ]
+  },
+  {
+    "id": "pdf-to-rtf",
+    "nameKey": "tool.pdfToRtf.name",
+    "descKey": "tool.pdfToRtf.desc",
+    "category": "convert",
+    "icon": "file-text",
+    "order": 133,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "rtf",
+    "keywords": [
+      "rtf",
+      "write",
+      "富文本"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "pageBreaks",
+        "labelKey": "opt.convert.pageBreaks",
+        "default": false
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "rtf"
+    ]
+  },
+  {
+    "id": "pdf-to-epub",
+    "nameKey": "tool.pdfToEpub.name",
+    "descKey": "tool.pdfToEpub.desc",
+    "category": "convert",
+    "icon": "book",
+    "order": 134,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "epub",
+    "keywords": [
+      "epub",
+      "电子书",
+      "阅读"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "chapterBy",
+        "labelKey": "opt.convert.chapterBy",
+        "default": "heading",
+        "row": "a",
+        "options": [
+          {
+            "value": "heading",
+            "labelKey": "opt.convert.chapterByHeading"
+          },
+          {
+            "value": "page",
+            "labelKey": "opt.convert.chapterByPage"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "includeImages",
+        "labelKey": "opt.convert.includeImages",
+        "descriptionKey": "opt.convert.includeImages.hint",
+        "default": true
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "epub"
+    ]
+  },
+  {
+    "id": "pdf-to-ofd",
+    "nameKey": "tool.pdfToOfd.name",
+    "descKey": "tool.pdfToOfd.desc",
+    "category": "convert",
+    "icon": "scan",
+    "order": 135,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "ofd",
+    "keywords": [
+      "ofd",
+      "国标",
+      "版式",
+      "GB/T 33190"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.ofd.mode",
+        "default": "text",
+        "row": "a",
+        "options": [
+          {
+            "value": "text",
+            "labelKey": "opt.ofd.modeText"
+          },
+          {
+            "value": "image",
+            "labelKey": "opt.ofd.modeImage"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "dpi",
+        "labelKey": "opt.images.dpi",
+        "default": 144,
+        "min": 72,
+        "max": 300,
+        "step": 6,
+        "unit": "dpi",
+        "descriptionKey": "opt.images.dpi.hint",
+        "presets": [
+          {
+            "value": 96,
+            "labelKey": "opt.images.dpi.screen"
+          },
+          {
+            "value": 150,
+            "labelKey": "opt.images.dpi.standard"
+          },
+          {
+            "value": 300,
+            "labelKey": "opt.images.dpi.print"
+          }
+        ]
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "ofd"
+    ]
+  },
+  {
+    "id": "ofd-to-pdf",
+    "nameKey": "tool.ofdToPdf.name",
+    "descKey": "tool.ofdToPdf.desc",
+    "category": "convert",
+    "icon": "scan",
+    "order": 143,
+    "accept": ".ofd",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "ofd",
+      "国标",
+      "转 pdf"
+    ],
+    "fields": [
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "ofd"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "markdown-to-pdf",
+    "nameKey": "tool.markdownToPdf.name",
+    "descKey": "tool.markdownToPdf.desc",
+    "category": "convert",
+    "icon": "markdown",
+    "order": 150,
+    "accept": "text/markdown",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "markdown",
+      "md",
+      "转 pdf"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "pageSize",
+        "labelKey": "opt.pageSize",
+        "default": "a4",
+        "row": "a",
+        "options": [
+          {
+            "value": "a4",
+            "labelKey": "opt.pageSize.a4"
+          },
+          {
+            "value": "letter",
+            "labelKey": "opt.pageSize.letter"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 56,
+        "min": 0,
+        "max": 120,
+        "suffixKey": "unit.mm",
+        "displayUnit": "mm",
+        "row": "a"
+      },
+      {
+        "type": "number",
+        "key": "fontSize",
+        "labelKey": "opt.convert.fontSize",
+        "default": 11,
+        "min": 8,
+        "max": 18,
+        "suffixKey": "unit.pt"
+      }
+    ],
+    "workflow": "conversion",
+    "inputFormats": [
+      "md"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  }
+]

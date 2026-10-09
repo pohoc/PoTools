@@ -1,0 +1,615 @@
+[
+  {
+    "id": "user-agent",
+    "nameKey": "tool.userAgent.name",
+    "descKey": "tool.userAgent.desc",
+    "category": "extract",
+    "icon": "globe",
+    "order": 750,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "UA",
+      "User-Agent",
+      "浏览器",
+      "操作系统",
+      "设备"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "",
+        "mono": true,
+        "rows": 3,
+        "required": true
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "ipv4-convert",
+    "nameKey": "tool.ipv4Convert.name",
+    "descKey": "tool.ipv4Convert.desc",
+    "category": "extract",
+    "icon": "network",
+    "order": 760,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "IPv4",
+      "IP",
+      "十进制",
+      "二进制",
+      "十六进制"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "192.168.1.1",
+        "mono": true,
+        "rows": 2,
+        "required": true
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "ipv4-subnet",
+    "nameKey": "tool.ipv4Subnet.name",
+    "descKey": "tool.ipv4Subnet.desc",
+    "category": "extract",
+    "icon": "network",
+    "order": 770,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "IPv4",
+      "子网",
+      "CIDR",
+      "网络计算器"
+    ],
+    "fields": [
+      {
+        "type": "textarea",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "192.168.1.0/24",
+        "mono": true,
+        "rows": 2,
+        "required": true
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "spf-record",
+    "nameKey": "tool.spfRecord.name",
+    "descKey": "tool.spfRecord.desc",
+    "category": "extract",
+    "icon": "shield",
+    "order": 800,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "SPF",
+      "DNS",
+      "邮件",
+      "发件人验证"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "domain",
+        "labelKey": "opt.dev.domain",
+        "default": "example.com",
+        "required": true
+      },
+      {
+        "type": "boolean",
+        "key": "mx",
+        "labelKey": "opt.dev.mx",
+        "default": false
+      },
+      {
+        "type": "boolean",
+        "key": "a",
+        "labelKey": "opt.dev.a",
+        "default": false
+      },
+      {
+        "type": "textarea",
+        "key": "includes",
+        "labelKey": "opt.dev.includes",
+        "default": "",
+        "mono": true,
+        "rows": 2,
+        "required": true
+      },
+      {
+        "type": "textarea",
+        "key": "ipv4",
+        "labelKey": "opt.dev.ipv4",
+        "default": "",
+        "mono": true,
+        "rows": 2,
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "policy",
+        "labelKey": "opt.dev.policy",
+        "default": "-all",
+        "options": [
+          {
+            "value": "-all",
+            "labelKey": "opt.dev.policy.-all"
+          },
+          {
+            "value": "~all",
+            "labelKey": "opt.dev.policy.~all"
+          },
+          {
+            "value": "?all",
+            "labelKey": "opt.dev.policy.?all"
+          },
+          {
+            "value": "+all",
+            "labelKey": "opt.dev.policy.+all"
+          }
+        ]
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "dmarc-record",
+    "nameKey": "tool.dmarcRecord.name",
+    "descKey": "tool.dmarcRecord.desc",
+    "category": "extract",
+    "icon": "shield",
+    "order": 810,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "DMARC",
+      "DNS",
+      "邮件",
+      "反钓鱼"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "domain",
+        "labelKey": "opt.dev.domain",
+        "default": "example.com",
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "policy",
+        "labelKey": "opt.dev.policy",
+        "default": "quarantine",
+        "options": [
+          {
+            "value": "none",
+            "labelKey": "opt.dev.policy.none"
+          },
+          {
+            "value": "quarantine",
+            "labelKey": "opt.dev.policy.quarantine"
+          },
+          {
+            "value": "reject",
+            "labelKey": "opt.dev.policy.reject"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "reportEmail",
+        "labelKey": "opt.dev.reportEmail",
+        "default": ""
+      },
+      {
+        "type": "number",
+        "key": "percent",
+        "labelKey": "opt.dev.percent",
+        "default": 100,
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "suffixKey": "opt.dev.percentUnit"
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "dns-lookup",
+    "nameKey": "tool.dnsLookup.name",
+    "descKey": "tool.dnsLookup.desc",
+    "category": "extract",
+    "icon": "network",
+    "order": 650,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "DNS",
+      "域名解析",
+      "A记录",
+      "AAAA",
+      "MX",
+      "TXT",
+      "NS"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "hostname",
+        "labelKey": "opt.network.hostname",
+        "default": "example.com",
+        "required": true
+      },
+      {
+        "type": "select",
+        "key": "recordType",
+        "labelKey": "opt.network.recordType",
+        "default": "A",
+        "options": [
+          {
+            "value": "A",
+            "labelKey": "opt.dev.recordType.A"
+          },
+          {
+            "value": "AAAA",
+            "labelKey": "opt.dev.recordType.AAAA"
+          },
+          {
+            "value": "MX",
+            "labelKey": "opt.dev.recordType.MX"
+          },
+          {
+            "value": "TXT",
+            "labelKey": "opt.dev.recordType.TXT"
+          },
+          {
+            "value": "NS",
+            "labelKey": "opt.dev.recordType.NS"
+          },
+          {
+            "value": "CNAME",
+            "labelKey": "opt.dev.recordType.CNAME"
+          },
+          {
+            "value": "SOA",
+            "labelKey": "opt.dev.recordType.SOA"
+          }
+        ]
+      }
+    ],
+    "networkAccess": "network",
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "url-inspect",
+    "nameKey": "tool.urlInspect.name",
+    "descKey": "tool.urlInspect.desc",
+    "category": "extract",
+    "icon": "globe",
+    "order": 660,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "URL",
+      "网址解析",
+      "主机",
+      "端口",
+      "查询参数"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "url",
+        "labelKey": "opt.network.url",
+        "default": "https://example.com:8443/path?key=value#section",
+        "required": true
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "ipv6-convert",
+    "nameKey": "tool.ipv6Convert.name",
+    "descKey": "tool.ipv6Convert.desc",
+    "category": "extract",
+    "icon": "network",
+    "order": 670,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "IPv6",
+      "IP",
+      "压缩",
+      "展开",
+      "地址转换"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "input",
+        "labelKey": "opt.dev.input",
+        "default": "2001:db8::1",
+        "required": true,
+        "mono": true
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "port-reference",
+    "nameKey": "tool.portReference.name",
+    "descKey": "tool.portReference.desc",
+    "category": "extract",
+    "icon": "list",
+    "order": 680,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "端口",
+      "port",
+      "协议",
+      "常用端口",
+      "服务"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "port",
+        "labelKey": "opt.network.port",
+        "default": "443",
+        "required": true
+      }
+    ],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "system-network",
+    "nameKey": "tool.systemNetwork.name",
+    "descKey": "tool.systemNetwork.desc",
+    "category": "extract",
+    "icon": "network",
+    "order": 690,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "本机网络",
+      "网卡",
+      "IP 地址",
+      "DNS 配置",
+      "network interface"
+    ],
+    "fields": [],
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "ping-check",
+    "nameKey": "tool.pingCheck.name",
+    "descKey": "tool.pingCheck.desc",
+    "category": "extract",
+    "icon": "activity",
+    "order": 700,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "Ping",
+      "连通性",
+      "延迟",
+      "网络诊断"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "host",
+        "labelKey": "opt.network.targetHost",
+        "default": "example.com",
+        "required": true
+      },
+      {
+        "type": "number",
+        "key": "count",
+        "labelKey": "opt.network.pingCount",
+        "default": 4,
+        "min": 1,
+        "max": 10,
+        "step": 1
+      }
+    ],
+    "networkAccess": "network",
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "tcp-check",
+    "nameKey": "tool.tcpCheck.name",
+    "descKey": "tool.tcpCheck.desc",
+    "category": "extract",
+    "icon": "plug",
+    "order": 710,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "TCP",
+      "端口检测",
+      "端口连通",
+      "网络诊断"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "host",
+        "labelKey": "opt.network.targetHost",
+        "default": "example.com",
+        "required": true
+      },
+      {
+        "type": "number",
+        "key": "port",
+        "labelKey": "opt.network.port",
+        "default": 443,
+        "min": 1,
+        "max": 65535,
+        "step": 1
+      }
+    ],
+    "networkAccess": "network",
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "ip-lookup",
+    "nameKey": "tool.ipLookup.name",
+    "descKey": "tool.ipLookup.desc",
+    "category": "extract",
+    "icon": "map-pin",
+    "order": 720,
+    "accept": "text/plain",
+    "multiFile": false,
+    "requiresInput": false,
+    "layout": "text",
+    "artifactKind": "text",
+    "keywords": [
+      "IP 查询",
+      "IP 归属地",
+      "IP 地址查询",
+      "运营商",
+      "地理位置",
+      "宝塔"
+    ],
+    "fields": [
+      {
+        "type": "text",
+        "key": "ip",
+        "labelKey": "opt.network.ipAddress",
+        "default": "",
+        "placeholderKey": "opt.network.ipAddress.hint"
+      }
+    ],
+    "networkAccess": "internet",
+    "workflow": "network",
+    "inputFormats": [
+      "text"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  }
+]

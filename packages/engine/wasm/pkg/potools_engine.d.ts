@@ -1,0 +1,153 @@
+/* tslint:disable */
+/* eslint-disable */
+
+export function coreAllTools(): any;
+
+export function coreAssessPasswordStrength(password: string): any;
+
+export function coreFieldsOf(fields: any): any;
+
+export function coreFormatPageRanges(pages: any): string;
+
+export function coreIdPhotoPrintSize(id?: string | null): any;
+
+export function coreIdPhotoSize(id?: string | null): any;
+
+export function coreIsValidPageRanges(input: string): boolean;
+
+export function coreParsePageRanges(input: string, page_count: number): any;
+
+export function coreVisibleFields(fields: any, values: any): any;
+
+/**
+ * Decodes an image for the browser OCR adapter: bytes in, `{ width, height,
+ * rgba }` out (`rgba` is a `Uint8Array`; the adapter strips alpha to RGB).
+ * `max_pixels` is the OCR pixel budget (the adapter passes 20e6).
+ *
+ * Rejections carry an error object (not a string) `{ code, message,
+ * hintKey }` (same shape as the `error` field of `dispatch` replies, with
+ * `hintKey: null` when absent): `unreadable_file` for unrecognized/corrupt
+ * images, `unsupported` when the pixel budget is exceeded.
+ */
+export function decodeImageRgba(bytes: Uint8Array, max_pixels: number): any;
+
+/**
+ * Dispatches one in-memory tool request. Call from a dedicated Web Worker.
+ */
+export function dispatch(request: any): any;
+
+/**
+ * Progress-reporting variant of [`dispatch`]: `progress(done, total)` is
+ * invoked synchronously while a tool iterates its outputs (e.g. split
+ * groups). Forwarding each call as a worker progress message is safe here —
+ * `postMessage` only queues — which is what keeps the UI moving while this
+ * synchronous export grinds through a large document.
+ */
+export function dispatchWithProgress(request: any, progress: Function): any;
+
+/**
+ * Builds the merged ocr-table XLSX workbook from adapter-side recognition
+ * results.
+ *
+ * Request JSON: `{ inputs: [{ name, id?, pages: [{ page?, width?, lines:
+ * [...] }] }], locale }`. Reply JSON: `{ ok, name?, bytes?, pages?, rows?,
+ * warnings: [string], error?: { code, message, hintKey? } }`; `bytes`
+ * serializes as a `Uint8Array`. `ok: false` carries `error` (e.g.
+ * `empty_selection` with `hintKey: "error.noTable"`) plus any accumulated
+ * warnings; only a malformed request rejects with `bad_request: …`.
+ */
+export function ocrTableWorkbook(request: any): any;
+
+/**
+ * Assembles ocr-text artifacts from adapter-side recognition results.
+ *
+ * Request JSON: `{ inputs: [{ name, id?, pages: [{ page?, width?, lines:
+ * [{ text, confidence?, box? }] }] }], pageMarkers, locale }`.
+ * Reply JSON: `{ artifacts: [{ name, text, inputId? }], warnings: [string],
+ * empty: bool, pages: number, error?: { code, message, hintKey? } }` where
+ * `text` already includes the trailing newline. Business errors (empty
+ * selection) are reported in `error`, never as a rejected promise; only a
+ * malformed request rejects with a `bad_request: …` string.
+ */
+export function ocrTextArtifacts(request: any): any;
+
+export function parseInvoiceFields(text: string): any;
+
+/**
+ * Locates the drawable image regions of every page for the browser adapter
+ * (ported `lib/pagedata.ts` `pageImageRects`). The adapter renders each
+ * region with PDF.js at the tool's dpi and feeds the crops back through
+ * `runtimeData.pdfImages` (keyed by page + rect index).
+ *
+ * Reply JSON: `{ pages: [{ page, width, height, rotation, rects: [[x, y, w,
+ * h], ...] }] }` where `page` is 1-based, `width`/`height` are the visual
+ * (post-rotation) page size in points, `rotation` is the normalized
+ * `/Rotate` angle and every rect is in visual space with a top-left origin.
+ * Rejections carry the error object `{ code, message, hintKey }` (same
+ * shape as the `error` field of `dispatch` replies).
+ */
+export function pdfImageRects(bytes: Uint8Array): any;
+
+/**
+ * Renders an output file name from the shared naming pattern so web
+ * adapters can preview names without duplicating the naming logic.
+ */
+export function renderToolName(pattern: string | null | undefined, name: string, tool: string, index: number, total: number, range: string | null | undefined, ext: string): string;
+
+/**
+ * Returns catalog tools routed by the Rust engine, including tools that
+ * return a validation error when called without their required input, plus the
+ * engine-only entry points that the catalog does not expose.
+ */
+export function toolCapabilities(): any;
+
+export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
+
+export interface InitOutput {
+    readonly memory: WebAssembly.Memory;
+    readonly coreAllTools: (a: number) => void;
+    readonly coreAssessPasswordStrength: (a: number, b: number, c: number) => void;
+    readonly coreFieldsOf: (a: number, b: number) => void;
+    readonly coreFormatPageRanges: (a: number, b: number) => void;
+    readonly coreIdPhotoPrintSize: (a: number, b: number, c: number) => void;
+    readonly coreIdPhotoSize: (a: number, b: number, c: number) => void;
+    readonly coreIsValidPageRanges: (a: number, b: number) => number;
+    readonly coreParsePageRanges: (a: number, b: number, c: number, d: number) => void;
+    readonly coreVisibleFields: (a: number, b: number, c: number) => void;
+    readonly decodeImageRgba: (a: number, b: number, c: number, d: number) => void;
+    readonly dispatch: (a: number, b: number) => void;
+    readonly dispatchWithProgress: (a: number, b: number, c: number) => void;
+    readonly ocrTableWorkbook: (a: number, b: number) => void;
+    readonly ocrTextArtifacts: (a: number, b: number) => void;
+    readonly parseInvoiceFields: (a: number, b: number, c: number) => void;
+    readonly pdfImageRects: (a: number, b: number, c: number) => void;
+    readonly renderToolName: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
+    readonly toolCapabilities: (a: number) => void;
+    readonly __wbindgen_export: (a: number, b: number) => number;
+    readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export3: (a: number) => void;
+    readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
+}
+
+export type SyncInitInput = BufferSource | WebAssembly.Module;
+
+/**
+ * Instantiates the given `module`, which can either be bytes or
+ * a precompiled `WebAssembly.Module`.
+ *
+ * @param {{ module: SyncInitInput }} module - Passing `SyncInitInput` directly is deprecated.
+ *
+ * @returns {InitOutput}
+ */
+export function initSync(module: { module: SyncInitInput } | SyncInitInput): InitOutput;
+
+/**
+ * If `module_or_path` is {RequestInfo} or {URL}, makes a request and
+ * for everything else, calls `WebAssembly.instantiate` directly.
+ *
+ * @param {{ module_or_path: InitInput | Promise<InitInput> }} module_or_path - Passing `InitInput` directly is deprecated.
+ *
+ * @returns {Promise<InitOutput>}
+ */
+export default function __wbg_init (module_or_path?: { module_or_path: InitInput | Promise<InitInput> } | InitInput | Promise<InitInput>): Promise<InitOutput>;

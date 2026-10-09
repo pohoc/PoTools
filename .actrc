@@ -1,0 +1,9 @@
+# act 本地跑 GitHub Actions 的配置
+# 容器镜像：catthehacker 预装了常用工具（node、python 等）
+-P ubuntu-latest=catthehacker/ubuntu:act-22.04
+-P ubuntu-22.04=catthehacker/ubuntu:act-22.04
+# windows/macos runner 无法在 Docker 里跑，本地跳过（仅验证解析）
+-P windows-latest=-self-hosted
+-P macos-latest=-self-hosted
+# 默认只跑指定 job（用 -j <job> 覆盖）
+--actor nektos/act

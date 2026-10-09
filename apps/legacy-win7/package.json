@@ -1,0 +1,46 @@
+{
+  "name": "@potools/legacy-win7",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PoTools Windows 7 兼容壳：Electron 22（Chromium 108，最后支持 Win7 的版本）+ 内嵌静态服务器，加载同一套 Web UI（浏览器模式功能集）",
+  "license": "MIT",
+  "author": "pohoc <po.hoc4@gmail.com>",
+  "main": "main.js",
+  "scripts": {
+    "sync-dist": "node sync-dist.js",
+    "start": "node sync-dist.js && electron . --selftest",
+    "dist": "node sync-dist.js && electron-builder --win --ia32"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.potools.legacy-win7",
+    "productName": "PoTools",
+    "directories": {
+      "output": "release",
+      "buildResources": "."
+    },
+    "files": [
+      "main.js",
+      "dist/**/*",
+      "icon.ico"
+    ],
+    "win": {
+      "icon": "icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["ia32"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "PoTools_${version}-win7-${arch}-setup.exe"
+    }
+  }
+}

@@ -1,0 +1,525 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+@import "./tokens.css";
+@source "../components";
+
+@theme {
+  /* Tailwind 4 applies opacity modifiers with color-mix. Keeping the legacy
+     alpha placeholder in the base color makes it invalid at runtime, so
+     borders fall back to currentColor and surfaces become transparent. */
+  --color-canvas: rgb(var(--ui-canvas));
+  --color-surface: rgb(var(--ui-surface));
+  --color-raised: rgb(var(--ui-raised));
+  --color-line: rgb(var(--ui-line));
+  --color-control-line: rgb(var(--ui-control-line));
+  --color-ink: rgb(var(--ui-ink));
+  --color-muted: rgb(var(--ui-muted));
+  --color-faint: rgb(var(--ui-faint));
+  --color-accent: rgb(var(--ui-accent));
+  --color-accent-soft: rgb(var(--ui-accent-soft));
+  --color-accent-ink: rgb(var(--ui-accent-ink));
+  --color-ok: rgb(var(--ui-ok));
+  --color-ok-ink: rgb(var(--ui-ok-ink));
+  --color-warn: rgb(var(--ui-warn));
+  --color-warn-ink: rgb(var(--ui-warn-ink));
+  --color-bad: rgb(var(--ui-bad));
+  --color-bad-ink: rgb(var(--ui-bad-ink));
+  --radius-card: var(--ui-radius-card);
+  --radius-control: var(--ui-radius-control);
+  --radius-overlay: var(--ui-radius-overlay);
+  --radius-xs: var(--ui-radius-xs);
+  --radius-sm: var(--ui-radius-sm);
+  --radius-pill: var(--ui-radius-pill);
+  --radius-md: calc(var(--ui-radius-control) - 2px);
+  --radius-lg: var(--ui-radius-control);
+  --shadow-card: var(--ui-shadow-card);
+  --shadow-control: var(--ui-shadow-control);
+  --shadow-pop: var(--ui-shadow-overlay);
+  --spacing-1: var(--ui-space-1);
+  --spacing-2: var(--ui-space-2);
+  --spacing-3: var(--ui-space-3);
+  --spacing-4: var(--ui-space-4);
+  --spacing-5: var(--ui-space-5);
+  --spacing-6: var(--ui-space-6);
+  --spacing-8: var(--ui-space-8);
+  --spacing-10: var(--ui-space-10);
+  --text-label: var(--ui-font-label);
+  --text-helper: var(--ui-font-helper);
+  --text-body: var(--ui-font-body);
+  --text-caption: var(--ui-font-caption);
+  --text-micro: var(--ui-font-micro);
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --animate-fade-up: fade-up 160ms ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Unlayered rules below win over HeroUI's @layer components styles, so the
+   package owns the visuals without specificity fights. */
+
+.ui-button { display:inline-flex; min-width:0; align-items:center; justify-content:center; gap:var(--ui-space-2); border-radius:var(--ui-radius-control); font-size:var(--ui-font-body); font-weight:550; line-height:var(--ui-line-height-control); outline:none; transition:background-color var(--ui-motion-fast) ease,border-color var(--ui-motion-fast) ease,color var(--ui-motion-fast) ease,box-shadow var(--ui-motion-fast) ease,transform var(--ui-motion-fast) ease; }
+.ui-button-size-sm { min-height:var(--ui-control-sm); padding:0 var(--ui-space-3); font-size:var(--ui-font-caption); }
+.ui-button-size-md,.ui-button-size-default { min-height:var(--ui-control-md); padding:0 var(--ui-space-4); }
+.ui-button-size-lg { min-height:var(--ui-control-lg); padding:0 var(--ui-space-5); }
+.ui-button-size-icon,.ui-button-size-icon-sm { min-height:var(--ui-control-sm); min-width:var(--ui-control-sm); padding:0; }
+.ui-button:focus-visible { box-shadow:var(--ui-focus-ring); }
+.ui-button:active:not(:disabled) { transform:translateY(1px); }
+.ui-button:disabled { cursor:not-allowed; opacity:var(--ui-disabled-opacity); }
+.ui-button-primary,.ui-button-default { border:var(--ui-border-width) solid transparent; background:rgb(var(--ui-accent)); color:rgb(var(--ui-accent-ink)); }
+.ui-button-primary:hover,.ui-button-default:hover { background:rgb(var(--ui-accent) / .88); }
+.ui-button-secondary { border:var(--ui-border-width) solid rgb(var(--ui-control-line)); background:rgb(var(--ui-raised)); color:rgb(var(--ui-ink)); }
+.ui-button-secondary:hover { background:rgb(var(--ui-surface)); }
+.ui-button-outline { border:var(--ui-border-width) solid rgb(var(--ui-control-line)); background:rgb(var(--ui-surface)); color:rgb(var(--ui-ink)); }
+.ui-button-outline:hover { background:rgb(var(--ui-raised)); }
+.ui-button-ghost,.ui-button-quiet,.ui-button-link { border:var(--ui-border-width) solid transparent; background:transparent; color:rgb(var(--ui-muted)); }
+.ui-button-ghost:hover,.ui-button-quiet:hover,.ui-button-link:hover { background:rgb(var(--ui-raised)); color:rgb(var(--ui-ink)); }
+.ui-button-danger { border:var(--ui-border-width) solid transparent; background:rgb(var(--ui-bad)); color:rgb(var(--ui-bad-ink)); }
+.ui-button-danger:hover { filter:brightness(.92); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-button { transition-property: background-color, border-color, color, box-shadow; }
+}
+
+/* Pressed choice (mode chips, position cells, page-range and slider presets,
+   category filters). These rules stay unlayered so they beat Tailwind's
+   utilities, and the [aria-pressed] attribute gives them the specificity needed
+   to outrank `.ui-button-*` — which is why the old `bg-accent-soft` states on
+   Buttons never rendered. */
+.option-chip[aria-pressed='true'] {
+  border-color: rgb(var(--ui-accent));
+  background: rgb(var(--ui-accent));
+  color: rgb(var(--ui-accent-ink));
+}
+
+.option-chip[aria-pressed='true']:hover {
+  background: rgb(var(--ui-accent) / 0.88);
+}
+
+/* Small quick-fill pills that sit beside an input or slider. HeroUI's `.button`
+   sets an explicit height, so min-height alone cannot shrink them. */
+.option-chip-pill {
+  height: 24px;
+  min-height: 24px;
+  border-radius: var(--ui-radius-pill);
+  padding: 0 var(--ui-space-2);
+  font-size: var(--ui-font-helper);
+  font-weight: 450;
+  line-height: 1.2;
+}
+
+/* Token-owned segmented control used by theme and language settings. */
+.ui-segmented {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: var(--ui-space-1);
+  overflow-x: auto;
+  border: var(--ui-border-width) solid rgb(var(--ui-control-line));
+  border-radius: var(--ui-radius-control);
+  background: rgb(var(--ui-raised) / 0.72);
+  padding: 3px;
+}
+.ui-segmented-md { min-height: 34px; }
+.ui-segmented-item {
+  flex-shrink: 0;
+  min-width: 68px;
+  border: var(--ui-border-width) solid transparent;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: rgb(var(--ui-muted));
+  padding: 4px var(--ui-space-3);
+  font-size: 13px;
+  font-weight: 450;
+  line-height: 1.35;
+  outline: none;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.ui-segmented-item:hover { background: rgb(var(--ui-surface) / 0.64); color: rgb(var(--ui-ink)); }
+.ui-segmented-item:focus-visible { box-shadow: var(--ui-focus-ring); }
+.ui-segmented-item-selected {
+  border-color: rgb(var(--ui-control-line));
+  background: rgb(var(--ui-surface));
+  color: rgb(var(--ui-ink));
+  font-weight: 600;
+  box-shadow: var(--ui-shadow-control);
+}
+.ui-segmented-item-sm { min-width: 0; padding: 3px var(--ui-space-2); font-size: 12px; }
+
+/* Shared field chrome: text inputs, selects, date controls and textareas use
+   the same surface/line contract. Choice controls use the same base surface. */
+.ui-field-control {
+  box-sizing: border-box;
+  min-height: var(--ui-control-md);
+  border: var(--ui-border-width) solid rgb(var(--ui-control-line));
+  border-radius: var(--ui-radius-control);
+  background: rgb(var(--ui-surface));
+  color: rgb(var(--ui-ink));
+  line-height: var(--ui-line-height-control);
+}
+.ui-control-sm { min-height: var(--ui-control-sm); }
+.ui-control-md { min-height: var(--ui-control-md); }
+.ui-control-lg { min-height: var(--ui-control-lg); }
+.ui-textarea-control { min-height: var(--ui-textarea-min-height); line-height: 1.45; }
+.ui-field-control:hover { background: rgb(var(--ui-surface)); }
+.ui-field-control:focus,
+.ui-field-control:focus-visible {
+  border-color: rgb(var(--ui-accent));
+  box-shadow: var(--ui-focus-ring);
+  outline: none;
+}
+.ui-field-control:disabled { cursor: not-allowed; opacity: 0.5; }
+.ui-choice-control {
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: var(--ui-border-width);
+  border-color: rgb(var(--ui-control-line));
+  background: rgb(var(--ui-surface));
+  accent-color: rgb(var(--ui-accent));
+}
+.ui-choice-control:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+.ui-choice-control:checked { border-color: rgb(var(--ui-accent)); }
+
+/* Map HeroUI's theme variables onto the package tokens. */
+:root {
+  --background: rgb(var(--ui-canvas));
+  --foreground: rgb(var(--ui-ink));
+  --surface: rgb(var(--ui-surface));
+  --surface-foreground: var(--foreground);
+  --surface-secondary: rgb(var(--ui-raised));
+  --surface-secondary-foreground: var(--foreground);
+  --surface-tertiary: rgb(var(--ui-line));
+  --surface-tertiary-foreground: rgb(var(--ui-muted));
+  --muted: rgb(var(--ui-muted));
+  --border: rgb(var(--ui-line));
+  --separator: rgb(var(--ui-line));
+  --field-border: var(--border);
+  --link: var(--foreground);
+  --success: rgb(var(--ui-ok));
+  --success-foreground: rgb(var(--ui-ok-ink));
+  --warning: rgb(var(--ui-warn));
+  --warning-foreground: rgb(var(--ui-warn-ink));
+  --danger: rgb(var(--ui-bad));
+  --danger-foreground: rgb(var(--ui-bad-ink));
+  /* HeroUI interaction tokens stay monochrome; status colors remain semantic. */
+  --accent: rgb(var(--ui-accent));
+  --accent-foreground: rgb(var(--ui-accent-ink));
+  --accent-hover: rgb(var(--ui-accent) / 0.88);
+  --accent-soft: rgb(var(--ui-accent-soft));
+  --accent-soft-foreground: rgb(var(--ui-accent));
+  --accent-soft-hover: rgb(var(--ui-raised));
+  --focus: var(--accent);
+  /* Brand emphasis is intentionally monochrome; semantic colors remain separate. */
+  --radius: var(--ui-radius-control);
+  color-scheme: light;
+}
+
+.dark {
+  --background: rgb(var(--ui-canvas));
+  --foreground: rgb(var(--ui-ink));
+  --surface: rgb(var(--ui-surface));
+  --surface-foreground: var(--foreground);
+  --surface-secondary: rgb(var(--ui-raised));
+  --surface-secondary-foreground: var(--foreground);
+  --surface-tertiary: rgb(var(--ui-line));
+  --surface-tertiary-foreground: rgb(var(--ui-muted));
+  --muted: rgb(var(--ui-muted));
+  --border: rgb(var(--ui-line));
+  --separator: rgb(var(--ui-line));
+  --field-border: var(--border);
+  --link: var(--foreground);
+  --success: rgb(var(--ui-ok));
+  --success-foreground: rgb(var(--ui-ok-ink));
+  --warning: rgb(var(--ui-warn));
+  --warning-foreground: rgb(var(--ui-warn-ink));
+  --danger: rgb(var(--ui-bad));
+  --danger-foreground: rgb(var(--ui-bad-ink));
+  --accent: rgb(var(--ui-accent));
+  --accent-foreground: rgb(var(--ui-accent-ink));
+  --accent-hover: rgb(var(--ui-accent) / 0.88);
+  --accent-soft: rgb(var(--ui-accent-soft));
+  --accent-soft-foreground: rgb(var(--ui-accent-ink));
+  --accent-soft-hover: rgb(var(--ui-raised));
+  --focus: var(--accent);
+  --radius: var(--ui-radius-control);
+  color-scheme: dark;
+}
+
+/* HeroUI's own neutral palette (oklch greys, pure white, and the eclipse/snow
+   near-black/near-white) is what shows wherever a component is painted by the
+   library instead of by a `.ui-*` class — most visibly in dark mode, where its
+   greys are cooler and lighter than `--ui-raised`. These slots are mapped onto
+   the package tokens. Every value resolves through `--ui-*`, so a single block
+   is correct for both themes (tokens.css swaps the `--ui-*` values). */
+:root,
+.dark {
+  /* Neutral surface plus its label and hover states: slider rails, switch tracks,
+     badges, avatars, accordion surfaces, ghost/outline button text. */
+  --default: rgb(var(--ui-raised));
+  --default-foreground: rgb(var(--ui-ink));
+  --default-hover: rgb(var(--ui-surface));
+  --surface-hover: rgb(var(--ui-raised));
+
+  /* Popovers, dialogs, drawers and their scrim. */
+  --overlay: rgb(var(--ui-surface));
+  --overlay-foreground: rgb(var(--ui-ink));
+  --overlay-shadow: var(--ui-shadow-overlay);
+  --backdrop: var(--ui-overlay-backdrop);
+
+  /* Field slots the library paints itself. The border is owned by
+     `.ui-field-control` (and `--field-border` is transparent by design there). */
+  --field-background: rgb(var(--ui-surface));
+  --field-foreground: rgb(var(--ui-ink));
+  --field-placeholder: rgb(var(--ui-faint));
+  --field-hover: rgb(var(--ui-surface));
+  --field-focus: rgb(var(--ui-surface));
+
+  /* Switch. `.switch` is a layout wrapper; `.switch__control` is the track, and
+     `--switch-control-bg*` is the only thing that paints it (the wrapper's own
+     `bg-line` / `data-[state=checked]:bg-accent` classes sit on the wrapper and
+     are covered by the control, so these variables are what realise them). */
+  --switch-control-bg: rgb(var(--ui-line));
+  --switch-control-bg-hover: rgb(var(--ui-line));
+  --switch-control-bg-pressed: rgb(var(--ui-line));
+  --switch-control-bg-checked: rgb(var(--ui-accent));
+  --switch-control-bg-checked-hover: rgb(var(--ui-accent));
+
+  /* Tabs indicator and selected tab label. */
+  --segment: rgb(var(--ui-surface));
+  --segment-foreground: rgb(var(--ui-ink));
+}
+
+/* The library sizes the switch track at 40x20, but `switch.tsx` targets a compact
+   32x18 pill (and sizes the wrapper, which is only a column layout box). Size the
+   control instead, otherwise the track overflows its wrapper. */
+.switch .switch__control {
+  width: 32px;
+  height: 18px;
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    @apply border-line;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    font-size: var(--ui-font-body);
+    line-height: 1.5;
+    font-feature-settings: 'tnum' 1;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  select,
+  [contenteditable='true'] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  ::selection {
+    background: rgb(var(--ui-accent) / 0.24);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--ui-line)) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--ui-line));
+    border: 3px solid transparent;
+    border-radius: var(--ui-radius-pill);
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--ui-faint) / 0.6);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  .app-surface {
+    @apply border border-line/90 bg-surface shadow-card;
+  }
+
+  /* Compact desktop slider: HeroUI's default horizontal track is a chunky 20px
+     pill sized for touch. Slim it down to a 6px rail with a 12px round thumb. */
+  .slider[data-orientation='horizontal'] .slider__track {
+    height: 6px;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-radius: var(--ui-radius-pill);
+  }
+
+  .slider[data-orientation='horizontal'] .slider__fill {
+    top: 0;
+    height: 6px;
+    border-radius: var(--ui-radius-pill);
+  }
+
+  .slider[data-orientation='horizontal'] .slider__thumb {
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    /* RAC positions the thumb by its left edge at the value percent; center the
+       16px hit area on that point so the thumb midpoint matches the fill end. */
+    transform: translate(-50%, -50%);
+  }
+
+  .slider[data-orientation='horizontal'] .slider__thumb::after {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgb(var(--ui-control-line));
+    border-radius: var(--ui-radius-pill);
+  }
+
+  .page-frame {
+    @apply mx-auto w-full max-w-[1280px];
+  }
+
+  .page-header {
+    @apply border-b border-line pb-5;
+  }
+
+  .form-field-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-space-3);
+  }
+
+  .form-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--ui-space-1);
+  }
+
+  .form-label {
+    color: rgb(var(--ui-ink));
+    font-size: var(--ui-font-label);
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .form-hint {
+    color: rgb(var(--ui-faint));
+    font-size: var(--ui-font-helper);
+    line-height: 1.45;
+  }
+
+  .form-section {
+    border-top: var(--ui-border-width) solid rgb(var(--ui-line) / 0.8);
+    padding-top: var(--ui-space-4);
+  }
+
+  .form-section-title {
+    color: rgb(var(--ui-ink));
+    font-size: var(--ui-font-label);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .field-label {
+    @apply text-[12.5px] font-medium leading-4 text-muted;
+  }
+
+  .kbd {
+    @apply rounded border border-line bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted;
+  }
+
+  @media (max-width: 640px) {
+    .form-field-stack { gap: var(--ui-space-3); }
+    .form-section { padding-top: var(--ui-space-3); }
+  }
+}
+
+.drag-over {
+  outline: 2px dashed rgb(var(--ui-accent) / 0.7);
+  outline-offset: -6px;
+  background: rgb(var(--ui-accent) / 0.06);
+}
+
+.progress-stripes {
+  background-image: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0.22) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgb(255 255 255 / 0.22) 50%,
+    rgb(255 255 255 / 0.22) 75%,
+    transparent 75%
+  );
+  background-size: 22px 22px;
+  animation: stripes 0.7s linear infinite;
+}
+
+/* Progress bar. HeroUI supplies the state machine, the grid layout and the
+   animated fill width; the surfaces and tones are this app's tokens. Without
+   these overrides the track would use HeroUI's `--default` (#ebebec / #27272a)
+   instead of `--ui-raised`, and the `default` tone would read
+   `--default-foreground` (near-black / near-white) instead of `--ui-faint`. */
+.ui-progress .progress-bar__track {
+  height: 6px;
+  border-radius: var(--ui-radius-pill);
+  background-color: rgb(var(--ui-raised));
+}
+
+.ui-progress .progress-bar__fill {
+  border-radius: var(--ui-radius-pill);
+}
+
+.ui-progress.progress-bar--default {
+  --progress-bar-fill: rgb(var(--ui-faint));
+}
+
+@keyframes stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 22px 0;
+  }
+}
+
+.page-drop-line {
+  box-shadow: inset 0 0 0 2px rgb(var(--ui-accent));
+}
+
+.checkerboard {
+  background-color: rgb(var(--ui-checker-light));
+  background-image: linear-gradient(45deg, rgb(var(--ui-checker-dark)) 25%, transparent 25%), linear-gradient(-45deg, rgb(var(--ui-checker-dark)) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgb(var(--ui-checker-dark)) 75%), linear-gradient(-45deg, transparent 75%, rgb(var(--ui-checker-dark)) 75%);
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+  background-size: 18px 18px;
+}

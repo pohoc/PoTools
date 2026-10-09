@@ -1,0 +1,11 @@
+packages:
+  - 'packages/*'
+  - 'apps/*'
+  - 'scripts'
+allowBuilds:
+  electron: true
+  esbuild: true
+  onnxruntime-node: false
+  protobufjs: true
+overrides:
+  tsx: 4.23.14

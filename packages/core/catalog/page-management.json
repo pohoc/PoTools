@@ -1,0 +1,363 @@
+[
+  {
+    "id": "merge",
+    "nameKey": "tool.merge.name",
+    "descKey": "tool.merge.desc",
+    "category": "organize",
+    "icon": "merge",
+    "order": 10,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "orderSensitive": true,
+    "keywords": [
+      "合并",
+      "merge",
+      "hebing"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "pageSize",
+        "labelKey": "opt.pageSize",
+        "descriptionKey": "opt.pageSize.hint",
+        "default": "keep",
+        "section": "layout",
+        "row": "a",
+        "options": [
+          {
+            "value": "keep",
+            "labelKey": "opt.pageSize.keep"
+          },
+          {
+            "value": "match-first",
+            "labelKey": "opt.pageSize.matchFirst"
+          },
+          {
+            "value": "a4",
+            "labelKey": "opt.pageSize.a4"
+          },
+          {
+            "value": "letter",
+            "labelKey": "opt.pageSize.letter"
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "key": "orientation",
+        "labelKey": "opt.orientation",
+        "default": "keep",
+        "section": "layout",
+        "row": "a",
+        "options": [
+          {
+            "value": "keep",
+            "labelKey": "opt.orientation.keep"
+          },
+          {
+            "value": "portrait",
+            "labelKey": "opt.orientation.portrait"
+          },
+          {
+            "value": "landscape",
+            "labelKey": "opt.orientation.landscape"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "margin",
+        "labelKey": "opt.margin",
+        "default": 0,
+        "min": 0,
+        "max": 72,
+        "step": 1,
+        "suffixKey": "unit.pt",
+        "displayUnit": "mm",
+        "section": "layout",
+        "row": "b"
+      }
+    ],
+    "workflow": "page-management",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "split",
+    "nameKey": "tool.split.name",
+    "descKey": "tool.split.desc",
+    "category": "organize",
+    "icon": "scissors",
+    "order": 20,
+    "accept": "application/pdf",
+    "multiFile": false,
+    "layout": "splitter",
+    "artifactKind": "pdf",
+    "keywords": [
+      "拆分",
+      "split",
+      "chaifen"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "mode",
+        "labelKey": "opt.split.mode",
+        "default": "each-page",
+        "presentation": "chips",
+        "options": [
+          {
+            "value": "each-page",
+            "labelKey": "opt.split.mode.each",
+            "descriptionKey": "opt.split.mode.each.hint"
+          },
+          {
+            "value": "every-n",
+            "labelKey": "opt.split.mode.everyN",
+            "descriptionKey": "opt.split.mode.everyN.hint"
+          },
+          {
+            "value": "ranges",
+            "labelKey": "opt.split.mode.ranges"
+          },
+          {
+            "value": "halves",
+            "labelKey": "opt.split.mode.halves",
+            "descriptionKey": "opt.split.mode.halves.hint"
+          },
+          {
+            "value": "manual",
+            "labelKey": "opt.split.mode.manual",
+            "descriptionKey": "opt.split.mode.manual.hint"
+          }
+        ]
+      },
+      {
+        "type": "number",
+        "key": "everyN",
+        "labelKey": "opt.split.everyN",
+        "default": 2,
+        "min": 1,
+        "max": 500,
+        "step": 1,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "every-n"
+          ]
+        }
+      },
+      {
+        "type": "pageRanges",
+        "key": "ranges",
+        "labelKey": "opt.ranges",
+        "default": "1-3,4",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "ranges"
+          ]
+        }
+      },
+      {
+        "type": "boolean",
+        "key": "rangesAsOne",
+        "labelKey": "opt.split.rangesAsOne",
+        "default": false,
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "ranges"
+          ]
+        }
+      }
+    ],
+    "workflow": "page-management",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "organize",
+    "nameKey": "tool.organize.name",
+    "descKey": "tool.organize.desc",
+    "category": "organize",
+    "icon": "layout-grid",
+    "order": 30,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "organizer",
+    "artifactKind": "pdf",
+    "orderSensitive": true,
+    "keywords": [
+      "组织",
+      "页面",
+      "organize",
+      "排序"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "pageSize",
+        "labelKey": "opt.pageSize",
+        "default": "keep",
+        "section": "layout",
+        "options": [
+          {
+            "value": "keep",
+            "labelKey": "opt.pageSize.keep"
+          },
+          {
+            "value": "match-first",
+            "labelKey": "opt.pageSize.matchFirst"
+          },
+          {
+            "value": "a4",
+            "labelKey": "opt.pageSize.a4"
+          }
+        ]
+      }
+    ],
+    "workflow": "page-management",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "rotate",
+    "nameKey": "tool.rotate.name",
+    "descKey": "tool.rotate.desc",
+    "category": "organize",
+    "icon": "rotate-cw",
+    "order": 40,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "旋转",
+      "rotate"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "angle",
+        "labelKey": "opt.rotate.angle",
+        "default": 90,
+        "row": "a",
+        "options": [
+          {
+            "value": 90,
+            "labelKey": "opt.rotate.clockwise"
+          },
+          {
+            "value": -90,
+            "labelKey": "opt.rotate.counterclockwise"
+          },
+          {
+            "value": 180,
+            "labelKey": "opt.rotate.upsideDown"
+          }
+        ]
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all",
+        "row": "b"
+      }
+    ],
+    "workflow": "page-management",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "extract-pages",
+    "nameKey": "tool.extract.name",
+    "descKey": "tool.extract.desc",
+    "category": "organize",
+    "icon": "copy",
+    "order": 50,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "提取",
+      "extract"
+    ],
+    "fields": [
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "1"
+      },
+      {
+        "type": "boolean",
+        "key": "oneFilePerGroup",
+        "labelKey": "opt.extract.onePerRange",
+        "default": false
+      }
+    ],
+    "workflow": "page-management",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "delete-pages",
+    "nameKey": "tool.delete.name",
+    "descKey": "tool.delete.desc",
+    "category": "organize",
+    "icon": "eraser",
+    "order": 60,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "删除",
+      "delete"
+    ],
+    "fields": [
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "descriptionKey": "opt.deletePages.hint",
+        "placeholderKey": "opt.deletePages.placeholder",
+        "default": "",
+        "allowEmpty": false,
+        "allowAll": false
+      }
+    ],
+    "workflow": "page-management",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  }
+]

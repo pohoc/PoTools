@@ -1,0 +1,306 @@
+name: Release
+
+# 纯发版流水线：仅推 tag（v*）触发，产物自动上传到 GitHub Release（draft）。
+# 测试验证走 CI（ci.yml，push/PR 触发）；发版前可用 CI + draft Release 检查产物。
+# 重复推同一 tag 时自动取消仍在跑的旧一轮。
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# 版本戳在 stamp job 算一次，全链所有产物统一使用。
+# 正式版本号来自 git tag（v0.1.0），戳为 Asia/Shanghai 的 MMDDHHMM。
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 版本戳（全链统一） ────────────────────────────────────────────────
+
+  stamp:
+    runs-on: ubuntu-latest
+    outputs:
+      stamp: ${{ steps.stamp.outputs.stamp }}
+    steps:
+      - id: stamp
+        run: echo "stamp=$(TZ=Asia/Shanghai date +'%m%d%H%M')" >> "$GITHUB_OUTPUT"
+
+  # ── Tauri 原生构建（mac/win/linux 各在原生 runner 上） ─────────────────
+
+  build-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    needs: stamp
+    permissions:
+      contents: write
+    env:
+      POTOOLS_BUILD_STAMP: ${{ needs.stamp.outputs.stamp }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'x86_64-apple-darwin,wasm32-unknown-unknown' || matrix.platform == 'ubuntu-22.04' && 'wasm32-unknown-unknown' || '' }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: potools-rust
+          workspaces: |
+            packages/engine
+            apps/desktop
+          # 失败也保存缓存：否则 Windows 一次红构建就丢掉整棵依赖树，
+          # 下次又要 30+ 分钟冷编译（本次 39 分钟的教训）。
+          cache-on-failure: true
+
+      - name: Install wasm-bindgen-cli (prebuilt)
+        shell: bash
+        env:
+          WBV: 0.2.129
+        run: |
+          set -e
+          case "$(uname -s)" in
+            Darwin) t=x86_64-apple-darwin ;;
+            Linux)  t=x86_64-unknown-linux-musl ;;
+            *)      t=x86_64-pc-windows-msvc ;;
+          esac
+          curl -fsSLo /tmp/wb.tar.gz "https://github.com/rustwasm/wasm-bindgen/releases/download/${WBV}/wasm-bindgen-${WBV}-${t}.tar.gz"
+          mkdir -p "$HOME/.cargo/bin"
+          tar -xzf /tmp/wb.tar.gz -C /tmp
+          cp "/tmp/wasm-bindgen-${WBV}-${t}"/* "$HOME/.cargo/bin/"
+          wasm-bindgen --version
+
+      - name: Install Linux deps (Tauri v2 + WebKitGTK 4.1)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev patchelf
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Warm cargo registry (wasm:build uses --offline)
+        run: cargo fetch --manifest-path packages/engine/Cargo.toml
+
+      - name: Build engine WASM
+        run: pnpm wasm:build
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          POTOOLS_BUILD_STAMP: ${{ needs.stamp.outputs.stamp }}
+          # updater 产物（setup.exe / .app.tar.gz / AppImage）打包期用 minisign 私钥签名：
+          # 公钥在 tauri.conf.json（可提交），私钥只在仓库 secret。
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          # tag 推送（v*）→ 构建并上传到 GitHub Release（draft）
+          # workflow_dispatch → 仅构建验证，不创建 Release
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('PoTools {0}', github.ref_name) || '' }}
+          releaseBody: |
+            所有工具在本机运行，不需要网络。
+            - **Windows 10/11（x64）标准版**：`PoTools_<版本>-<构建戳>_x64-setup.exe`
+            - **Windows 7 兼容版**（Electron 22，32 位，浏览器模式功能集）：`PoTools_<版本>-<构建戳>_win7-ia32-setup.exe`
+            - **macOS（Intel）**：`PoTools_<版本>-<构建戳>_x64.dmg`
+            - **Linux**：`.AppImage` / `.deb` / `.rpm`
+          releaseDraft: ${{ startsWith(github.ref, 'refs/tags/') }}
+          prerelease: false
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
+
+  # ── Windows 7 兼容包（Electron 22 ia32，浏览器模式功能集） ────────────
+
+  build-win7:
+    runs-on: windows-latest
+    needs: stamp
+    permissions:
+      contents: write
+    env:
+      POTOOLS_BUILD_STAMP: ${{ needs.stamp.outputs.stamp }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: potools-rust
+          workspaces: packages/engine
+          cache-on-failure: true
+
+      - name: Install wasm-bindgen-cli (prebuilt)
+        shell: bash
+        env:
+          WBV: 0.2.129
+        run: |
+          set -e
+          case "$(uname -s)" in
+            Darwin) t=x86_64-apple-darwin ;;
+            Linux)  t=x86_64-unknown-linux-musl ;;
+            *)      t=x86_64-pc-windows-msvc ;;
+          esac
+          curl -fsSLo /tmp/wb.tar.gz "https://github.com/rustwasm/wasm-bindgen/releases/download/${WBV}/wasm-bindgen-${WBV}-${t}.tar.gz"
+          mkdir -p "$HOME/.cargo/bin"
+          tar -xzf /tmp/wb.tar.gz -C /tmp
+          cp "/tmp/wasm-bindgen-${WBV}-${t}"/* "$HOME/.cargo/bin/"
+          wasm-bindgen --version
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Warm cargo registry (wasm:build uses --offline)
+        run: cargo fetch --manifest-path packages/engine/Cargo.toml
+
+      - name: Build web dist (with fonts + OCR models)
+        run: pnpm --filter @potools/web build
+
+      - name: Sync dist to Win7 shell
+        run: pnpm --filter @potools/legacy-win7 sync-dist
+
+      - name: Build ia32 NSIS installer
+        run: pnpm --filter @potools/legacy-win7 dist
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: win7-setup
+          path: apps/legacy-win7/release/*.exe
+
+  # ── 收尾：统一产物命名（与本地 collect-release-artifacts 一致） ────────
+  # tauri-action 上传的是 Tauri 默认命名（PoTools_0.1.0_x64-setup.exe，无构建戳）；
+  # 这里按本地约定重命名为 PoTools_<版本>-<MMDDHHMM>_<…>，并把 Win7 包补进 Release。
+  # 仅 tag 推送执行；workflow_dispatch 没有 Release，Win7 包留在 workflow artifact。
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    needs: [stamp, build-tauri, build-win7]
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      STAMP: ${{ needs.stamp.outputs.stamp }}
+    steps:
+      - name: Rename release assets with build stamp
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"${TAG}\") | .id" | head -n1)
+          if [ -z "$RELEASE_ID" ]; then
+            echo "::error::no release found for ${TAG}"; exit 1
+          fi
+          # 每轮只留最新一代：删掉带旧戳的产物（PoTools_x.y.z-<旧戳>_…），
+          # 否则重复触发 tag 会一层层叠（线上出现过两代并存）。
+          # 然后统一打戳：PoTools_0.1.0_x64-setup.exe → PoTools_0.1.0-<戳>_x64-setup.exe；
+          # RPM 是连字符命名（PoTools-0.1.0-1.x86_64.rpm），转成统一形式再插戳。
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
+            --jq '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r id name; do
+            old_stamp=$(printf '%s' "$name" | sed -nE 's/^PoTools_[0-9.]+-([0-9]{8})_.*/\1/p')
+            if [ -n "$old_stamp" ] && [ "$old_stamp" != "$STAMP" ]; then
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" >/dev/null \
+                && echo "removed stale build ${name}" || echo "::warning::delete failed: ${name}"
+              continue
+            fi
+            new=$(printf '%s' "$name" | sed -E "s/^(PoTools_[0-9][0-9.]*)_/\\1-${STAMP}_/")
+            case "$name" in
+              *.rpm)
+                new=$(printf '%s' "$name" | sed -E "s/^PoTools-([0-9][0-9.]*)-[0-9]+\.(.+)\.rpm$/PoTools_\\1-${STAMP}_\\2.rpm/") ;;
+            esac
+            if [ "$new" != "$name" ]; then
+              gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -f name="$new" >/dev/null \
+                && echo "renamed ${name} -> ${new}" || echo "::warning::rename failed: ${name}"
+            fi
+          done
+
+      # 自动更新索引：latest.json 里的下载 URL 指向 tauri-action 上传时的原始
+      # 文件名，上面的重命名会让那些 URL 404——按同一规则改写 latest.json。
+      # 另生成两份国内镜像清单：资产 URL 也包同一代理前缀（清单与下载同源），
+      # updater 端点顺序 = 官方直连 → gh-proxy 镜像 → ghfast 镜像，直连失败自动落镜像。
+      - name: Rewrite latest.json and generate CN mirror manifests
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"${TAG}\") | .id" | head -n1)
+          ASSET_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
+            --jq '.[] | select(.name == "latest.json") | .id')
+          if [ -z "$ASSET_ID" ]; then
+            echo "::error::latest.json missing — updater manifest was not uploaded"; exit 1
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/releases/assets/${ASSET_ID}" \
+            -H "Accept: application/octet-stream" > latest.json
+          jq --arg stamp "$STAMP" '
+            .platforms |= with_entries(
+              .value.url |= sub("(?<v>PoTools_[0-9][0-9.]*)_"; "\(.v)-\($stamp)_")
+            )' latest.json > latest.stamped.json
+          if cmp -s latest.json latest.stamped.json; then
+            echo "::warning::latest.json URLs unchanged — check the rename pattern"
+          fi
+          mv latest.stamped.json latest.json
+          gh release upload "${TAG}" latest.json --clobber --repo "${GITHUB_REPOSITORY}"
+          echo "latest.json rewritten:"
+          cat latest.json
+          for pair in "gh-proxy.com|latest-cn.json" "ghfast.top|latest-cn-ghfast.json"; do
+            proxy="${pair%%|*}"; out="${pair##*|}"
+            jq --arg stamp "$STAMP" --arg prefix "https://${proxy}/" '
+              .platforms |= with_entries(
+                .value.url |= ($prefix + sub("(?<v>PoTools_[0-9][0-9.]*)_"; "\(.v)-\($stamp)_"))
+              )' latest.json > "$out"
+            gh release upload "${TAG}" "$out" --clobber --repo "${GITHUB_REPOSITORY}"
+            echo "uploaded ${out} (assets via ${proxy})"
+          done
+
+      - name: Download win7 installer
+        uses: actions/download-artifact@v4
+        with:
+          name: win7-setup
+          path: win7
+
+      - name: Upload stamped win7 installer to release
+        run: |
+          for f in win7/*.exe; do
+            base="$(basename "$f")"
+            new="$(printf '%s' "$base" | sed -E "s/^(PoTools_[0-9][0-9.]*)-win7/\\1-${STAMP}_win7/")"
+            mv "$f" "win7/${new}"
+            gh release upload "${GITHUB_REF_NAME}" "win7/${new}" --clobber --repo "${GITHUB_REPOSITORY}"
+            echo "uploaded ${new}"
+          done

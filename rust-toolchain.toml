@@ -1,0 +1,8 @@
+[toolchain]
+# AGENTS.md requires the stable toolchain. Declaring it here (instead of relying
+# on prose) means a fresh clone gets rustfmt/clippy and the wasm target that
+# `pnpm wasm:build` needs, without a manual `rustup component add`.
+channel = "stable"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]

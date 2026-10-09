@@ -1,0 +1,186 @@
+import { create } from 'zustand';
+import type { JobRequest, JobSnapshot, ToolId } from 'core';
+import { getTransport } from '../lib/transport.ts';
+import type { Transport } from '../lib/transport-shared.ts';
+import { useSettings } from '../lib/settings.ts';
+import { useEngine } from './engine.ts';
+
+interface JobState {
+  jobs: JobSnapshot[];
+  attached: boolean;
+  /**
+   * Subscribes to the current transport's job events. Safe to call repeatedly:
+   * the subscription follows the transport instance, so a manual reconnect
+   * (which replaces the singleton) re-attaches instead of silently going deaf.
+   */
+  attach: () => void;
+  detach: () => void;
+  submit: (job: Omit<JobRequest, 'id' | 'createdAt'>) => Promise<JobSnapshot>;
+  /** Re-runs the exact original request (files + options), independent of the current draft. */
+  resubmit: (jobId: string) => Promise<boolean>;
+  cancel: (jobId: string) => Promise<void>;
+  clearFinished: () => Promise<void>;
+  refresh: () => Promise<void>;
+}
+
+/** Original requests by job id — powers 重新处理 without the current draft. */
+const requests = new Map<string, JobRequest>();
+
+const TERMINAL = new Set(['succeeded', 'failed', 'cancelled']);
+const RANK: Record<JobSnapshot['progress']['state'], number> = {
+  queued: 0,
+  running: 1,
+  succeeded: 2,
+  failed: 2,
+  cancelled: 2,
+};
+/** Orders snapshots so the late `job.submit` reply cannot rewind an already streamed job. */
+const rankOf = (job: JobSnapshot): number => RANK[job.progress.state] * 1_000 + job.progress.percent;
+const STALE_EVENT_MS = 3_000;
+const WATCHDOG_TICK_MS = 1_000;
+
+let watchdog: ReturnType<typeof setInterval> | null = null;
+let lastEventAt = 0;
+/** Transport the current event subscription belongs to, plus its unsubscribe. */
+let subscribedTransport: Transport | null = null;
+let detachEvents: (() => void) | null = null;
+
+/**
+ * Safety net for a silently dead event stream: while a job is non-terminal and
+ * no frame has arrived, reconcile the list from `job.list` every few seconds.
+ */
+function armWatchdog(): void {
+  if (watchdog) return;
+  watchdog = setInterval(() => {
+    const timer = watchdog;
+    if (!timer) return;
+    const state = useJobs.getState();
+    if (!state.jobs.some((job) => !TERMINAL.has(job.progress.state))) {
+      clearInterval(timer);
+      watchdog = null;
+      return;
+    }
+    if (Date.now() - lastEventAt < STALE_EVENT_MS) return;
+    lastEventAt = Date.now();
+    void state.refresh();
+  }, WATCHDOG_TICK_MS);
+}
+
+export const useJobs = create<JobState>((set, get) => ({
+  jobs: [],
+  attached: false,
+
+  attach: () => {
+    const transport = getTransport();
+    if (subscribedTransport === transport) return;
+    detachEvents?.();
+    subscribedTransport = transport;
+    detachEvents = transport.onEvent((event) => {
+      lastEventAt = Date.now();
+      if (event.event !== 'job.updated') return;
+      const incoming = event.job;
+      const previous = get().jobs.find((job) => job.id === incoming.id);
+      set((state) => {
+        const index = state.jobs.findIndex((job) => job.id === incoming.id);
+        if (index === -1) return { jobs: [incoming, ...state.jobs] };
+        const next = [...state.jobs];
+        next[index] = incoming;
+        return { jobs: next };
+      });
+      armWatchdog();
+      if (
+        previous &&
+        previous.progress.state !== 'succeeded' &&
+        incoming.progress.state === 'succeeded' &&
+        incoming.artifacts[0]?.path
+      ) {
+        const settings = useSettings.getState();
+        if (settings.autoOpen) {
+          void useEngine
+            .getState()
+            .call('shell.reveal', { path: incoming.artifacts[0].path })
+            .catch(() => undefined);
+        }
+      }
+    });
+    set({ attached: true });
+    void get().refresh().then(armWatchdog);
+  },
+
+  detach: () => {
+    detachEvents?.();
+    detachEvents = null;
+    subscribedTransport = null;
+    set({ attached: false });
+  },
+
+  submit: async (job) => {
+    const id = `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const request: JobRequest = { ...job, id, createdAt: Date.now() };
+    requests.set(id, request);
+    const snapshot = await useEngine.getState().call<JobSnapshot>('job.submit', { job: request });
+    set((state) => {
+      const local = state.jobs.find((item) => item.id === snapshot.id);
+      if (!local) return { jobs: [snapshot, ...state.jobs] };
+      if (rankOf(snapshot) <= rankOf(local)) return { jobs: state.jobs };
+      return { jobs: state.jobs.map((item) => (item.id === snapshot.id ? snapshot : item)) };
+    });
+    armWatchdog();
+    return snapshot;
+  },
+
+  resubmit: async (jobId) => {
+    const request = requests.get(jobId);
+    if (!request) return false;
+    await get().submit(request);
+    return true;
+  },
+
+  cancel: async (jobId) => {
+    await useEngine.getState().call('job.cancel', { jobId });
+  },
+
+  clearFinished: async () => {
+    const ids = get()
+      .jobs.filter((job) => TERMINAL.has(job.progress.state))
+      .map((job) => job.id);
+    if (!ids.length) return;
+    await useEngine.getState().call('job.clear', { jobIds: ids });
+    set((state) => ({ jobs: state.jobs.filter((job) => !ids.includes(job.id)) }));
+    // Cleared jobs leave their staged artifacts in the OS temp dir; sweep them
+    // now. temp.clean protects still-queued/running jobs on its own, and the
+    // browser build keeps artifacts in memory (no temp root), so a failure
+    // there is expected and ignored.
+    await useEngine.getState().call('temp.clean', { olderThanDays: 0, keepJobs: 0 }).catch(() => undefined);
+  },
+
+  refresh: async () => {
+    try {
+      const jobs = await useEngine.getState().call<JobSnapshot[]>('job.list');
+      set((state) => {
+        const known = new Map(state.jobs.map((job) => [job.id, job]));
+        const merged = jobs.map((job) => {
+          const local = known.get(job.id);
+          // Event frames strip base64 payloads; keep the richer local copy.
+          if (local && local.artifacts.some((a) => a.dataBase64) && !job.artifacts.some((a) => a.dataBase64)) {
+            return local.progress.state === job.progress.state ? local : { ...job, artifacts: job.artifacts };
+          }
+          return job;
+        });
+        return { jobs: merged };
+      });
+    } catch {
+      // engine offline: keep whatever is cached
+    }
+  },
+}));
+
+export function useLatestJobFor(tool: ToolId | undefined): JobSnapshot | undefined {
+  return useJobs((state) =>
+    state.jobs.find((job) => (tool ? job.tool === tool : true) && job.progress.state !== 'queued'),
+  );
+}
+
+export function isTerminal(job: JobSnapshot): boolean {
+  return TERMINAL.has(job.progress.state);
+}

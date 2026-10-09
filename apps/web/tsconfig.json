@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "paths": {
+      "core": ["./src/lib/core-contract.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts", "scripts", "harness"]
+}

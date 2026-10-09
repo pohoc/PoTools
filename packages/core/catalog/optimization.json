@@ -1,0 +1,193 @@
+[
+  {
+    "id": "compress",
+    "nameKey": "tool.compress.name",
+    "descKey": "tool.compress.desc",
+    "category": "optimize",
+    "icon": "minimize",
+    "order": 100,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "压缩",
+      "optimize",
+      "compress"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "preset",
+        "labelKey": "opt.compress.preset",
+        "default": "balanced",
+        "uiOnly": true,
+        "options": [
+          {
+            "value": "extreme",
+            "labelKey": "opt.compress.extreme",
+            "descriptionKey": "opt.compress.extreme.hint",
+            "applies": {
+              "imageQuality": 45,
+              "maxDpi": 96
+            }
+          },
+          {
+            "value": "balanced",
+            "labelKey": "opt.compress.balanced",
+            "descriptionKey": "opt.compress.balanced.hint",
+            "applies": {
+              "imageQuality": 70,
+              "maxDpi": 150
+            }
+          },
+          {
+            "value": "quality",
+            "labelKey": "opt.compress.quality",
+            "descriptionKey": "opt.compress.quality.hint",
+            "applies": {
+              "imageQuality": 88,
+              "maxDpi": 220
+            }
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "imageQuality",
+        "labelKey": "opt.compress.imageQuality",
+        "descriptionKey": "opt.compress.imageQuality.hint",
+        "default": 70,
+        "min": 20,
+        "max": 96,
+        "step": 1,
+        "unit": "percent",
+        "row": "q"
+      },
+      {
+        "type": "slider",
+        "key": "maxDpi",
+        "labelKey": "opt.compress.maxDpi",
+        "descriptionKey": "opt.compress.maxDpi.hint",
+        "default": 150,
+        "min": 72,
+        "max": 300,
+        "step": 6,
+        "unit": "dpi",
+        "row": "q"
+      },
+      {
+        "type": "boolean",
+        "key": "resampleImages",
+        "labelKey": "opt.compress.resample",
+        "default": true,
+        "section": "advanced"
+      },
+      {
+        "type": "boolean",
+        "key": "objectStreams",
+        "labelKey": "opt.compress.objectStreams",
+        "default": true,
+        "section": "advanced"
+      },
+      {
+        "type": "boolean",
+        "key": "stripMetadata",
+        "labelKey": "opt.compress.stripMetadata",
+        "default": false,
+        "section": "advanced"
+      }
+    ],
+    "workflow": "optimization",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "remove-blank",
+    "nameKey": "tool.removeBlank.name",
+    "descKey": "tool.removeBlank.desc",
+    "category": "optimize",
+    "icon": "eraser",
+    "order": 95,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "空白页",
+      "blank",
+      "删除空页"
+    ],
+    "fields": [
+      {
+        "type": "slider",
+        "key": "tolerance",
+        "labelKey": "opt.blank.tolerance",
+        "descriptionKey": "opt.blank.tolerance.hint",
+        "default": 2,
+        "min": 0,
+        "max": 20,
+        "step": 1,
+        "unit": "percent"
+      },
+      {
+        "type": "boolean",
+        "key": "reportOnly",
+        "labelKey": "opt.blank.reportOnly",
+        "descriptionKey": "opt.blank.reportOnly.hint",
+        "default": false
+      }
+    ],
+    "workflow": "optimization",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  },
+  {
+    "id": "repair",
+    "nameKey": "tool.repair.name",
+    "descKey": "tool.repair.desc",
+    "category": "optimize",
+    "icon": "wrench",
+    "order": 105,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "pdf",
+    "keywords": [
+      "修复",
+      "repair",
+      "损坏"
+    ],
+    "fields": [
+      {
+        "type": "boolean",
+        "key": "recompress",
+        "labelKey": "opt.repair.recompress",
+        "descriptionKey": "opt.repair.recompress.hint",
+        "default": true
+      },
+      {
+        "type": "boolean",
+        "key": "stripMetadata",
+        "labelKey": "opt.compress.stripMetadata",
+        "default": false,
+        "section": "advanced"
+      }
+    ],
+    "workflow": "optimization",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "pdf"
+    ]
+  }
+]

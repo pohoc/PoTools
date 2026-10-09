@@ -1,0 +1,18 @@
+# Project-scoped cargo config: crates.io is unreliable from this network, so the
+# build uses the rsproxy.cn mirror. Delete this file to fall back to upstream.
+[source.crates-io]
+replace-with = 'rsproxy-sparse'
+
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+
+[registries.rsproxy]
+index = "sparse+https://rsproxy.cn/index/"
+
+[net]
+git-fetch-with-cli = true
+retry = 5
+
+[http]
+timeout = 60
+low-speed-limit = 1

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "invoice-organize",
+    "nameKey": "tool.invoiceOrganize.name",
+    "descKey": "tool.invoiceOrganize.desc",
+    "category": "organize",
+    "icon": "receipt",
+    "order": 14,
+    "accept": "application/pdf,image/*,.tif,.tiff",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "json",
+    "keywords": [
+      "发票整理",
+      "发票归档",
+      "目录整理",
+      "invoice organize",
+      "invoice archive"
+    ],
+    "fields": [],
+    "workflow": "invoice-organizing",
+    "inputFormats": [
+      "pdf",
+      "image"
+    ],
+    "outputFormats": [
+      "json"
+    ]
+  }
+]

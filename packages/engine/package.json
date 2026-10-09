@@ -1,0 +1,9 @@
+{
+  "name": "@potools/engine",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "author": "pohoc <po.hoc4@gmail.com>",
+  "description": "Rust tool engine; use Cargo manifests for native and WebAssembly builds",
+  "files": ["Cargo.toml", "Cargo.lock", "src", "wasm"]
+}

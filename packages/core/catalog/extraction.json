@@ -1,0 +1,213 @@
+[
+  {
+    "id": "extract-images",
+    "nameKey": "tool.extractImages.name",
+    "descKey": "tool.extractImages.desc",
+    "category": "extract",
+    "icon": "images",
+    "order": 115,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "image-grid",
+    "artifactKind": "image",
+    "keywords": [
+      "提取图片",
+      "图片导出"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "format",
+        "labelKey": "opt.images.format",
+        "descriptionKey": "opt.extract.format.hint",
+        "default": "original",
+        "row": "x1",
+        "options": [
+          {
+            "value": "original",
+            "labelKey": "opt.extract.original"
+          },
+          {
+            "value": "jpeg",
+            "labelKey": "opt.images.jpeg"
+          },
+          {
+            "value": "png",
+            "labelKey": "opt.images.png"
+          },
+          {
+            "value": "webp",
+            "labelKey": "opt.images.webp"
+          }
+        ]
+      },
+      {
+        "type": "slider",
+        "key": "minBytes",
+        "labelKey": "opt.extract.minSize",
+        "descriptionKey": "opt.extract.minSize.hint",
+        "default": 0,
+        "min": 0,
+        "max": 500,
+        "step": 10,
+        "unit": "kb",
+        "section": "advanced"
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "extraction",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "image"
+    ]
+  },
+  {
+    "id": "extract-text",
+    "nameKey": "tool.extractText.name",
+    "descKey": "tool.extractText.desc",
+    "category": "extract",
+    "icon": "file-text",
+    "order": 116,
+    "accept": "application/pdf",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "json",
+    "keywords": [
+      "提取文字",
+      "文本",
+      "ocr 替代"
+    ],
+    "fields": [
+      {
+        "type": "select",
+        "key": "granularity",
+        "labelKey": "opt.extract.granularity",
+        "descriptionKey": "opt.extract.granularity.hint",
+        "default": "single",
+        "options": [
+          {
+            "value": "single",
+            "labelKey": "opt.extract.singleFile"
+          },
+          {
+            "value": "per-page",
+            "labelKey": "opt.extract.perPage"
+          }
+        ]
+      },
+      {
+        "type": "boolean",
+        "key": "pageMarkers",
+        "labelKey": "opt.extract.pageMarkers",
+        "descriptionKey": "opt.extract.pageMarkers.hint",
+        "default": true
+      },
+      {
+        "type": "pageRanges",
+        "key": "pages",
+        "labelKey": "opt.pages",
+        "default": "all"
+      }
+    ],
+    "workflow": "extraction",
+    "inputFormats": [
+      "pdf"
+    ],
+    "outputFormats": [
+      "json"
+    ]
+  },
+  {
+    "id": "ocr-text",
+    "nameKey": "tool.ocrText.name",
+    "descKey": "tool.ocrText.desc",
+    "category": "extract",
+    "icon": "scan",
+    "order": 117,
+    "accept": "application/pdf,image/*,.tif,.tiff,.bmp",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "text",
+    "keywords": [
+      "OCR",
+      "图片转文字",
+      "扫描件识别",
+      "文字识别",
+      "recognize text"
+    ],
+    "fields": [
+      {
+        "type": "slider",
+        "key": "dpi",
+        "labelKey": "opt.ocr.dpi",
+        "descriptionKey": "opt.ocr.dpi.hint",
+        "default": 200,
+        "min": 120,
+        "max": 300,
+        "step": 20,
+        "unit": "dpi"
+      },
+      {
+        "type": "boolean",
+        "key": "pageMarkers",
+        "labelKey": "opt.ocr.pageMarkers",
+        "default": true
+      }
+    ],
+    "workflow": "extraction",
+    "inputFormats": [
+      "pdf",
+      "image"
+    ],
+    "outputFormats": [
+      "text"
+    ]
+  },
+  {
+    "id": "ocr-table",
+    "nameKey": "tool.ocrTable.name",
+    "descKey": "tool.ocrTable.desc",
+    "category": "extract",
+    "icon": "table",
+    "order": 118,
+    "accept": "application/pdf,image/*,.tif,.tiff,.bmp",
+    "multiFile": true,
+    "layout": "standard",
+    "artifactKind": "xlsx",
+    "keywords": [
+      "OCR",
+      "表格识别",
+      "扫描表格",
+      "图片转 Excel",
+      "table recognition"
+    ],
+    "fields": [
+      {
+        "type": "slider",
+        "key": "dpi",
+        "labelKey": "opt.ocr.dpi",
+        "descriptionKey": "opt.ocr.dpi.hint",
+        "default": 220,
+        "min": 120,
+        "max": 300,
+        "step": 20,
+        "unit": "dpi"
+      }
+    ],
+    "workflow": "extraction",
+    "inputFormats": [
+      "pdf",
+      "image"
+    ],
+    "outputFormats": [
+      "xlsx"
+    ]
+  }
+]
