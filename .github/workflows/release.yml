@@ -266,53 +266,50 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       STAMP: ${{ needs.stamp.outputs.stamp }}
     steps:
-      - name: Rename release assets with build stamp
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
-            --jq ".[] | select(.tag_name == \"${TAG}\") | .id" | head -n1)
-          if [ -z "$RELEASE_ID" ]; then
-            echo "::error::no release found for ${TAG}"; exit 1
-          fi
-          # 每轮只留最新一代：删掉带旧戳的产物（PoTools_x.y.z-<旧戳>_…），
-          # 否则重复触发 tag 会一层层叠（线上出现过两代并存）。
-          # 然后统一打戳：PoTools_0.1.0_x64-setup.exe → PoTools_0.1.0-<戳>_x64-setup.exe；
-          # RPM 是连字符命名（PoTools-0.1.0-1.x86_64.rpm），转成统一形式再插戳。
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
-            --jq '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r id name; do
-            old_stamp=$(printf '%s' "$name" | sed -nE 's/^PoTools_[0-9.]+-([0-9]{8})_.*/\1/p')
-            if [ -n "$old_stamp" ] && [ "$old_stamp" != "$STAMP" ]; then
-              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" >/dev/null \
-                && echo "removed stale build ${name}" || echo "::warning::delete failed: ${name}"
-              continue
-            fi
-            new=$(printf '%s' "$name" | sed -E "s/^(PoTools_[0-9][0-9.]*)_/\\1-${STAMP}_/")
-            case "$name" in
-              *.rpm|*.rpm.sig)
-                new=$(printf '%s' "$name" | sed -E "s/^PoTools-([0-9][0-9.]*)-[0-9]+\.(.+)\.rpm(\.sig)?$/PoTools_\\1-${STAMP}_\\2.rpm\\3/") ;;
-            esac
-            if [ "$new" != "$name" ]; then
-              gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -f name="$new" >/dev/null \
-                && echo "renamed ${name} -> ${new}" || echo "::warning::rename failed: ${name}"
-            fi
-          done
-
-      # 终扫：改名/打戳后仍不带本轮戳的 PoTools 产物一律视为残留删除
-      #（未打戳重复、旧式命名、.sig 漏网等）；latest*.json 与无版本名的
-      # .app.tar.gz(+.sig)（updater darwin 产物，latest.json 引用它）除外。
-      - name: Sweep leftover un-stamped assets
+      # 资产列表有分钟级传播延迟（上一轮曾因此把未打戳的新资产当残留误扫）。
+      # 先等列表条数连续两次轮询不变（上传传播完毕）再动手。
+      - name: Wait for asset uploads to settle
         run: |
           RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
             --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | .id" | head -n1)
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate \
-            --jq '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r id name; do
-            case "$name" in
-              latest*.json|PoTools_x64.app.tar.gz|PoTools_x64.app.tar.gz.sig) continue ;;
-              PoTools_*-"$STAMP"_*|PoTools_*-"$STAMP".*.rpm|PoTools_*-"$STAMP".*.rpm.sig) continue ;;
-              PoTools*)
+          if [ -z "$RELEASE_ID" ]; then
+            echo "::error::no release found for ${GITHUB_REF_NAME}"; exit 1
+          fi
+          echo "RELEASE_ID=$RELEASE_ID" >> "$GITHUB_ENV"
+          prev=-1
+          for i in $(seq 1 18); do
+            cur=$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?per_page=100" --jq 'length')
+            echo "poll $i: $cur assets"
+            if [ "$cur" = "$prev" ] && [ "$cur" != "0" ]; then break; fi
+            prev=$cur; sleep 10
+          done
+
+      # 改名循环跑两遍：第二遍兜住第一遍之后才传播可见的资产。
+      # 每遍先删带旧戳的产物（PoTools_x.y.z-<旧戳>_…，每轮只留最新一代），
+      # 再统一打戳；未打戳资产只改名、绝不删除（可能是晚到的本轮资产）。
+      - name: Rename release assets with build stamp
+        run: |
+          for pass in 1 2; do
+            echo "── rename pass $pass"
+            gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?per_page=100" \
+              --jq '.[] | "\(.id)\t\(.name)"' | while IFS=$'\t' read -r id name; do
+              old_stamp=$(printf '%s' "$name" | sed -nE 's/^PoTools_[0-9.]+-([0-9]{8})_.*/\1/p')
+              if [ -n "$old_stamp" ] && [ "$old_stamp" != "$STAMP" ]; then
                 gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" >/dev/null \
-                  && echo "swept leftover ${name}" || echo "::warning::sweep failed: ${name}" ;;
-            esac
+                  && echo "removed stale build ${name}" || echo "::warning::delete failed: ${name}"
+                continue
+              fi
+              new=$(printf '%s' "$name" | sed -E "s/^(PoTools_[0-9][0-9.]*)_/\\1-${STAMP}_/")
+              case "$name" in
+                *.rpm|*.rpm.sig)
+                  new=$(printf '%s' "$name" | sed -E "s/^PoTools-([0-9][0-9.]*)-[0-9]+\.(.+)\.rpm(\.sig)?$/PoTools_\\1-${STAMP}_\\2.rpm\\3/") ;;
+              esac
+              if [ "$new" != "$name" ]; then
+                gh api -X PATCH "repos/${GITHUB_REPOSITORY}/releases/assets/${id}" -f name="$new" >/dev/null \
+                  && echo "renamed ${name} -> ${new}" || echo "::warning::rename failed: ${name}"
+              fi
+            done
+            sleep 5
           done
 
       # 自动更新清单：三个平台 job 并发生成的 latest.json 会互相覆盖（最终只剩
