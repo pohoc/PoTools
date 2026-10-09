@@ -28,7 +28,9 @@ uuid = { version = "1.26.1", features = ["v4"] }
 potools-engine = { path = "../../packages/engine" }
 
 [profile.release]
-codegen-units = 1
+# codegen-units=4：LTO 后代码生成并行化（本地实测全量 -13%、重编链接 -15%），
+# 体积代价 +2.0%（≈300KB），远小于 thin LTO 的 +38%
+codegen-units = 4
 lto = true
 opt-level = "s"
 strip = true
