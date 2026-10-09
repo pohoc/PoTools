@@ -27,7 +27,84 @@ jobs:
       - id: stamp
         run: echo "stamp=$(TZ=Asia/Shanghai date +'%m%d%H%M')" >> "$GITHUB_OUTPUT"
 
-  # ── Tauri 原生构建（mac/win/linux 各在原生 runner 上） ─────────────────
+  # ── 前端产物只构建一次（桌面变体 + Win7 浏览器变体），各平台只做原生构建 ──
+
+  prepare:
+    runs-on: ubuntu-latest
+    needs: stamp
+    env:
+      POTOOLS_BUILD_STAMP: ${{ needs.stamp.outputs.stamp }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust stable (wasm32 for engine WASM)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: potools-rust
+          workspaces: packages/engine
+          cache-on-failure: true
+
+      - name: Install wasm-bindgen-cli (prebuilt)
+        shell: bash
+        env:
+          WBV: 0.2.129
+        run: |
+          set -e
+          curl -fsSLo /tmp/wb.tar.gz "https://github.com/rustwasm/wasm-bindgen/releases/download/${WBV}/wasm-bindgen-${WBV}-x86_64-unknown-linux-musl.tar.gz"
+          mkdir -p "$HOME/.cargo/bin"
+          tar -xzf /tmp/wb.tar.gz -C /tmp
+          cp "/tmp/wasm-bindgen-${WBV}-x86_64-unknown-linux-musl"/* "$HOME/.cargo/bin/"
+          wasm-bindgen --version
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Warm cargo registry (wasm:build uses --offline)
+        run: cargo fetch --manifest-path packages/engine/Cargo.toml
+
+      - name: Build engine WASM
+        run: pnpm wasm:build
+
+      # 前端只构建一次。桌面/浏览器两版唯一差异是 dist/fonts（~17MB 浏览器字体，
+      # 桌面版由系统字体桥替代）：浏览器版原样给 Win7，桌面版拷贝一份删 fonts 即可。
+      - name: Build web (single source build)
+        run: pnpm --filter @potools/web build
+
+      - name: Upload browser web dist (Win7 uses this as-is)
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-browser
+          path: apps/web/dist
+
+      - name: Derive desktop dist (drop browser-only fonts — no rebuild)
+        run: |
+          cp -r apps/web/dist /tmp/dist-desktop
+          rm -rf /tmp/dist-desktop/fonts
+          echo "desktop dist derived (fonts dropped)"
+
+      - name: Upload desktop web dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-desktop
+          path: /tmp/dist-desktop
+
+  # ── Tauri 原生构建（消费 prepare 的 web dist，只做平台原生构建） ────────
 
   build-tauri:
     strategy:
@@ -35,13 +112,13 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            args: '--target x86_64-apple-darwin'
+            args: '--target x86_64-apple-darwin --config tauri.ci.conf.json'
           - platform: 'ubuntu-22.04'
-            args: ''
+            args: '--config tauri.ci.conf.json'
           - platform: 'windows-latest'
-            args: ''
+            args: '--config tauri.ci.conf.json'
     runs-on: ${{ matrix.platform }}
-    needs: stamp
+    needs: [stamp, prepare]
     permissions:
       contents: write
     env:
@@ -63,7 +140,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'x86_64-apple-darwin,wasm32-unknown-unknown' || matrix.platform == 'ubuntu-22.04' && 'wasm32-unknown-unknown' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -76,23 +153,6 @@ jobs:
           # 下次又要 30+ 分钟冷编译（本次 39 分钟的教训）。
           cache-on-failure: true
 
-      - name: Install wasm-bindgen-cli (prebuilt)
-        shell: bash
-        env:
-          WBV: 0.2.129
-        run: |
-          set -e
-          case "$(uname -s)" in
-            Darwin) t=x86_64-apple-darwin ;;
-            Linux)  t=x86_64-unknown-linux-musl ;;
-            *)      t=x86_64-pc-windows-msvc ;;
-          esac
-          curl -fsSLo /tmp/wb.tar.gz "https://github.com/rustwasm/wasm-bindgen/releases/download/${WBV}/wasm-bindgen-${WBV}-${t}.tar.gz"
-          mkdir -p "$HOME/.cargo/bin"
-          tar -xzf /tmp/wb.tar.gz -C /tmp
-          cp "/tmp/wasm-bindgen-${WBV}-${t}"/* "$HOME/.cargo/bin/"
-          wasm-bindgen --version
-
       - name: Install Linux deps (Tauri v2 + WebKitGTK 4.1)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -102,11 +162,11 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Warm cargo registry (wasm:build uses --offline)
-        run: cargo fetch --manifest-path packages/engine/Cargo.toml
-
-      - name: Build engine WASM
-        run: pnpm wasm:build
+      - name: Download shared web dist (built once in prepare)
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-desktop
+          path: apps/web/dist
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -131,11 +191,11 @@ jobs:
           includeUpdaterJson: true
           args: ${{ matrix.args }}
 
-  # ── Windows 7 兼容包（Electron 22 ia32，浏览器模式功能集） ────────────
+  # ── Windows 7 兼容包（Electron 22 ia32；消费 prepare 的浏览器变体 dist） ─
 
   build-win7:
     runs-on: windows-latest
-    needs: stamp
+    needs: [stamp, prepare]
     permissions:
       contents: write
     env:
@@ -154,43 +214,14 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: potools-rust
-          workspaces: packages/engine
-          cache-on-failure: true
-
-      - name: Install wasm-bindgen-cli (prebuilt)
-        shell: bash
-        env:
-          WBV: 0.2.129
-        run: |
-          set -e
-          case "$(uname -s)" in
-            Darwin) t=x86_64-apple-darwin ;;
-            Linux)  t=x86_64-unknown-linux-musl ;;
-            *)      t=x86_64-pc-windows-msvc ;;
-          esac
-          curl -fsSLo /tmp/wb.tar.gz "https://github.com/rustwasm/wasm-bindgen/releases/download/${WBV}/wasm-bindgen-${WBV}-${t}.tar.gz"
-          mkdir -p "$HOME/.cargo/bin"
-          tar -xzf /tmp/wb.tar.gz -C /tmp
-          cp "/tmp/wasm-bindgen-${WBV}-${t}"/* "$HOME/.cargo/bin/"
-          wasm-bindgen --version
-
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Warm cargo registry (wasm:build uses --offline)
-        run: cargo fetch --manifest-path packages/engine/Cargo.toml
-
-      - name: Build web dist (with fonts + OCR models)
-        run: pnpm --filter @potools/web build
+      - name: Download shared web dist (browser variant, built once in prepare)
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-browser
+          path: apps/web/dist
 
       - name: Sync dist to Win7 shell
         run: pnpm --filter @potools/legacy-win7 sync-dist
