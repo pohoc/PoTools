@@ -143,11 +143,16 @@ jobs:
       RUSTFLAGS: ${{ matrix.platform == 'ubuntu-22.04' && '-C link-arg=-fuse-ld=mold' || '' }}
     steps:
       # Windows runner 的 Defender 实时扫描会逐个检查 target 下数万个编译产物，
-      # 是 Rust CI 在 Windows 上最大的拖累；一次性 VM 上关闭属社区常规操作。
-      - name: Disable Windows Defender realtime scan (Rust CI speedup)
+      # 是 Rust CI 在 Windows 上最大的拖累。但新镜像的 Tamper Protection 会拒绝
+      # Set-MpPreference，故整步 continue-on-error：能关则提速，关不掉照常构建。
+      - name: Disable Windows Defender realtime scan (Rust CI speedup, best-effort)
         if: matrix.platform == 'windows-latest'
         shell: powershell
-        run: Set-MpPreference -DisableRealtimeMonitoring $true
+        continue-on-error: true
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+          Add-MpPreference -ExclusionPath "$(Get-Location)" -ErrorAction SilentlyContinue
+          Add-MpPreference -ExclusionPath "$env:USERPROFILE\.cargo" -ErrorAction SilentlyContinue
 
       - uses: actions/checkout@v4
 
