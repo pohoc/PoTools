@@ -7,7 +7,10 @@
     "beforeDevCommand": "pnpm --filter @potools/web dev",
     "devUrl": "http://127.0.0.1:5199",
     "beforeBuildCommand": "pnpm --filter @potools/web build",
-    "frontendDist": "../web/dist"
+    "frontendDist": "../web/dist",
+    "windows": {
+      "staticVCRuntime": true
+    }
   },
   "app": {
     "withGlobalTauri": false,
