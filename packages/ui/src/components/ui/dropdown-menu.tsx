@@ -6,7 +6,15 @@ import { cn } from '../../utils.ts';
 export const DropdownMenu = HeroDropdown.Root;
 export function DropdownMenuTrigger({ asChild = false, children, ...props }: ComponentProps<typeof HeroDropdown.Trigger> & { asChild?: boolean }) {
   if (asChild && isValidElement(children)) {
-    return <HeroDropdown.Trigger {...props} render={(triggerProps) => cloneElement(children, { ...triggerProps, className: cn(triggerProps.className, (children.props as { className?: string }).className) } as never)} />;
+    return <HeroDropdown.Trigger {...props} render={(triggerProps) => {
+      // HeroUI 的 render props 会带上它自己的 children（内置图标），直接展开
+      // 会盖掉子按钮自己的图标（如语言钮的地球）。只采纳交互属性。
+      const { children: _injected, ...interactive } = triggerProps as { children?: ReactNode } & Record<string, unknown>;
+      return cloneElement(children, {
+        ...interactive,
+        className: cn((children.props as { className?: string }).className),
+      } as never);
+    }} />;
   }
   return <HeroDropdown.Trigger {...props}>{children}</HeroDropdown.Trigger>;
 }
