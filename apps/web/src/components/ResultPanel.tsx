@@ -46,7 +46,7 @@ function kindIcon(artifact: OutputFile): string {
   return KIND_ICON[artifact.kind] ?? 'file';
 }
 
-export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () => void }) {
+export function ResultPanel({ job, onRetry, runOutputDir }: { job?: JobSnapshot; onRetry?: () => void; runOutputDir?: string }) {
   const { t, tf } = useI18n();
   const settings = useSettings();
   const call = useEngine((state) => state.call);
@@ -67,6 +67,15 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
 
   const running = job.progress.state === 'running' || job.progress.state === 'queued';
   const error = job.error ? rpcErrorMessage(job.error) : null;
+  // The folder this job's artifacts actually live in — the first path's parent.
+  // More truthful than the settings folder under per-run overrides and
+  // source-next-to-file mode.
+  const firstPath = job.artifacts.find((artifact) => artifact.path)?.path;
+  const destinationDir = (() => {
+    if (!firstPath) return runOutputDir ?? (outputDir || t('result.noDir'));
+    const cut = Math.max(firstPath.lastIndexOf('/'), firstPath.lastIndexOf('\\'));
+    return cut > 0 ? firstPath.slice(0, cut) : firstPath;
+  })();
   const summary = job.summary;
   const delta = summary?.sizeDeltaPercent ?? 0;
   const descriptor = TOOLS[job.tool];
@@ -268,7 +277,9 @@ export function ResultPanel({ job, onRetry }: { job?: JobSnapshot; onRetry?: () 
 
       <div className="flex items-center gap-2 border-t border-line px-4 py-2 text-[11.5px] text-faint">
         <Icon name="folder" size={13} className="shrink-0" />
-        <span className="min-w-0 flex-1 truncate" title={outputDir}>{outputDir || t('result.noDir')}</span>
+        {/* Show where this job's files actually are — the settings folder can
+            differ (per-run override, source-next-to-file mode). */}
+        <span className="min-w-0 flex-1 truncate" title={destinationDir}>{destinationDir}</span>
         {isTauri() && job.artifacts.some((artifact) => artifact.path && !artifact.stagedMissing) ? (
           <Button
             size="sm"
@@ -373,8 +384,7 @@ export function TextRunPanel({
       sizeBytes: new TextEncoder().encode(result.text).byteLength,
     }];
   }, [defaultName, result, tf]);
-  const binaryArtifacts = (result?.artifacts ?? []).filter((artifact) => artifact.kind === 'binary').map((artifact, index) => ({
-    ...artifact,
+  const binaryArtifacts = (result?.artifacts ?? []).filter((artifact) => artifact.kind === 'binary').map((artifact, index) => Object.assign({}, artifact, {
     id: `inline-binary-${index}`,
     kind: 'binary' as const,
   }));

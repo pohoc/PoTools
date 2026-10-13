@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { EngineInfo, JobRequest, RpcMethodName } from 'core';
 import { getTransport, resetTransport, type TransportStatus } from '../lib/transport.ts';
 import { isTauri } from '../lib/tauri.ts';
+import { resolveOutputDir } from '../lib/output-dir.ts';
 import '../lib/devdebug.ts';
 import { useSettings } from '../lib/settings.ts';
 
@@ -31,8 +32,13 @@ function applyJobDefaults(job: JobRequest): JobRequest {
       ...job.globals,
     },
     output: {
-      // An unset preference means "use the platform folder the engine reports".
-      dir: settings.outputDir || useEngine.getState().info?.defaultOutputDir || null,
+      dir: resolveOutputDir({
+        outputMode: settings.outputMode ?? 'folder',
+        isDesktop: isTauri(),
+        outputDir: settings.outputDir,
+        defaultDir: useEngine.getState().info?.defaultOutputDir ?? null,
+        filePaths: job.files.map((file) => file.path),
+      }),
       // Native mode reads artifacts from staged files, so keeping a second
       // base64 copy in the Node heap is unnecessary.
       wantBytes: !isTauri(),

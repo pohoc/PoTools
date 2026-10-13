@@ -61,7 +61,7 @@ control's boundary on the decorative tier.
 
 ## Testing Guidelines
 
-There is no separate unit-test runner configured. Run `pnpm test:tools` for the engine’s end-to-end coverage, including content assertions, format round-trips, error paths, and cleanup. Run `pnpm lint` and `pnpm typecheck` (or the package-specific equivalent) for all TypeScript changes, and `pnpm rust:test` plus `pnpm rust:clippy` for Rust changes. Exercise `pnpm tauri dev` when changing Rust, IPC, packaging, or native integration, and the packaged build when changing the WebView security config (`csp`, capabilities) or theme tokens.
+There is no separate unit-test runner configured. Run `pnpm test:tools` for the engine’s end-to-end coverage, including content assertions, format round-trips, error paths, and cleanup. Pure frontend helpers (path and output-dir resolution, date preset echo) carry `node:test` unit tests under `apps/web/tests/` — run `pnpm test:unit` when touching them, and keep new pure logic there covered the same way. Run `pnpm lint` and `pnpm typecheck` (or the package-specific equivalent) for all TypeScript changes, and `pnpm rust:test` plus `pnpm rust:clippy` for Rust changes. Exercise `pnpm tauri dev` when changing Rust, IPC, packaging, or native integration, and the packaged build when changing the WebView security config (`csp`, capabilities) or theme tokens.
 
 ## Commit & Pull Request Guidelines
 

@@ -237,13 +237,10 @@ interface GoldenOutcome {
                     // A reply that carries no bytes (already-digested frame) keeps
                     // whatever digest it arrived with.
                     if (!bytes) return { name: artifact.name, kind: artifact.kind, sha256: artifact.sha256 };
-                    return {
-                      name: artifact.name,
-                      kind: artifact.kind,
-                      ...(item.dump
-                        ? { dataBase64: btoa(String.fromCharCode(...bytes.subarray(0, Math.min(bytes.length, 24_000_000)))) }
-                        : { sha256: await canonicalArtifactDigest(bytes, artifact.kind) }),
-                    };
+                    const payload = item.dump
+                      ? { dataBase64: btoa(String.fromCharCode(...bytes.subarray(0, Math.min(bytes.length, 24_000_000)))) }
+                      : { sha256: await canonicalArtifactDigest(bytes, artifact.kind) };
+                    return Object.assign({ name: artifact.name, kind: artifact.kind }, payload);
                   })),
                 };
               }

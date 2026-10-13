@@ -8,6 +8,9 @@ import { cn } from '../../utils';
  */
 export function Slider({ className, value, onValueChange, min, max, step, ...props }: ComponentProps<typeof HeroSlider> & { value?: number[]; onValueChange?: (value: number[]) => void; min?: number; max?: number; step?: number }) {
   const thumbs = Math.max(1, value?.length ?? 1);
+  // react-aria warns once per thumb when the thumb carries no label, so every
+  // thumb inherits the root's aria-label (numbered when there is more than one).
+  const label = typeof props['aria-label'] === 'string' ? props['aria-label'] : undefined;
   return (
     <HeroSlider.Root
       className={cn('min-w-0', className)}
@@ -21,7 +24,10 @@ export function Slider({ className, value, onValueChange, min, max, step, ...pro
       <HeroSlider.Track>
         <HeroSlider.Fill />
         {Array.from({ length: thumbs }, (_, index) => (
-          <HeroSlider.Thumb key={index} />
+          <HeroSlider.Thumb
+            key={index}
+            aria-label={label && thumbs > 1 ? `${label} ${index + 1}` : label}
+          />
         ))}
       </HeroSlider.Track>
     </HeroSlider.Root>

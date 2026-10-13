@@ -3474,6 +3474,7 @@ name = "potools"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "percent-encoding",
  "potools-engine",
  "serde",
  "serde_json",

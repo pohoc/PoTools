@@ -68,7 +68,10 @@ export function FilePreviewDialog({ target, onClose }: { target: PreviewTarget |
           }
         }
         setSource(fileViewerSource(bytes, name));
-      } catch {
+      } catch (error) {
+        // The dialog only shows a generic failure; log the real cause so the
+        // log panel can answer "why" (denials, encoding, viewer limits).
+        console.error('[preview] load failed', target.name, target.path, error);
         if (alive) setFailed(true);
       }
     })();

@@ -52,7 +52,13 @@
         "min": 1,
         "max": 8,
         "step": 1,
-        "suffixKey": "opt.dev.spaces"
+        "suffixKey": "opt.dev.spaces",
+        "showIf": {
+          "field": "mode",
+          "in": [
+            "pretty"
+          ]
+        }
       }
     ],
     "workflow": "developer",
@@ -61,7 +67,8 @@
     ],
     "outputFormats": [
       "json"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "xml-format",
@@ -115,7 +122,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "xml-json",
@@ -168,7 +176,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "yaml-json",
@@ -221,7 +230,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "regex-test",
@@ -294,7 +304,8 @@
           "in": [
             "replace"
           ]
-        }
+        },
+        "placeholderKey": "opt.regex.replacement.placeholder"
       }
     ],
     "workflow": "developer",
@@ -303,7 +314,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "binary-codec",
@@ -356,7 +368,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "case-convert",
@@ -421,7 +434,8 @@
             "value": "kebab",
             "labelKey": "opt.dev.style.kebab"
           }
-        ]
+        ],
+        "presentation": "chips"
       }
     ],
     "workflow": "developer",
@@ -430,7 +444,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "color-convert",
@@ -528,6 +543,7 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   }
 ]

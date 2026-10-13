@@ -45,7 +45,8 @@
             "value": "scale",
             "labelKey": "opt.resize.byScale"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "select",
@@ -535,7 +536,8 @@
             "value": 6,
             "labelKey": "opt.invoice.six"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "boolean",

@@ -20,7 +20,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use tauri::{AppHandle, Manager};
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 mod access;
 use access::PathGrants;
@@ -444,13 +444,14 @@ fn stage_job_artifact_binary(
             .map_err(|error| error.to_string())
     };
     let job_id = header("x-potools-job-id")?;
-    let name = header("x-potools-name")?;
-    let temp_root = header("x-potools-temp-root")?;
+    let name = decode_header_value(header("x-potools-name")?, "artifact name")?;
+    let temp_root = decode_header_value(header("x-potools-temp-root")?, "temp root")?;
     let output_dir = header("x-potools-output-dir")
         .ok()
-        .filter(|value| !value.is_empty());
-    // The staging target is `<temp_root>/jobs/<job>`, so checking that path
-    // accepts only temp roots the app actually granted (`<root>/jobs`).
+        .filter(|value| !value.is_empty())
+        .map(|value| decode_header_value(value, "output dir"))
+        .transpose()?; // The staging target is `<temp_root>/jobs/<job>`, so checking that path
+                       // accepts only temp roots the app actually granted (`<root>/jobs`).
     let staging = format!("{temp_root}/jobs/{job_id}");
     grants.require_write(&staging)?;
     if let Some(dir) = output_dir.as_ref() {
@@ -473,6 +474,42 @@ fn stage_job_artifact_binary(
         grants.grant_file(std::path::Path::new(path));
     }
     Ok(staged)
+}
+
+#[cfg(test)]
+mod header_value_tests {
+    use super::decode_header_value;
+
+    #[test]
+    fn ascii_values_pass_through_untouched() {
+        let encoded = "%2FUsers%2Fpohoc%2FDocuments%2FPoTools";
+        assert_eq!(
+            decode_header_value(encoded.to_string(), "output dir").unwrap(),
+            "/Users/pohoc/Documents/PoTools",
+        );
+        assert_eq!(
+            decode_header_value("plain-name.pdf".to_string(), "artifact name").unwrap(),
+            "plain-name.pdf"
+        );
+    }
+
+    #[test]
+    fn decodes_the_frontend_percent_encoding_for_non_ascii_names() {
+        // The exact encodeURIComponent output for
+        // "保安二部2024年4月-11月入职人员合同-2-split (9) (2)-compressed.pdf".
+        let encoded = "%E4%BF%9D%E5%AE%89%E4%BA%8C%E9%83%A82024%E5%B9%B44%E6%9C%88-11%E6%9C%88%E5%85%A5%E8%81%8C%E4%BA%BA%E5%91%98%E5%90%88%E5%90%8C-2-split%20(9)%20(2)-compressed.pdf";
+        assert_eq!(
+            decode_header_value(encoded.to_string(), "artifact name").unwrap(),
+            "保安二部2024年4月-11月入职人员合同-2-split (9) (2)-compressed.pdf",
+        );
+    }
+
+    #[test]
+    fn broken_escapes_are_rejected_with_the_field_label() {
+        // %FF never forms valid UTF-8, so the decode must fail, not mojibake.
+        let error = decode_header_value("%FF.pdf".to_string(), "artifact name").unwrap_err();
+        assert!(error.contains("artifact name"), "{error}");
+    }
 }
 
 #[tauri::command(async)]
@@ -649,6 +686,55 @@ fn set_output_dir(grants: tauri::State<'_, PathGrants>, dir: Option<String>) -> 
     Ok(())
 }
 
+/// IPC header values are restricted to Latin-1 by the WebView (a non-ASCII
+/// artifact name or folder path makes `new Headers()` throw a bare
+/// "Type error" TypeError), so the frontend sends these values
+/// `encodeURIComponent`-encoded and this restores them.
+fn decode_header_value(value: String, label: &str) -> Result<String, String> {
+    percent_encoding::percent_decode_str(&value)
+        .decode_utf8()
+        .map(|decoded| decoded.to_string())
+        .map_err(|error| format!("Invalid UTF-8 in {label} header: {error}"))
+}
+
+/// "Save next to the source files": ask the user in a **native dialog** to grant
+/// write access to a resolved source folder. The dialog gesture is the only
+/// sound authority for a grant the WebView did not hold before (see the
+/// `PathGrants` threat model — a grant command callable from JS would simply be
+/// invoked by a script). Already-granted folders return true without prompting;
+/// a decline returns false and the caller falls back to the configured folder.
+#[tauri::command(async)]
+fn request_output_dir_grant(
+    app: AppHandle,
+    grants: tauri::State<'_, PathGrants>,
+    dir: String,
+    title: String,
+    message: String,
+    confirm_label: String,
+    cancel_label: String,
+) -> Result<bool, String> {
+    let target = potools_engine::services::filesystem::validate_absolute_path(&dir, "输出目录")?;
+    if !target.is_dir() {
+        return Err(format!("输出目录不存在：{dir}"));
+    }
+    if grants.can_write(&target) {
+        return Ok(true);
+    }
+    let allowed = app
+        .dialog()
+        .message(message)
+        .title(title)
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            confirm_label,
+            cancel_label,
+        ))
+        .blocking_show();
+    if allowed {
+        grants.grant_write_dir(&target);
+    }
+    Ok(allowed)
+}
+
 /// Diagnostics for the grant set, so a missing grant is visible instead of
 /// mysterious. Contains only paths the user themselves chose or configured.
 #[tauri::command(async)]
@@ -710,6 +796,7 @@ pub fn run() {
             save_as,
             set_temp_dir,
             set_output_dir,
+            request_output_dir_grant,
             path_grants
         ])
         .build(tauri::generate_context!())

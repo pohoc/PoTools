@@ -1,5 +1,5 @@
 import { Dropdown as HeroDropdown } from '@heroui/react';
-import { cloneElement, createContext, isValidElement, useContext, type ComponentProps, type ReactNode } from 'react';
+import { cloneElement, createContext, isValidElement, useContext, useMemo, type ComponentProps, type ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../utils.ts';
 
@@ -20,7 +20,10 @@ export function DropdownMenuTrigger({ asChild = false, children, ...props }: Com
 }
 export const DropdownMenuGroup = ({ children }: { children: ReactNode }) => <>{children}</>;
 const RadioContext = createContext<{ value?: string; onValueChange?: (value: string) => void }>({});
-export function DropdownMenuRadioGroup({ value, onValueChange, children }: { value?: string; onValueChange?: (value: string) => void; children: ReactNode }) { return <RadioContext.Provider value={{ value, onValueChange }}>{children}</RadioContext.Provider>; }
+export function DropdownMenuRadioGroup({ value, onValueChange, children }: { value?: string; onValueChange?: (value: string) => void; children: ReactNode }) {
+  const contextValue = useMemo(() => ({ value, onValueChange }), [value, onValueChange]);
+  return <RadioContext.Provider value={contextValue}>{children}</RadioContext.Provider>;
+}
 export const DropdownMenuLabel = ({ children, className }: { children: ReactNode; className?: string }) => <div className={cn('px-2 py-1 text-[11.5px] text-faint', className)}>{children}</div>;
 
 export const DropdownMenuSeparator = () => <div className="my-1 h-px bg-line" />;

@@ -317,10 +317,17 @@ export class EmbeddedJobRunner {
           runtimeData,
           // On-disk files stay on disk: the command reads them by path and
           // writes outputs straight to the temp dir, so no multi-MB base64
-          // payload crosses the bridge in either direction.
-          inputs: inputs.map((input) => input.path
-            ? { id: input.id, name: input.name, path: input.path }
-            : { id: input.id, name: input.name, path: null, dataBase64: encodeBase64(input.bytes) }),
+          // payload crosses the bridge in either direction. Pasted files
+          // (File carriers, no path) would otherwise reach the engine as
+          // empty bytes — materialize their content here.
+          inputs: await Promise.all(inputs.map(async (input) => {
+            if (input.path) return { id: input.id, name: input.name, path: input.path };
+            const carrier = (input as ResolvedInput & { file?: File }).file;
+            const bytes = input.bytes.byteLength || !carrier
+              ? input.bytes
+              : new Uint8Array(await carrier.arrayBuffer());
+            return { id: input.id, name: input.name, path: null, dataBase64: encodeBase64(bytes) };
+          })),
           jobId: request.id,
           tempRoot: tempRoot || null,
           outputDir: request.output?.dir ?? null,
@@ -438,15 +445,18 @@ export class EmbeddedJobRunner {
           // so both are authorized immediately before use.
           await authorizeTempDir(tempRoot);
           await authorizeOutputDir(request.output?.dir);
+          // IPC header values must stay Latin-1 — WebKit throws a bare
+          // "Type error" TypeError on non-ASCII names and paths — so every
+          // free-text header travels percent-encoded.
           const staged = await bridge.invoke<{ stagedPath: string; outputPath?: string; name: string }>(
             'stage_job_artifact_binary',
             bytes,
             {
               headers: {
                 'x-potools-job-id': request.id,
-                'x-potools-name': artifact.name,
-                'x-potools-output-dir': request.output?.dir ?? '',
-                'x-potools-temp-root': tempRoot,
+                'x-potools-name': encodeURIComponent(artifact.name),
+                'x-potools-output-dir': request.output?.dir ? encodeURIComponent(request.output.dir) : '',
+                'x-potools-temp-root': encodeURIComponent(tempRoot),
               },
             },
           );
@@ -470,6 +480,9 @@ export class EmbeddedJobRunner {
     } catch (error) {
       const current = this.jobs.get(request.id);
       if (!current || current.progress.state === 'cancelled') return;
+      // The result panel shows message+code only; the raw error (name, stack,
+      // non-Error rejection values) is what makes IPC failures diagnosable.
+      console.error('PoTools⏱ job.failed', request.tool, request.id, error, (error as Error)?.stack);
       const issue = error as Error & { code?: string; hintKey?: string };
       const failed: JobSnapshot = {
         ...current,

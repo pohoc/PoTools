@@ -69,7 +69,8 @@
             "labelKey": "opt.hash.algorithm.blake2b512",
             "descriptionKey": "opt.hash.algorithm.blake2b512.hint"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "select",
@@ -110,7 +111,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "hmac",
@@ -213,7 +215,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "file-checksum",
@@ -436,7 +439,8 @@
             "value": "image/jpeg",
             "labelKey": "opt.base64.mime.jpeg"
           }
-        ]
+        ],
+        "presentation": "chips"
       }
     ],
     "workflow": "crypto",
@@ -445,7 +449,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "radix",
@@ -532,7 +537,8 @@
             "value": "base16",
             "labelKey": "opt.radix.alphabet.base16"
           }
-        ]
+        ],
+        "presentation": "chips"
       }
     ],
     "workflow": "crypto",
@@ -541,7 +547,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "hex",
@@ -651,7 +658,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "url-codec",
@@ -735,7 +743,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "unicode-escape",
@@ -822,7 +831,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "jwt",
@@ -920,7 +930,8 @@
             "labelKey": "opt.jwt.algorithm.es256",
             "descriptionKey": "opt.jwt.algorithm.es256.hint"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "number",
@@ -948,7 +959,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "aes",
@@ -1158,7 +1170,8 @@
             "labelKey": "opt.rsa.mode.pubkey",
             "descriptionKey": "opt.rsa.mode.pubkey.hint"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "select",
@@ -1465,7 +1478,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "x509",
@@ -1532,7 +1546,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "password-gen",
@@ -1635,7 +1650,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "password-strength",
@@ -1760,7 +1776,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "file-base64",
@@ -1830,7 +1847,8 @@
     ],
     "outputFormats": [
       "binary"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "bcrypt",
@@ -1876,7 +1894,8 @@
         "default": "",
         "required": true,
         "maxLength": 72,
-        "autoComplete": "new-password"
+        "autoComplete": "new-password",
+        "placeholderKey": "opt.bcrypt.password.placeholder"
       },
       {
         "type": "number",
@@ -1905,7 +1924,8 @@
           "in": [
             "verify"
           ]
-        }
+        },
+        "placeholderKey": "opt.bcrypt.hash.placeholder"
       }
     ],
     "workflow": "crypto",

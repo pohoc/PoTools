@@ -38,17 +38,25 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<Option<ToolResult>, EngineErro
     let mut total_in = 0usize;
     let mut total_out = 0usize;
     let mut images_replaced = 0usize;
+    let total_inputs = ctx.inputs.len();
 
-    for input in ctx.inputs {
+    for (input_index, input) in ctx.inputs.iter().enumerate() {
         let mut document = load(input)?;
+        // A single file reports per-image steps (the dominant cost); multiple
+        // files stay monotonic at file granularity since each file's image
+        // count is unknown until it is parsed.
+        let per_image_progress = total_inputs == 1;
         let stats = if resample {
-            match recompress_images(&mut document, max_edge, quality)? {
+            match recompress_images(&mut document, max_edge, quality, per_image_progress)? {
                 RecompressResult::Stats(stats) => stats,
                 RecompressResult::NeedsBrowserFallback => return Ok(None),
             }
         } else {
             ImageStats::default()
         };
+        if total_inputs > 1 {
+            crate::progress::report(input_index + 1, total_inputs);
+        }
         if stats.skipped > 0 {
             result.warnings.push(format!(
                 "{}：{} 张图片因带透明度/特殊色彩空间被跳过",
@@ -155,6 +163,7 @@ fn recompress_images(
     document: &mut Document,
     max_edge: u32,
     quality: u8,
+    per_image_progress: bool,
 ) -> EngineResult<RecompressResult> {
     let image_ids = document
         .objects
@@ -165,8 +174,12 @@ fn recompress_images(
         })
         .collect::<Vec<_>>();
     let mut stats = ImageStats::default();
-    for id in image_ids {
-        let Some(Object::Stream(stream)) = document.objects.get(&id) else {
+    for (index, id) in image_ids.iter().enumerate() {
+        // Reported before the work so skipped images never stall the ramp.
+        if per_image_progress {
+            crate::progress::report(index + 1, image_ids.len());
+        }
+        let Some(Object::Stream(stream)) = document.objects.get(id) else {
             continue;
         };
         if is_image_mask(&stream.dict) {
@@ -199,7 +212,7 @@ fn recompress_images(
                 (width, height, bytes)
             }
         };
-        if let Some(Object::Stream(stream)) = document.objects.get_mut(&id) {
+        if let Some(Object::Stream(stream)) = document.objects.get_mut(id) {
             stream.dict.set("Width", width as i64);
             stream.dict.set("Height", height as i64);
             stream.set_content(encoded);

@@ -10,6 +10,7 @@ import { ColorPickerPanel } from '../components/ColorPickerPanel.tsx';
 import { PasswordStrengthPanel } from '../components/PasswordStrengthPanel.tsx';
 import { FileList } from '../components/FileList.tsx';
 import { areOptionsValid, OptionForm } from '../components/OptionForm.tsx';
+import { visibleFields } from '../lib/core-bindings.ts';
 import { PageGrid, slotsFromProbes, type Slot } from './PageGrid.tsx';
 import { SplitCanvas, groupsFromCuts } from './SplitCanvas.tsx';
 import { useI18n } from '../i18n/index.tsx';
@@ -20,6 +21,8 @@ import { useSettings } from '../lib/settings.ts';
 import { formatBytes } from '../lib/format.ts';
 import { localizedErrorText } from '../lib/error-text.ts';
 import { filesFromDataTransfer, kindFor } from '../lib/files.ts';
+import { commonParentDir } from '../lib/paths.ts';
+import { isTauri, nativePickDirectory, requestOutputDirGrant } from '../lib/tauri.ts';
 import { ToolWorkspaceLayout } from '../components/PageLayout.tsx';
 
 // Result preview and the image studio are the two heaviest parts of the page:
@@ -60,7 +63,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   const draft = useToolDraft(descriptor);
   // Destructured so the paste effect can depend on the callback instead of the
   // whole draft object (`useToolDraft` keeps its identity stable).
-  const { addFiles } = draft;
+  const { addFiles, refresh } = draft;
   const status = useEngine((state) => state.status);
   const info = useEngine((state) => state.info);
   const reconnect = useEngine((state) => state.reconnect);
@@ -69,6 +72,9 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const imageStudio = descriptor.id === 'image-cutout' || descriptor.id === 'image-id-photo' || descriptor.id === 'image-watermark-clean';
   const [preparedPortrait, setPreparedPortrait] = useState<File | null>(null);
+  // The destination resolved for the running/last job — lets the result panel
+  // name it before artifact paths exist.
+  const [runOutputDir, setRunOutputDir] = useState<string | undefined>(undefined);
   const [preparedOverrides, setPreparedOverrides] = useState<Record<string, string | number | boolean>>({});
   const setPortrait = useCallback((file: File | null, overrides?: Record<string, string | number | boolean>) => { setPreparedPortrait(file); setPreparedOverrides(overrides ?? {}); }, []);
 
@@ -162,28 +168,75 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
       toast.error(runDisabledReason ?? t('run.needsFiles'));
       return;
     }
+    // Resolve where this run writes: the per-run override, else the source
+    // folder in source mode, else the settings-resolved chain. Non-settings
+    // targets need write access — the native confirm dialog is the grant
+    // gesture (see PathGrants); a decline falls back to the configured folder
+    // for this run — never a silent failure.
+    let resolvedDir: string | undefined;
+    if (isTauri() && !textLayout) {
+      const overrideDir = draft.outputOverride;
+      const sourceDir = settings.outputMode === 'source'
+        ? commonParentDir(draft.files.map((file) => file.path).filter((path): path is string => Boolean(path)))
+        : null;
+      const fallbackDir = settings.outputDir || info?.defaultOutputDir || null;
+      resolvedDir = overrideDir ?? sourceDir ?? undefined;
+      if (resolvedDir) {
+        const granted = await requestOutputDirGrant(
+          resolvedDir,
+          t('output.grant.title'),
+          tf('output.grant.message', { dir: resolvedDir }),
+          t('output.grant.confirm'),
+          t('output.grant.cancel'),
+        );
+        if (!granted) {
+          toast.error(t('output.source.fallback'));
+          resolvedDir = fallbackDir ?? undefined;
+          if (overrideDir) draft.setOutputOverride(null);
+        }
+      } else if (settings.outputMode === 'source') {
+        toast.error(t('output.source.unavailable'));
+      }
+    }
+    // Published so the result panel can name the destination while the job is
+    // still running (artifact paths only exist after the staging loop).
+    setRunOutputDir(resolvedDir);
     if (organizer) {
       await draft.run({
         plan: slots.map((slot) => ({ fileId: slot.fileId, page: slot.page, rotation: slot.rotation })) as never,
-      });
+      }, resolvedDir);
       return;
     }
     if (splitter && draft.options.mode === 'manual') {
       const first = draft.files[0];
       const pageCount = first ? (draft.probes[first.id]?.pageCount ?? 0) : 0;
-      await draft.run({ groups: groupsFromCuts(cuts, pageCount) as never });
+      await draft.run({ groups: groupsFromCuts(cuts, pageCount) as never }, resolvedDir);
       return;
     }
     if (imageStudio) {
-      if (preparedPortrait) await draft.runPrepared(preparedPortrait, preparedOverrides);
+      if (preparedPortrait) await draft.runPrepared(preparedPortrait, preparedOverrides, resolvedDir);
       return;
     }
-    await draft.run();
+    await draft.run(undefined, resolvedDir);
   };
 
   const error = draft.error ? describeError(draft.error, draft.errorCode, t) : null;
   const textLayout = descriptor.layout === 'text';
-  const outputDir = settings.outputDir ?? info?.defaultOutputDir ?? '';
+  const liveText = textLayout && descriptor.interaction === 'live';
+  const outputMode = settings.outputMode ?? 'folder';
+  // Output location applies to tools that write files. Text-only results never
+  // touch a folder, and the browser build saves through downloads instead.
+  const showOutputMode = isTauri() && !textLayout && descriptor.requiresInput !== false;
+
+  // Rolling codes: a TOTP result is only valid inside the current window, so a
+  // live result silently re-runs on a fixed cadence (the quiet path never
+  // flashes the running state, so the code text just updates in place).
+  const totpCountdown = descriptor.id === 'totp' && liveText && draft.textResult !== null;
+  useEffect(() => {
+    if (!totpCountdown) return;
+    const timer = window.setInterval(() => refresh(), 5000);
+    return () => window.clearInterval(timer);
+  }, [totpCountdown, refresh]);
 
   const header = (
     <div className="flex min-w-0 items-start gap-3">
@@ -286,21 +339,59 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
       {textLayout ? (
         <p className="text-center text-[11px] leading-4 text-faint">{t('result.textOnlyHint')}</p>
       ) : (
-        <p className="text-center text-[11px] leading-4 text-faint">
-          {outputDir ? (
-            <>
-              {t('result.outputDir')} ·{' '}
-              <span className="font-mono" title={outputDir}>
-                {shorten(outputDir)}
-              </span>
-              {settings.outputDir ? null : <span className="text-faint"> · {t('settings.defaultDir')}</span>}
-            </>
-          ) : (
-            t('result.noDir')
-          )}
-        </p>
+        <div className="flex items-center justify-between gap-2 text-[11px] leading-4 text-faint">
+          <span className="min-w-0 truncate">
+            {t('output.saveLocation')}
+            {' · '}
+            {draft.outputOverride ? (
+              <span className="font-mono" title={draft.outputOverride}>{shorten(draft.outputOverride)}</span>
+            ) : outputMode === 'source' && showOutputMode ? (
+              t('output.mode.source')
+            ) : (
+              t('output.mode.folder')
+            )}
+          </span>
+          {showOutputMode ? (
+            <span className="flex shrink-0 items-center gap-1">
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-[11px]"
+                onClick={() => {
+                  void nativePickDirectory().then((dir) => {
+                    if (dir) {
+                      draft.setOutputOverride(dir);
+                      void requestOutputDirGrant(
+                        dir,
+                        t('output.grant.title'),
+                        tf('output.grant.message', { dir }),
+                        t('output.grant.confirm'),
+                        t('output.grant.cancel'),
+                      );
+                    }
+                  });
+                }}
+              >
+                {t('output.choose')}
+              </Button>
+              {draft.outputOverride ? (
+                <Button variant="link" size="sm" className="h-auto p-0 text-[11px]" onClick={() => draft.setOutputOverride(null)}>
+                  {t('settings.useDefault')}
+                </Button>
+              ) : null}
+            </span>
+          ) : null}
+        </div>
       )}
     </div>
+  );
+
+  // Live tools drop the run button; their only status line explains why
+  // auto-run is currently suppressed (structurally invalid options).
+  const liveHint = (
+    <p className="text-center text-[11px] leading-4 text-faint" role="status">
+      {!optionsValid && runDisabledReason ? runDisabledReason : t('result.liveHint')}
+    </p>
   );
 
   const resultPanel = (
@@ -315,7 +406,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
           onRetry={() => void onRun()}
         />
       ) : (
-        <ResultPanel job={job} onRetry={() => void onRun()} />
+        <ResultPanel job={job} onRetry={() => void onRun()} runOutputDir={runOutputDir} />
       )}
     </Suspense>
   );
@@ -337,13 +428,48 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
   }
 
   if (textLayout) {
+    // Text tools get a card workbench: the input card (editor when the tool has
+    // a main-section textarea, otherwise its single-line fields) sits beside the
+    // result card so the transformation stays visible while typing. Both cards
+    // carry their title inside the header row and stretch to equal heights.
+    // Only main-section textareas become the editor; auxiliary textareas in the
+    // advanced section (e.g. date-diff's holiday list) stay with the options.
+    const visible = visibleFields(descriptor.fields, draft.options);
+    const isEditor = (field: typeof descriptor.fields[number]) =>
+      field.type === 'textarea' && (!field.section || field.section === 'main');
+    const editorFields = visible.filter(isEditor);
+    const optionFields = visible.filter((field) => !isEditor(field));
+    const resetButton = (
+      <Button variant="link" size="sm" className="h-6 shrink-0 px-1 text-[11.5px]" onClick={draft.resetOptions}>
+        {t('common.reset')}
+      </Button>
+    );
     return (
-      <ToolWorkspaceLayout header={header} width="text">
+      <ToolWorkspaceLayout header={header}>
         {engineNotice}
         {networkNotice}
-        {optionsSection}
-        {runPanel}
-        {resultPanel}
+        <div className="text-hero-grid gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
+            <Section
+              title={t('tool.input')}
+              aside={editorFields.length ? undefined : resetButton}
+              className="flex min-w-0 flex-col"
+            >
+              {editorFields.length ? (
+                <OptionForm fields={editorFields} values={draft.options} onChange={draft.setOption} hero />
+              ) : (
+                <OptionForm fields={optionFields} values={draft.options} onChange={draft.setOption} />
+              )}
+            </Section>
+            {editorFields.length && optionFields.length ? (
+              <Section title={t('tool.options')} aside={resetButton} className="flex min-w-0 flex-col">
+                <OptionForm fields={optionFields} values={draft.options} onChange={draft.setOption} />
+              </Section>
+            ) : null}
+            {liveText ? liveHint : runPanel}
+          </div>
+          <div className="flex min-w-0 flex-col [&>*]:flex-1">{resultPanel}</div>
+        </div>
       </ToolWorkspaceLayout>
     );
   }

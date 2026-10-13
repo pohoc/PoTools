@@ -51,6 +51,20 @@ body,
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* Text tools workbench: editor pane and result pane sit side by side on a wide
+   window so the transformation stays visible while typing; narrow windows stack
+   them in workflow order (editor, options, run, result). */
+.text-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1200px) {
+  .text-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
 .tool-run-column {
   min-width: 0;
 }

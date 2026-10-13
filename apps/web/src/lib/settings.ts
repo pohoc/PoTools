@@ -6,6 +6,8 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   locale: Locale;
   outputDir: string | null;
+  /** Where file-tool results go: the configured folder, or next to each source file. */
+  outputMode: 'folder' | 'source';
   /** Scratch folder for staged results; null follows the OS temp folder. */
   tempDir: string | null;
   namePattern: string;
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   locale: 'zh-CN',
   outputDir: null,
+  outputMode: 'folder',
   tempDir: null,
   namePattern: '{name}-{tool}',
   concurrency: 1,
@@ -44,6 +47,7 @@ const isBoolean = (value: unknown): boolean => typeof value === 'boolean';
 const isNullableString = (value: unknown): boolean => value === null || typeof value === 'string';
 const isTheme = (value: unknown): boolean => value === 'system' || value === 'light' || value === 'dark';
 const isLocale = (value: unknown): boolean => value === 'zh-CN' || value === 'en';
+const isOutputMode = (value: unknown): boolean => value === 'folder' || value === 'source';
 const isIntegerBetween = (min: number, max: number) => (value: unknown): boolean =>
   typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 
@@ -67,6 +71,7 @@ function sanitizeSettings(raw: unknown): Settings {
     theme: read('theme', isTheme),
     locale: read('locale', isLocale),
     outputDir: read('outputDir', isNullableString),
+    outputMode: read('outputMode', isOutputMode),
     tempDir: read('tempDir', isNullableString),
     namePattern: read('namePattern', isString),
     // The settings UI offers 1-4 and the worker pool caps at 4 regardless.

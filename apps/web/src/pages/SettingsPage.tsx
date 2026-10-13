@@ -251,6 +251,32 @@ function OutputTab() {
           // rendering controls that lie.
           <p className="px-2 pb-1 text-[11.5px] leading-5 text-faint">{t('settings.outputDirBrowser')}</p>
         ) : (
+        <>
+        <FieldRow
+          label={t('output.mode.label')}
+          hint={t('settings.outputModeHint')}
+        >
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              aria-pressed={settings.outputMode === 'source'}
+              className="option-chip"
+              onClick={() => settings.set('outputMode', 'source')}
+            >
+              {t('output.mode.source')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-pressed={settings.outputMode === 'folder'}
+              className="option-chip"
+              onClick={() => settings.set('outputMode', 'folder')}
+            >
+              {t('output.mode.folder')}
+            </Button>
+          </div>
+        </FieldRow>
         <FieldRow
           label={t('settings.outputDir')}
           htmlFor="output-dir"
@@ -290,6 +316,7 @@ function OutputTab() {
             </div>
           ) : null}
         </FieldRow>
+        </>
         )}
 
         <FieldRow label={t('settings.pattern')} htmlFor="name-pattern" hint={t('settings.patternHint')}>

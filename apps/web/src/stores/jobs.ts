@@ -163,7 +163,10 @@ export const useJobs = create<JobState>((set, get) => ({
           const local = known.get(job.id);
           // Event frames strip base64 payloads; keep the richer local copy.
           if (local && local.artifacts.some((a) => a.dataBase64) && !job.artifacts.some((a) => a.dataBase64)) {
-            return local.progress.state === job.progress.state ? local : { ...job, artifacts: job.artifacts };
+            if (local.progress.state === job.progress.state) return local;
+            // Progress advanced: fresh identity so subscribers re-render, still
+            // carrying the event frame's (stripped) artifacts.
+            return Object.assign({}, job);
           }
           return job;
         });

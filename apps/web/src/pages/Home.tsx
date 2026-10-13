@@ -42,7 +42,8 @@ export function Home() {
 
   const categoryGroups = useMemo(() => {
     return TOOL_CATEGORIES.map((category) => ({
-      ...category,
+      id: category.id,
+      label: category.label,
       tools: category.id === 'all' ? TOOL_LIST : TOOL_LIST.filter((tool) => classifyTool(tool) === category.id),
     }));
   }, []);
@@ -52,7 +53,8 @@ export function Home() {
       ? categoryGroups.filter((group) => group.id !== 'all')
       : categoryGroups.filter((group) => group.id === activeCategory);
     return candidates.map((category) => ({
-      ...category,
+      id: category.id,
+      label: category.label,
       tools: category.tools.filter((tool) => filtered.includes(tool)
         && (activeCategory === 'all' || activeSubcategory === 'all'
           || (classifyTool(tool) === activeCategory && tool.category === activeSubcategory))),
@@ -238,6 +240,10 @@ function FormatBadges({ label, formats }: { label: string; formats: ToolFormat[]
 }
 
 function availableFormats(): ToolFormat[] {
-  return [...new Set(TOOL_LIST.flatMap((tool) => [...tool.inputFormats, ...tool.outputFormats]))]
-    .sort((a, b) => a.localeCompare(b));
+  const formats = new Set<ToolFormat>();
+  for (const tool of TOOL_LIST) {
+    for (const format of tool.inputFormats) formats.add(format);
+    for (const format of tool.outputFormats) formats.add(format);
+  }
+  return [...formats].sort((a, b) => a.localeCompare(b));
 }

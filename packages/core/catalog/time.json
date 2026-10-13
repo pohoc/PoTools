@@ -27,7 +27,7 @@
         "labelKey": "opt.timestamp.input",
         "descriptionKey": "opt.timestamp.input.hint",
         "placeholderKey": "opt.timestamp.input.placeholder",
-        "default": "",
+        "default": "now",
         "mono": true,
         "required": true,
         "allowTime": true,
@@ -65,7 +65,8 @@
             "labelKey": "opt.timestamp.unit.ns",
             "descriptionKey": "opt.timestamp.unit.ns.hint"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "timezone",
@@ -111,7 +112,8 @@
             "value": "chinese",
             "labelKey": "opt.timestamp.style.chinese"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "boolean",
@@ -136,7 +138,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "date-diff",
@@ -243,7 +246,8 @@
             "value": "weeks",
             "labelKey": "opt.dateDiff.unit.weeks"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "boolean",
@@ -297,7 +301,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "date-math",
@@ -402,7 +407,8 @@
             "value": "seconds",
             "labelKey": "opt.dateMath.unit.seconds"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "timezone",
@@ -435,7 +441,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "workdays",
@@ -546,7 +553,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "timezone-board",
@@ -645,7 +653,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "duration",
@@ -705,7 +714,8 @@
             "value": "ms",
             "labelKey": "opt.duration.unit.ms"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "select",
@@ -736,7 +746,8 @@
             "value": "chinese",
             "labelKey": "opt.duration.style.chinese"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "select",
@@ -770,7 +781,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "cron",
@@ -861,7 +873,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "date-format",
@@ -965,7 +978,8 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   },
   {
     "id": "relative-time",
@@ -1081,6 +1095,7 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "interaction": "live"
   }
 ]

@@ -1,7 +1,8 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState, type CSSProperties } from 'react';
 import { Icon, Input as HeroInput, Textarea as HeroTextarea } from '@potools/ui';
 import type { FieldValue, ToolField } from 'core';
 import { isValidPageRanges, visibleFields } from '../lib/core-bindings.ts';
+import { resolveDatePreset } from '../lib/date-presets.ts';
 import { Button, Toggle } from '@potools/ui';
 import { Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Popover, PopoverContent, PopoverTrigger, Slider, Collapsible, CollapsibleContent, CollapsibleTrigger } from '@potools/ui';
 import { useI18n } from '../i18n/index.tsx';
@@ -152,10 +153,13 @@ export function OptionForm({
   fields,
   values,
   onChange,
+  hero = false,
 }: {
   fields: ToolField[];
   values: Values;
   onChange: (key: string, value: FieldValue) => void;
+  /** Text-tool editor mode: textareas render as the page's primary surface. */
+  hero?: boolean;
 }) {
   const { t } = useI18n();
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -176,7 +180,7 @@ export function OptionForm({
 
   return (
     <div className="tool-form flex flex-col gap-4">
-      <Group fields={main} values={values} onChange={onChange} />
+      <Group fields={main} values={values} onChange={onChange} hero={hero} />
       {layout.length ? (
         <section aria-labelledby="option-layout-heading" className="form-section flex flex-col gap-2.5">
           <div>
@@ -211,12 +215,14 @@ function Group({
   onChange,
   bare,
   stackClassName,
+  hero = false,
 }: {
   fields: ToolField[];
   values: Values;
   onChange: (key: string, value: FieldValue) => void;
   bare?: boolean;
   stackClassName?: string;
+  hero?: boolean;
 }) {
   // Fields render in declaration order; consecutive fields sharing a `row` key pair up.
   const blocks: Array<{ row?: string; fields: [ToolField, ...ToolField[]] }> = [];
@@ -234,7 +240,7 @@ function Group({
       {blocks.map((block) => {
         const [first] = block.fields;
         if (!block.row) {
-          return <Field key={first.key} field={first} value={values[first.key]} onChange={onChange} />;
+          return <Field key={first.key} field={first} value={values[first.key]} onChange={onChange} hero={hero} />;
         }
         return (
           <div
@@ -247,6 +253,7 @@ function Group({
                   field={field}
                   value={values[field.key]}
                   onChange={onChange}
+                  hero={hero}
                 />
               </div>
             ))}
@@ -265,10 +272,12 @@ function Field({
   field,
   value,
   onChange,
+  hero = false,
 }: {
   field: ToolField;
   value: FieldValue | undefined;
   onChange: (key: string, value: FieldValue) => void;
+  hero?: boolean;
 }) {
   const { t } = useI18n();
   const id = useId();
@@ -301,7 +310,7 @@ function Field({
   return (
     <div className="form-field">
       <Label id={`${id}-label`} htmlFor={id} className="form-label">{(field.type === 'text' || field.type === 'password' || field.type === 'textarea' || field.type === 'dateTime') ? <>{label}{field.required ? <span className="ml-1 text-bad">*</span> : null}</> : label}</Label>
-      <Control id={id} labelId={`${id}-label`} field={field} value={value} onChange={onChange} />
+      <Control id={id} labelId={`${id}-label`} field={field} value={value} onChange={onChange} hero={hero} />
       {helpText ? <p className="form-hint">{helpText}</p> : null}
       {errorText ? <p className="text-[11px] leading-4 text-bad" role="alert">{errorText}</p> : null}
     </div>
@@ -314,12 +323,14 @@ function Control({
   field,
   value,
   onChange,
+  hero = false,
 }: {
   id: string;
   labelId: string;
   field: ToolField;
   value: FieldValue | undefined;
   onChange: (key: string, value: FieldValue) => void;
+  hero?: boolean;
 }) {
   const { t } = useI18n();
   switch (field.type) {
@@ -449,6 +460,7 @@ function Control({
             value={[displayValue]}
             onValueChange={([next]) => onChange(field.key, fromDisplayNumber(field, next ?? displayValue))}
             aria-labelledby={labelId}
+            aria-label={t(field.labelKey)}
             className="min-w-0 flex-1"
           />
           <span className="relative shrink-0">
@@ -531,9 +543,13 @@ function Control({
       return <span className="flex flex-col gap-1.5">
         <HeroTextarea
           id={id}
-          rows={field.rows ?? 4}
+          rows={hero ? field.rows ?? 16 : field.rows ?? 4}
+          // The themed min-height beats utility classes in the cascade, so the
+          // editor surface raises the variable itself.
+          style={hero ? ({ '--ui-textarea-min-height': '300px' }) as CSSProperties : undefined}
           className={cn(
-            'min-h-[76px] resize-y leading-5',
+            'resize-y leading-5',
+            hero ? 'min-h-[300px] text-[13px]' : 'min-h-[76px]',
             field.mono && 'font-mono',
             fieldError(field, value) !== null && INVALID_CLASS,
           )}
@@ -661,6 +677,11 @@ function PageRangesField({
     { value: 'odd', labelKey: 'ranges.odd' },
     { value: 'even', labelKey: 'ranges.even' },
   ];
+  // Preset chips write canonical identifiers ('all'/'odd'/'even'); echo the
+  // localized word so the field never shows a bare English token. The stored
+  // value stays the identifier, and typing replaces it with a literal range.
+  const keyword = value.trim().toLowerCase();
+  const echo = keyword === 'all' ? t('ranges.all') : keyword === 'odd' ? t('ranges.odd') : keyword === 'even' ? t('ranges.even') : null;
   return (
     <span className="flex flex-col gap-1.5">
       <span className="relative">
@@ -671,7 +692,7 @@ function PageRangesField({
           className={cn('font-mono', invalid && INVALID_CLASS)}
           aria-invalid={invalid}
           aria-describedby={invalid ? `${id}-error` : undefined}
-          value={value}
+          value={echo ?? value}
           placeholder={field.type === 'pageRanges' && field.placeholderKey ? t(field.placeholderKey) : t('opt.ranges.placeholder')}
           onChange={(event) => onChange(field.key, event.target.value)}
         />
@@ -760,6 +781,7 @@ function DateTimeField({
   const invalid = fieldError(field, value) !== null;
   const active = value.trim().toLowerCase();
   const isNow = active === 'now';
+  const echo = resolveDatePreset(active);
   return (
     <span className="flex min-w-0 flex-col gap-1.5">
       <HeroInput
@@ -767,7 +789,7 @@ function DateTimeField({
         id={id}
         aria-labelledby={labelId}
         spellCheck={false}
-        value={isNow ? '' : value}
+        value={echo ?? (isNow ? '' : value)}
         required={field.required}
         placeholder={field.placeholderKey ? t(field.placeholderKey) : undefined}
         aria-invalid={invalid}

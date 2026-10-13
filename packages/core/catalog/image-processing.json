@@ -42,7 +42,8 @@
             "value": "tiff",
             "labelKey": "opt.image.tiff"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "slider",
@@ -237,7 +238,8 @@
             "value": "original",
             "labelKey": "opt.image.aspect.original"
           }
-        ]
+        ],
+        "presentation": "chips"
       },
       {
         "type": "select",
@@ -265,7 +267,8 @@
             "value": "east",
             "labelKey": "opt.image.position.right"
           }
-        ]
+        ],
+        "presentation": "chips"
       }
     ],
     "workflow": "image-processing",

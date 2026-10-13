@@ -28,6 +28,8 @@ export type ToolField =
   | (FieldCommon & { type: 'pageRanges'; default: string; placeholderKey?: string; allowEmpty?: boolean; allowAll?: boolean });
 
 export type ToolLayout = 'standard' | 'organizer' | 'splitter' | 'metadata' | 'image-grid' | 'text';
+/** Absent means 'action': only `live` re-runs automatically as the draft changes. */
+export type ToolInteraction = 'action' | 'live';
 export type ToolWorkflow =
   | 'page-management' | 'page-layout' | 'annotation' | 'conversion' | 'extraction'
   | 'optimization' | 'metadata' | 'image-processing' | 'invoice-organizing'
@@ -53,6 +55,7 @@ export interface ToolDescriptor {
   orderSensitive?: boolean;
   keywords?: string[];
   networkAccess?: 'network' | 'internet';
+  interaction?: ToolInteraction;
 }
 
 export type PasswordStrengthLevel = 'very-weak' | 'weak' | 'fair' | 'strong' | 'very-strong';

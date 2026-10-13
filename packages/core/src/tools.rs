@@ -25,6 +25,16 @@ pub enum ToolLayout {
     Text,
 }
 
+/// How the UI triggers a run: `action` waits for an explicit run button,
+/// `live` re-runs automatically as the draft changes. Pure local transforms
+/// are live; anything slow, side-effecting or network-bound stays action.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ToolInteraction {
+    Action,
+    Live,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ToolWorkflow {
@@ -65,6 +75,7 @@ pub struct ToolDescriptor {
     pub order_sensitive: Option<bool>,
     pub keywords: Option<Vec<String>>,
     pub network_access: Option<String>,
+    pub interaction: Option<ToolInteraction>,
 }
 
 const CATALOGS: &[&str] = &[

@@ -101,6 +101,27 @@ export async function authorizeOutputDir(dir: string | null | undefined): Promis
   }
 }
 
+/**
+ * Ask the user — in a native dialog — to grant write access to a source folder
+ * for "save next to the source files". Returns false when declined; the caller
+ * then falls back to the configured output folder. Labels travel from the
+ * frontend so the dialog follows the active locale.
+ */
+export async function requestOutputDirGrant(
+  dir: string,
+  title: string,
+  message: string,
+  confirmLabel: string,
+  cancelLabel: string,
+): Promise<boolean> {
+  if (!isTauri()) return false;
+  try {
+    return await invoke<boolean>('request_output_dir_grant', { dir, title, message, confirmLabel, cancelLabel });
+  } catch {
+    return false;
+  }
+}
+
 export async function authorizeTempDir(dir: string | null | undefined): Promise<void> {
   if (!isTauri()) return;
   try {
