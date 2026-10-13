@@ -66,7 +66,11 @@
     ],
     "outputFormats": [
       "image"
-    ]
+    ],
+    "experience": {
+      "kind": "batch-processor",
+      "execution": "manual"
+    }
   },
   {
     "id": "extract-text",
@@ -122,7 +126,11 @@
     ],
     "outputFormats": [
       "json"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   },
   {
     "id": "ocr-text",
@@ -168,7 +176,11 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "experience": {
+      "kind": "guided-workflow",
+      "execution": "manual"
+    }
   },
   {
     "id": "ocr-table",
@@ -208,6 +220,10 @@
     ],
     "outputFormats": [
       "xlsx"
-    ]
+    ],
+    "experience": {
+      "kind": "guided-workflow",
+      "execution": "manual"
+    }
   }
 ]

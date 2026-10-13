@@ -25,6 +25,10 @@
     ],
     "outputFormats": [
       "json"
-    ]
+    ],
+    "experience": {
+      "kind": "guided-workflow",
+      "execution": "manual"
+    }
   }
 ]

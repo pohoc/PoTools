@@ -86,7 +86,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "batch-processor",
+      "execution": "manual"
+    }
   },
   {
     "id": "split",
@@ -184,7 +188,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "organize",
@@ -233,7 +241,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "rotate",
@@ -286,7 +298,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "extract-pages",
@@ -323,7 +339,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "delete-pages",
@@ -358,6 +378,10 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   }
 ]

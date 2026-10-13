@@ -114,7 +114,11 @@
       "png",
       "webp",
       "tiff"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-resize",
@@ -193,7 +197,11 @@
       "png",
       "webp",
       "tiff"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-crop",
@@ -283,7 +291,11 @@
       "png",
       "webp",
       "tiff"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-rotate",
@@ -347,7 +359,11 @@
       "png",
       "webp",
       "tiff"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-convert",
@@ -442,7 +458,11 @@
       "png",
       "webp",
       "tiff"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-cutout",
@@ -491,7 +511,11 @@
     ],
     "outputFormats": [
       "png"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-id-photo",
@@ -704,7 +728,11 @@
     ],
     "outputFormats": [
       "jpg"
-    ]
+    ],
+    "experience": {
+      "kind": "guided-workflow",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-print",
@@ -796,7 +824,11 @@
     ],
     "outputFormats": [
       "jpg"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-watermark-clean",
@@ -823,6 +855,10 @@
     ],
     "outputFormats": [
       "png"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   }
 ]

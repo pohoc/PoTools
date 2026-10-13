@@ -68,7 +68,10 @@
     "outputFormats": [
       "json"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "debounced"
+    }
   },
   {
     "id": "xml-format",
@@ -123,7 +126,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "debounced"
+    }
   },
   {
     "id": "xml-json",
@@ -177,7 +183,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "debounced"
+    }
   },
   {
     "id": "yaml-json",
@@ -231,7 +240,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "debounced"
+    }
   },
   {
     "id": "regex-test",
@@ -315,7 +327,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "debounced"
+    }
   },
   {
     "id": "binary-codec",
@@ -369,7 +384,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "live"
+    }
   },
   {
     "id": "case-convert",
@@ -445,7 +463,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "live"
+    }
   },
   {
     "id": "color-convert",
@@ -483,7 +504,11 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "live"
+    }
   },
   {
     "id": "robots-txt",
@@ -544,6 +569,9 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "debounced"
+    }
   }
 ]

@@ -139,7 +139,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "live"
+    }
   },
   {
     "id": "date-diff",
@@ -302,7 +305,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "debounced"
+    }
   },
   {
     "id": "date-math",
@@ -442,7 +448,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "debounced"
+    }
   },
   {
     "id": "workdays",
@@ -554,7 +563,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "debounced"
+    }
   },
   {
     "id": "timezone-board",
@@ -654,7 +666,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "debounced"
+    }
   },
   {
     "id": "duration",
@@ -782,7 +797,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "live"
+    }
   },
   {
     "id": "cron",
@@ -874,7 +892,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "debounced"
+    }
   },
   {
     "id": "date-format",
@@ -979,7 +1000,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "live"
+    }
   },
   {
     "id": "relative-time",
@@ -1096,6 +1120,9 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "live"
+    }
   }
 ]

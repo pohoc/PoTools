@@ -104,7 +104,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "batch-processor",
+      "execution": "manual"
+    }
   },
   {
     "id": "remove-blank",
@@ -148,7 +152,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "repair",
@@ -188,6 +196,10 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "batch-processor",
+      "execution": "manual"
+    }
   }
 ]

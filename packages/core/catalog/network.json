@@ -37,7 +37,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "debounced"
+    }
   },
   {
     "id": "ipv4-convert",
@@ -76,7 +79,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "live"
+    }
   },
   {
     "id": "ipv4-subnet",
@@ -114,7 +120,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "debounced"
+    }
   },
   {
     "id": "spf-record",
@@ -206,7 +215,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "guided-workflow",
+      "execution": "debounced"
+    }
   },
   {
     "id": "dmarc-record",
@@ -279,7 +291,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "guided-workflow",
+      "execution": "debounced"
+    }
   },
   {
     "id": "dns-lookup",
@@ -355,7 +370,11 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   },
   {
     "id": "url-inspect",
@@ -392,7 +411,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "live"
+    }
   },
   {
     "id": "ipv6-convert",
@@ -430,7 +452,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "calculator",
+      "execution": "live"
+    }
   },
   {
     "id": "port-reference",
@@ -467,7 +492,10 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "live"
+    }
   },
   {
     "id": "system-network",
@@ -495,7 +523,11 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   },
   {
     "id": "ping-check",
@@ -540,7 +572,11 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   },
   {
     "id": "tcp-check",
@@ -585,7 +621,11 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   },
   {
     "id": "ip-lookup",
@@ -623,6 +663,10 @@
     ],
     "outputFormats": [
       "text"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   }
 ]

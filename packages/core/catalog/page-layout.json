@@ -114,7 +114,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "crop",
@@ -252,7 +256,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "margins",
@@ -320,7 +328,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "nup",
@@ -466,7 +478,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "invoice-merge",
@@ -635,6 +651,10 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "guided-workflow",
+      "execution": "manual"
+    }
   }
 ]

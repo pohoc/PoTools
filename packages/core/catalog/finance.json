@@ -57,6 +57,9 @@
     "outputFormats": [
       "text"
     ],
-    "interaction": "live"
+    "experience": {
+      "kind": "instant-transform",
+      "execution": "live"
+    }
   }
 ]

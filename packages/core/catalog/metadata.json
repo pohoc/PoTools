@@ -130,7 +130,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-info",
@@ -159,7 +163,11 @@
     ],
     "outputFormats": [
       "json"
-    ]
+    ],
+    "experience": {
+      "kind": "structured-inspector",
+      "execution": "manual"
+    }
   },
   {
     "id": "image-metadata-clean",
@@ -188,6 +196,10 @@
     ],
     "outputFormats": [
       "image"
-    ]
+    ],
+    "experience": {
+      "kind": "batch-processor",
+      "execution": "manual"
+    }
   }
 ]

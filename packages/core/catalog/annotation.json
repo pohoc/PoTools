@@ -193,7 +193,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "page-numbers",
@@ -341,7 +345,11 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   },
   {
     "id": "header-footer",
@@ -482,6 +490,10 @@
     ],
     "outputFormats": [
       "pdf"
-    ]
+    ],
+    "experience": {
+      "kind": "visual-editor",
+      "execution": "manual"
+    }
   }
 ]
