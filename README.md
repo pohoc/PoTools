@@ -4,6 +4,8 @@ PoTools 是本机文件处理工作台，提供 PDF、图片、Office/OFD/EPUB�
 
 ---
 
+**开发者与贡献者入口**：请从 [开发规范与工具体验文档索引](docs/README.md) 开始。新工具遵循 [全链路开发规范](docs/standards/TOOL_DEVELOPMENT.md)，UI 遵循 [工具交互规范](docs/standards/TOOL_INTERACTION.md)，现有 98 项工具的目标体验与待验证事项见 [工具交互审计矩阵](docs/audits/TOOL_UX_MATRIX.md)。这些文档包含未来目标，不代表所有改造已完成。
+
 ## 1. 架构
 
 ```

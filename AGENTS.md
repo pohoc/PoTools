@@ -8,7 +8,7 @@ PoTools is a pnpm workspace for a local-first desktop file-tools application:
 - `apps/desktop/` contains the Tauri host, with Cargo/Tauri config at the app root and Rust code under `src/`.
 - `packages/core/` is the Rust shared protocol/catalog crate; `catalog/*.json` is the shared tool metadata consumed by Rust.
 - `packages/engine/` is the Rust tool engine library, built as native Rust for Tauri and WebAssembly for browser Workers. Keep host APIs and UI adapters in `apps/web/` and privileged native services in the Tauri app.
-- `scripts/` contains repository utilities; `samples/` contains fixtures for tool checks; `docs/` contains licensing documentation.
+- `scripts/` contains repository utilities; `samples/` contains fixtures for tool checks; `docs/` contains normative engineering and UX standards, tool audit/risks, RFCs, historical plans, and licensing documentation.
 
 Keep business and engine behavior in the packages, UI state and presentation in `apps/web/src`, and avoid committing generated build output.
 
@@ -58,6 +58,12 @@ identifies an interactive control (fields, choice controls, segmented controls,
 bordered buttons, slider thumbs, drop zones). The latter is the 3:1 tier required
 by WCAG 2.2 SC 1.4.11; do not use it for decoration, and do not put an interactive
 control's boundary on the decorative tier.
+
+## Documentation & Tool Experience Guidelines
+
+Before adding or modifying tools, read `docs/README.md`, `docs/standards/TOOL_DEVELOPMENT.md`, and `docs/standards/TOOL_INTERACTION.md`. Record the tool's primary user task, experience archetype, execution mode, output shape, platform support, failure/recovery paths, and measurable acceptance criteria. Check `docs/audits/TOOL_UX_MATRIX.md` for the tool's proposed UX; this matrix is a static design audit, not proof of a UI bug or completion. Proposed schema/API changes belong in `docs/rfcs/` before broad migrations. `docs/plans/` contains historical plans and must not override adopted standards.
+
+All privileged file and network operations require Rust-side authorization and negative tests; consult `docs/standards/ENGINE_SECURITY.md`. Changes to a tool's UX, routing, or host capability must update the audit matrix and relevant standards. Consult `docs/standards/QUALITY_GATES.md` for manual, automated, and packaged-app acceptance; `pnpm check` does not run `pnpm test:unit` or `pnpm test:tools` today.
 
 ## Testing Guidelines
 
