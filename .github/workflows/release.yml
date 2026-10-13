@@ -10,22 +10,36 @@ on:
       - 'v*'
 
 # 版本戳在 stamp job 算一次，全链所有产物统一使用。
-# 正式版本号来自 git tag（v0.1.0），戳为 Asia/Shanghai 的 MMDDHHMM。
+# 戳为 Asia/Shanghai 的 MMDDHHMM；版本号也从 tag 推导（v0.2.0 -> 0.2.0），
+# 产物名与 updater 清单都由它拼出，不再硬编码某个具体版本（REL-01）。
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # ── 版本戳（全链统一） ────────────────────────────────────────────────
+  # ── 版本戳 + 版本号（全链统一） ──────────────────────────────────────
+  # 下游产物名依赖这里：Tauri/electron-builder 用 manifest 版本命名，tag 与
+  # root package.json 不一致时在这里先失败，而不是等 publish 找不到文件。
 
   stamp:
     runs-on: ubuntu-latest
     outputs:
       stamp: ${{ steps.stamp.outputs.stamp }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - id: stamp
         run: echo "stamp=$(TZ=Asia/Shanghai date +'%m%d%H%M')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+
+      - name: Derive release version from tag
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(node scripts/release-version.mjs "${GITHUB_REF_NAME}")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "[release] artifact version ${version} (tag ${GITHUB_REF_NAME})"
 
   # ── 前端产物只构建一次（桌面变体 + Win7 浏览器变体），各平台只做原生构建 ──
 
@@ -77,6 +91,12 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      # REL-01 的另一半：stamp 已把 tag 与 root 版本对齐，这里确认所有 manifest 也
+      # 对齐——Tauri/electron-builder 的产物名取自 manifest（tauri.conf.json 等），
+      # 不是取自 tag；两边不一致时 publish 就会找不到文件。
+      - name: Verify manifest versions
+        run: pnpm version:check
+
       - name: Warm cargo registry (wasm:build uses --offline)
         run: cargo fetch --manifest-path packages/engine/Cargo.toml
 
@@ -114,12 +134,16 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
+            arch: 'macos-x64'
+            rust-targets: 'x86_64-apple-darwin'
             args: '--target x86_64-apple-darwin --config tauri.ci.conf.json'
             bundles: |
               apps/desktop/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
               apps/desktop/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
               apps/desktop/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz.sig
           - platform: 'ubuntu-22.04'
+            arch: 'linux'
+            rust-targets: ''
             args: '--target x86_64-unknown-linux-gnu --config tauri.ci.conf.json'
             bundles: |
               apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
@@ -130,10 +154,21 @@ jobs:
               apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm.sig
               apps/desktop/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm.sig
           - platform: 'windows-latest'
+            arch: 'windows-x64'
+            rust-targets: ''
             args: '--target x86_64-pc-windows-msvc --config tauri.ci.conf.json'
             bundles: |
               apps/desktop/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
               apps/desktop/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe.sig
+          # 32 位 Windows：`scripts/collect-release-artifacts.mjs` 与两份 `说明.txt`
+          # 都登记了 x86 安装包，缺这条矩阵就会在 publish 改名阶段才暴露「产不出该文件」。
+          - platform: 'windows-latest'
+            arch: 'windows-x86'
+            rust-targets: 'i686-pc-windows-msvc'
+            args: '--target i686-pc-windows-msvc --config tauri.ci.conf.json'
+            bundles: |
+              apps/desktop/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
+              apps/desktop/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe.sig
     runs-on: ${{ matrix.platform }}
     needs: [stamp, prepare]
     permissions:
@@ -172,7 +207,9 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'x86_64-apple-darwin' || '' }}
+          # Per-entry: the macOS job cross-builds x86_64 and the Windows x86 job
+          # needs i686-pc-windows-msvc; both are non-default targets.
+          targets: ${{ matrix.rust-targets }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -214,7 +251,7 @@ jobs:
       - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
-          name: bundles-${{ matrix.platform }}
+          name: bundles-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ matrix.bundles }}
           if-no-files-found: error
 
@@ -279,6 +316,9 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       STAMP: ${{ needs.stamp.outputs.stamp }}
+      # REL-01：产物名与清单 URL 都拼这个版本号（stamp 已从 tag 推导并与 manifest
+      # 对齐）。写死具体版本的旧写法在非该版本的演练 tag 上必然找不到文件。
+      VERSION: ${{ needs.stamp.outputs.version }}
     steps:
       - name: Download platform bundles
         uses: actions/download-artifact@v4
@@ -295,28 +335,42 @@ jobs:
 
       - name: Stamp and organize assets
         run: |
+          set -euo pipefail
           # upload-artifact 多 glob 会按最小公共祖先保留子目录（bundles/dmg/…、
           # bundles/macos/…），先拍平到 bundles 根再打戳改名。
           find bundles -type f -exec mv {} bundles/ \;
           find bundles -mindepth 1 -type d -empty -delete
+          # 名字对不上时给出可诊断的信息，而不是只留一句 mv: No such file。
+          move() {
+            if [ ! -f "$1" ]; then
+              echo "::error::缺少预期产物 $1（version=${VERSION} stamp=${STAMP}）"
+              echo "--- bundles/:"; ls -1 bundles/ || true
+              echo "--- win7/:"; ls -1 win7/ || true
+              exit 1
+            fi
+            mv "$1" "$2"
+          }
           mkdir -p out
-          mv bundles/PoTools_0.1.0_x64.dmg             "out/PoTools_0.1.0-${STAMP}_x64.dmg"
-          mv bundles/PoTools.app.tar.gz                "out/PoTools_0.1.0-${STAMP}_x64.app.tar.gz"
-          mv bundles/PoTools.app.tar.gz.sig            "out/PoTools_0.1.0-${STAMP}_x64.app.tar.gz.sig"
-          mv bundles/PoTools_0.1.0_x64-setup.exe       "out/PoTools_0.1.0-${STAMP}_x64-setup.exe"
-          mv bundles/PoTools_0.1.0_x64-setup.exe.sig   "out/PoTools_0.1.0-${STAMP}_x64-setup.exe.sig"
-          mv bundles/PoTools_0.1.0_amd64.AppImage      "out/PoTools_0.1.0-${STAMP}_amd64.AppImage"
-          mv bundles/PoTools_0.1.0_amd64.AppImage.sig  "out/PoTools_0.1.0-${STAMP}_amd64.AppImage.sig"
-          mv bundles/PoTools_0.1.0_amd64.deb           "out/PoTools_0.1.0-${STAMP}_amd64.deb"
-          mv bundles/PoTools_0.1.0_amd64.deb.sig       "out/PoTools_0.1.0-${STAMP}_amd64.deb.sig"
-          mv bundles/PoTools-0.1.0-1.x86_64.rpm        "out/PoTools_0.1.0-${STAMP}_x86_64.rpm"
-          mv bundles/PoTools-0.1.0-1.x86_64.rpm.sig    "out/PoTools_0.1.0-${STAMP}_x86_64.rpm.sig"
-          mv win7/PoTools_0.1.0-win7-ia32-setup.exe    "out/PoTools_0.1.0-${STAMP}_win7-ia32-setup.exe"
+          move bundles/PoTools_${VERSION}_x64.dmg              "out/PoTools_${VERSION}-${STAMP}_x64.dmg"
+          move bundles/PoTools.app.tar.gz                      "out/PoTools_${VERSION}-${STAMP}_x64.app.tar.gz"
+          move bundles/PoTools.app.tar.gz.sig                  "out/PoTools_${VERSION}-${STAMP}_x64.app.tar.gz.sig"
+          move bundles/PoTools_${VERSION}_x64-setup.exe        "out/PoTools_${VERSION}-${STAMP}_x64-setup.exe"
+          move bundles/PoTools_${VERSION}_x64-setup.exe.sig    "out/PoTools_${VERSION}-${STAMP}_x64-setup.exe.sig"
+          move bundles/PoTools_${VERSION}_x86-setup.exe        "out/PoTools_${VERSION}-${STAMP}_x86-setup.exe"
+          move bundles/PoTools_${VERSION}_x86-setup.exe.sig    "out/PoTools_${VERSION}-${STAMP}_x86-setup.exe.sig"
+          move bundles/PoTools_${VERSION}_amd64.AppImage       "out/PoTools_${VERSION}-${STAMP}_amd64.AppImage"
+          move bundles/PoTools_${VERSION}_amd64.AppImage.sig   "out/PoTools_${VERSION}-${STAMP}_amd64.AppImage.sig"
+          move bundles/PoTools_${VERSION}_amd64.deb            "out/PoTools_${VERSION}-${STAMP}_amd64.deb"
+          move bundles/PoTools_${VERSION}_amd64.deb.sig        "out/PoTools_${VERSION}-${STAMP}_amd64.deb.sig"
+          move bundles/PoTools-${VERSION}-1.x86_64.rpm         "out/PoTools_${VERSION}-${STAMP}_x86_64.rpm"
+          move bundles/PoTools-${VERSION}-1.x86_64.rpm.sig     "out/PoTools_${VERSION}-${STAMP}_x86_64.rpm.sig"
+          move win7/PoTools_${VERSION}-win7-ia32-setup.exe     "out/PoTools_${VERSION}-${STAMP}_win7-ia32-setup.exe"
           echo "=== 打戳后产物:"
           ls out/
 
       - name: Create draft release and upload
         run: |
+          set -euo pipefail
           # 清掉历史遗留的同名草稿（tag 重指后旧草稿会残留）
           gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
             --jq ".[] | select(.draft and .tag_name == \"${GITHUB_REF_NAME}\") | .id" \
@@ -332,26 +386,27 @@ jobs:
 
       - name: Generate updater manifests (all platforms)
         run: |
+          set -euo pipefail
           gen() {
             proxy="$1"; out="$2"
             jq -n \
-              --arg version "${GITHUB_REF_NAME#v}" \
+              --arg version "${VERSION}" \
               --arg notes "所有工具在本机运行，不需要网络。" \
               --arg repo "${GITHUB_REPOSITORY}" --arg tag "${GITHUB_REF_NAME}" \
               --arg proxy "$proxy" --arg stamp "$STAMP" \
-              --rawfile darwinsig "out/PoTools_0.1.0-${STAMP}_x64.app.tar.gz.sig" \
-              --rawfile winsig "out/PoTools_0.1.0-${STAMP}_x64-setup.exe.sig" \
-              --rawfile linuxsig "out/PoTools_0.1.0-${STAMP}_amd64.AppImage.sig" \
+              --rawfile darwinsig "out/PoTools_${VERSION}-${STAMP}_x64.app.tar.gz.sig" \
+              --rawfile winsig "out/PoTools_${VERSION}-${STAMP}_x64-setup.exe.sig" \
+              --rawfile linuxsig "out/PoTools_${VERSION}-${STAMP}_amd64.AppImage.sig" \
               '{
                 version: $version, notes: $notes,
                 pub_date: (now | todateiso8601),
                 platforms: {
                   "windows-x86_64": { signature: $winsig,
-                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_x64-setup.exe") },
+                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_" + $version + "-" + $stamp + "_x64-setup.exe") },
                   "darwin-x86_64": { signature: $darwinsig,
-                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_x64.app.tar.gz") },
+                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_" + $version + "-" + $stamp + "_x64.app.tar.gz") },
                   "linux-x86_64": { signature: $linuxsig,
-                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_0.1.0-" + $stamp + "_amd64.AppImage") }
+                    url: ($proxy + "https://github.com/" + $repo + "/releases/download/" + $tag + "/PoTools_" + $version + "-" + $stamp + "_amd64.AppImage") }
                 }
               }' > "$out"
           }

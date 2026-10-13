@@ -19,7 +19,7 @@
 
 ## 2. 实现与登记顺序
 
-1. **Catalog**：在对应 `packages/core/catalog/<domain>.json` 加描述符；保证 `id` 唯一，`fields[].key` 唯一，`nameKey` / `descKey` / 选项 `labelKey` 双语存在；`default` 类型、`showIf` 与引擎规则一致。
+1. **Catalog**：在对应 `packages/core/catalog/<domain>.json` 加描述符；保证 `id` 唯一，`fields[].key` 唯一，`nameKey` / `descKey` / 选项 `labelKey` 双语存在；`default` 类型、`showIf` 与引擎规则一致；`experience.kind` + `experience.execution` 必填（七类模型见 [交互规范](TOOL_INTERACTION.md) §1，机械校验在 `packages/core/tests/catalog_contract.rs`）。以上均由 `pnpm check`（`catalog:check` + `rust:test`）把关。
 2. **Core**：如引入新字段类型、页码规则或协议，先修改 `packages/core/src/fields.rs` / `tools.rs` / `protocol.rs`，同步纯类型镜像 `apps/web/src/lib/core-contract.ts`。
 3. **Engine**：实现于 `packages/engine/src/tools/<domain>`，使用 `RunContext` 接收 options、inputs、locale、runtimeData；返回 `ToolResult { text, artifacts, warnings, extra }` 或结构化 `EngineError`。
 4. **路由**：接入 `packages/engine/src/lib.rs` 的业务 domain dispatcher，并更新 `tools/capabilities.rs` 的 `SUPPORTED` / `ENGINE_ONLY` / `ADAPTER_HANDLED`。三组集合不得相交；目录工具必须能找到实现。
@@ -48,7 +48,7 @@ core/catalog/*.json
                      临时产物 → 指定目录 / 浏览器下载
 ```
 
-目前路由列表（例如 `RUST_NATIVE_FILE_TOOLS`）仍在 TS 中维护，未完全由 catalog 推导；**不得把该链路视为无差异执行**。
+原生文件路由清单在 `packages/engine/src/tools/capabilities.rs` 的 `NATIVE_FILE_TOOLS`，通过 `coreHostRoutes` 随 catalog 一起提供给 WebView（`installToolCatalog` → `RUST_NATIVE_FILE_TOOLS`），因此「哪个宿主执行哪个工具」只有一处定义；`route_of()` 另给出 `native-file / adapter / engine` 三种路由供诊断。**不得把该链路视为无差异执行**：Web 与 Tauri 的实际能力差异仍需在工具行里逐项说明。
 
 ## 4. 字段、显示与校验
 

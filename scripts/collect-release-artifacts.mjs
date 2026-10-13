@@ -145,7 +145,7 @@ if (platform === 'macos') {
   // Shares release/windows with the standard installers: clean only this
   // arch's old files, never the whole directory.
   for (const old of await readdir(destination).catch(() => [])) {
-    if (/^PoTools_.*-win7-ia32-setup\.exe$/.test(old)) await rm(path.join(destination, old), { force: true });
+    if (/^PoTools_.*[-_]win7-ia32-setup\.exe$/.test(old)) await rm(path.join(destination, old), { force: true });
   }
   const releaseDir = path.join(root, config.releaseDir);
   const found = (await readdir(releaseDir)).filter((name) => config.pattern.test(name));
@@ -154,16 +154,19 @@ if (platform === 'macos') {
   }
   for (const name of found) {
     const source = path.join(releaseDir, name);
+    // `PoTools_<version>-<MMDDHHMM>_<arch>-setup.exe` is the published convention
+    // (release.yml renames the same artifact and both 说明.txt files advertise it),
+    // so the variant separator here is `_`, not the `-` electron-builder emits.
     const stamped = name.replace(
       /^(PoTools_[0-9.]+?)(-win7-ia32-setup\.exe)$/,
-      `$1-${buildInfo.buildStamp}$2`,
+      `$1-${buildInfo.buildStamp}_win7-ia32-setup.exe`,
     );
     await cp(source, path.join(destination, stamped));
     console.log(`[release] copied ${stamped} to ${destination}`);
   }
   await writeFile(
     path.join(destination, '说明.txt'),
-    'Windows 安装包：PoTools_0.1.0-<构建戳>_x64/x86-setup.exe 为标准版（Windows 10/11，Tauri）；PoTools_0.1.0-<构建戳>_win7-ia32-setup.exe 为 Win7 兼容版（Electron 22，32位，供存量 Win7 机器使用，功能为浏览器模式全集）。Win7/8 已超出 WebView2 与 Tauri v2 支持线，标准版不支持。所有工具在本机运行，不需要网络。\r\n',
+    `Windows 安装包：PoTools_${version}-<构建戳>_x64/x86-setup.exe 为标准版（Windows 10/11，Tauri）；PoTools_${version}-<构建戳>_win7-ia32-setup.exe 为 Win7 兼容版（Electron 22，32位，供存量 Win7 机器使用，功能为浏览器模式全集）。Win7/8 已超出 WebView2 与 Tauri v2 支持线，标准版不支持。所有工具在本机运行，不需要网络。\r\n`,
     'utf8',
   );
   console.log('[release] win7 installers refreshed');

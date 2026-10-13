@@ -25,19 +25,28 @@ pnpm --filter @potools/web build # build the Web app
 pnpm lint                    # oxlint (correctness + hooks + unused code)
 pnpm --filter @potools/web typecheck # type-check the Web adapters/UI
 pnpm test:tools              # run browser tool checks
+pnpm test:unit               # run the pure-helper and Win7 shell unit tests
+pnpm catalog:check           # catalog <-> bilingual message tables <-> tools.rs embedding
 pnpm samples                 # generate or refresh engine samples
 ```
 
 Everything CI enforces is available as one command:
 
 ```sh
-pnpm check                   # version + lint + typecheck + rust fmt/clippy/test
+pnpm check                   # version + catalog contract + lint + typecheck + licenses + rust fmt/clippy/test + wasm32
 ```
 
 Individual gates: `pnpm version:check` (manifests match the root version),
-`pnpm lint` (`oxlint .`), `pnpm typecheck`, `pnpm rust:fmt`, `pnpm rust:clippy`
-(`-D warnings`), `pnpm rust:test`, `pnpm rust:check:wasm` (wasm32 compile),
-`pnpm licenses:check` (committed inventory matches the resolved graph).
+`pnpm catalog:check` (every catalog id/field/i18n key resolves in `zh-CN` and `en`,
+and the embedded catalog matches the files on disk), `pnpm lint` (`oxlint .`),
+`pnpm typecheck`, `pnpm rust:fmt`, `pnpm rust:clippy` (`-D warnings`),
+`pnpm rust:test`, `pnpm rust:check:wasm` (wasm32 compile), `pnpm licenses:check`
+(committed inventory matches the resolved graph).
+
+`pnpm test:unit` and `pnpm test:tools` are deliberately **not** in `pnpm check`:
+Node 20.19 is still supported and cannot execute `.ts` tests, and the golden suite
+needs pinned `wasm-bindgen-cli` plus a real Chromium. Both run as required CI steps
+(`contracts` and `golden` jobs) — see `docs/standards/QUALITY_GATES.md`.
 
 Toolchain expectations are declared in `rust-toolchain.toml` (stable + rustfmt +
 clippy + wasm32 target) and `rustfmt.toml` (default style, pinned); formatting is
@@ -57,7 +66,9 @@ dividers) and `--ui-control-line` for anything whose border is how a user
 identifies an interactive control (fields, choice controls, segmented controls,
 bordered buttons, slider thumbs, drop zones). The latter is the 3:1 tier required
 by WCAG 2.2 SC 1.4.11; do not use it for decoration, and do not put an interactive
-control's boundary on the decorative tier.
+control's boundary on the decorative tier. `pnpm theme:check` (in CI's contracts
+job) measures both tiers straight from `packages/ui/src/theme/tokens.css` and fails
+when the control tier drops below 3:1 or collapses back onto the decorative value.
 
 ## Documentation & Tool Experience Guidelines
 
@@ -67,7 +78,7 @@ All privileged file and network operations require Rust-side authorization and n
 
 ## Testing Guidelines
 
-There is no separate unit-test runner configured. Run `pnpm test:tools` for the engine’s end-to-end coverage, including content assertions, format round-trips, error paths, and cleanup. Pure frontend helpers (path and output-dir resolution, date preset echo) carry `node:test` unit tests under `apps/web/tests/` — run `pnpm test:unit` when touching them, and keep new pure logic there covered the same way. Run `pnpm lint` and `pnpm typecheck` (or the package-specific equivalent) for all TypeScript changes, and `pnpm rust:test` plus `pnpm rust:clippy` for Rust changes. Exercise `pnpm tauri dev` when changing Rust, IPC, packaging, or native integration, and the packaged build when changing the WebView security config (`csp`, capabilities) or theme tokens.
+Run `pnpm test:tools` for the engine’s end-to-end coverage, including content assertions, format round-trips, error paths, and cleanup. `pnpm test:unit` runs the `node:test` suites through `scripts/run-unit-tests.mjs`, which discovers `apps/web/tests/*.test.ts` (path and output-dir resolution, date preset echo) and `apps/legacy-win7/tests/*.test.mjs` (the Win7 shell's static-file boundary); keep new pure logic covered there the same way. It needs Node >= 22.6 to execute TypeScript and fails with a version-specific instruction otherwise rather than skipping. Run `pnpm lint` and `pnpm typecheck` (or the package-specific equivalent) for all TypeScript changes, and `pnpm rust:test` plus `pnpm rust:clippy` for Rust changes. Exercise `pnpm tauri dev` when changing Rust, IPC, packaging, or native integration, and the packaged build when changing the WebView security config (`csp`, capabilities) or theme tokens.
 
 ## Commit & Pull Request Guidelines
 

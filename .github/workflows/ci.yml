@@ -34,9 +34,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Every manifest version is derived from the root package.json.
       - run: pnpm version:check
-      # The committed license inventory must match the resolved dependency graph
+      # CAT-01: catalog ids, field keys, defaults, showIf targets and every i18n
+      # key the catalog references must resolve in both message tables. The Rust
+      # half of the same contract runs in the `rust` job via `pnpm rust:test`
+      # (packages/core/tests/catalog_contract.rs).
+      - run: node scripts/check-catalog-contract.mjs
+      # The license inventory must match the resolved dependency graph
       # and must not depend on which host generated it.
       - run: node scripts/generate-license-inventory.mjs --check
+      # A11Y-01: the interactive-control border tier is the standard's SC 1.4.11
+      # claim, so the ratio is measured from tokens.css rather than asserted in
+      # prose (it had silently collapsed to the decorative line's value).
+      - run: node scripts/check-theme-contrast.mjs
+      # QA-01: frontend pure-helper unit tests (apps/web/tests) and the Win7
+      # shell's static-server boundary tests (apps/legacy-win7/tests), run
+      # through the Node-native test runner.
+      - run: node scripts/run-unit-tests.mjs
 
   web:
     name: Web (lint + typecheck)
@@ -166,3 +179,54 @@ jobs:
           name: web-dist
           path: apps/web/dist
           retention-days: 7
+
+  # QA-01: the browser golden suite (pnpm test:tools). Deliberately NOT part of
+  # `pnpm check`: it needs the pinned wasm-bindgen toolchain, a real Chromium and
+  # ~4 minutes, and it compares canonical artifact digests captured on macOS with
+  # system fonts, so it belongs in CI rather than in every local save.
+  #
+  # `continue-on-error` is provisional: the suite is proven green locally
+  # (macOS, Node 25.3.0: 222 PASS / 0 DIFF / 0 CRASH / 4 KNOWN of 226), but a
+  # macos-latest runner has not executed it yet, and font-embedding digests are
+  # host-sensitive. Flip this to a required step once two consecutive runs are
+  # green with no environment-class failure.
+  golden:
+    name: Browser golden (test:tools)
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: pnpm
+      - name: Install Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install stable --profile minimal \
+            --target wasm32-unknown-unknown --no-self-update
+          rustup default stable
+      - name: Install wasm-bindgen-cli
+        run: |
+          set -euo pipefail
+          # macos-latest is arm64: a fixed x86_64 binary would not execute there
+          # (no Rosetta on the runner), and /usr/local/bin is not reliably writable.
+          # `$HOME/.cargo/bin` is the first location build-engine-wasm.mjs looks in.
+          case "$(uname -m)" in
+            arm64) triples="aarch64-apple-darwin" ;;
+            *) triples="x86_64-apple-darwin" ;;
+          esac
+          url="https://github.com/rustwasm/wasm-bindgen/releases/download/${WASM_BINDGEN_VERSION}/wasm-bindgen-${WASM_BINDGEN_VERSION}-${triples}.tar.gz"
+          curl --proto '=https' --tlsv1.2 -fsSL "$url" -o /tmp/wasm-bindgen.tar.gz
+          tar -xzf /tmp/wasm-bindgen.tar.gz -C /tmp
+          mkdir -p "$HOME/.cargo/bin"
+          install -m755 "/tmp/wasm-bindgen-${WASM_BINDGEN_VERSION}-${triples}/wasm-bindgen" "$HOME/.cargo/bin/wasm-bindgen"
+          "$HOME/.cargo/bin/wasm-bindgen" --version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm wasm:build
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @potools/web exec playwright install chromium
+      - name: Browser golden suite
+        continue-on-error: true
+        run: pnpm test:tools

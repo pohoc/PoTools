@@ -7,20 +7,26 @@
 | 命令 | 范围 | 是否包含在 `pnpm check` |
 | --- | --- | --- |
 | `pnpm version:check` | manifest 版本一致 | 是 |
+| `pnpm catalog:check` | catalog ↔ i18n 双语键、catalog ↔ `tools.rs` 嵌入对账 | 是 |
 | `pnpm lint` | oxlint | 是 |
 | `pnpm typecheck` | TS 类型检查 | 是 |
 | `pnpm licenses:check` | 依赖许可清单 | 是 |
+| `pnpm theme:check` | 从 `tokens.css` 实测控件边框对四种承载背景的对比度 ≥3:1，并确保装饰线不高于该档 | 是 |
+| `pnpm test:unit` | `apps/web/tests/*.test.ts` + `apps/legacy-win7/tests/*.test.mjs`（经 `scripts/run-unit-tests.mjs`） | **否**，CI `contracts` 强制（见下） |
 | `pnpm rust:fmt` | Rust 格式 | 是 |
 | `pnpm rust:clippy` | Rust 静态检查 | 是 |
-| `pnpm rust:test` | Rust 单元/集成测试 | 是 |
+| `pnpm rust:test` | Rust 单元/集成测试（含 `packages/core/tests/catalog_contract.rs` schema 检查） | 是 |
 | `pnpm rust:check:wasm` | wasm32 目标可编译 | 是 |
-| `pnpm test:unit` | `apps/web/tests/*.test.ts` | **否** |
-| `pnpm test:tools` | 浏览器工具金样 | **否** |
+| `pnpm test:tools` | 浏览器金样：**引擎层** RPC 断言，覆盖 71/98 工具，21 个工具只比结构不比 digest（`json-format`、`invoice-organize` 无条目） | **否**（见下） |
 | `pnpm --filter @potools/web build` | Web TS + WASM smoke + Vite 包 | 独立 CI bundle job |
 
-注意：根 `test:unit` 当前使用 `node --test "apps/web/tests/*.test.ts"`；仓库允许的部分 Node 版本无法直接运行 TS。应选择兼容的测试运行器或明确最低 Node 版本，修复前不要宣称它在全部声明环境下通过。
+`pnpm test:unit` 不再是裸的 `node --test "apps/web/tests/*.test.ts"`：那条命令在部分声明支持的 Node 上根本跑不了 TS（见 2026-10-13 前的记录），现在由 `scripts/run-unit-tests.mjs` 先探测当前 Node 能否执行 `.ts`，能则直接跑，不能但存在 `--experimental-strip-types` 时经 `NODE_OPTIONS` 注入（保留调用方已有的 NODE_OPTIONS，只做追加），两者都不行时打印带版本的修复指引并以退出码 1 结束，不静默跳过。评审还修掉一处会让门禁「跑了个空」的缺陷：入口守卫原本比较 `path.resolve(process.argv[1])` 与已 realpath 的 `import.meta.url`，经符号链接路径调用时直接跳过 `main()` 并以 0 退出；现改为两边都取 realpath，并用「失败用例 + 符号链接路径调用」验证确实返回 1。
 
-CI 位于 `.github/workflows/ci.yml`。发布配置 `.github/workflows/release.yml` 使用 tag 构建，需另审签名、跨平台启动/升级，不应假定 CI 无误就等于发行包完整。
+**为什么 `test:unit` 不进 `pnpm check`**（2026-10-13 决定）：`engines.node` 仍声明支持 `^20.19.0`，而 Node 20 无法运行 `.ts` 单测——把它放进 `check` 会让 20.19 贡献者的本地门禁硬性变红。因此 `check` 保持纯静态 + Rust 门禁，单测由 CI `contracts` job（Node 24）强制，开发者按需用 `pnpm test:unit` 显式执行。若日后把 `engines.node` 收紧到 `>=22.6`，应同时把它放回 `check` 并更新本节与 [工程规范](ENGINEERING.md)。实测：Node 25.3.0 走「无需 flag」分支，`tests 38 / pass 38`；三条分支（默认可用 / 需 flag / 完全不支持）用注入 probe 结果验证过，但本机只有 Node 25.3.0，**未在真实 Node 20.19 / 22.12 上执行过**。
+
+`pnpm test:tools` 故意**不进** `pnpm check`：它要 pinned `wasm-bindgen-cli`、`pnpm wasm:build` 产物和真实 Chromium（本机实测约 1.5–4 分钟，且同日出现过一次 `browser failed to launch` 环境抖动），而 `check` 的定位是保存时随手可跑的静态门禁。它已作为 CI `golden` job 进入 `.github/workflows/ci.yml`（macos-latest：金样的规范摘要按主机字体做字节比较，Linux runner 不可比），初期 `continue-on-error: true`——2026-10-13 在本机为 `222 PASS, 0 FALLBACK, 0 DIFF, 0 CRASH, 4 KNOWN / 226 entries`（退出码 0），但 Actions 上的结果尚无记录，连续两轮干净后应改为必需步骤。
+
+CI 位于 `.github/workflows/ci.yml`：`contracts`（版本、catalog 契约、许可、单测）、`web`、`rust`、`bundle`、`golden`。发布配置 `.github/workflows/release.yml` 使用 tag 构建，产物名与 updater 清单版本由 tag 推导（`scripts/release-version.mjs`），需另审签名、跨平台启动/升级，不应假定 CI 无误就等于发行包完整。
 
 ## 2. 建议 CI 强制关卡（Target）
 
@@ -34,7 +40,7 @@ contract + schema + i18n + license
           └─ release build: platform packaging + smoke + signature
 ```
 
-- 文档阶段只定义目标，不会自动令 CI 生效；应以独立 PR 增加工作流并保留失败证据。
+- 文档阶段只定义目标，不会自动令 CI 生效；应以独立 PR 增加工作流并保留失败证据。**2026-10-13 起**：`contract + schema + i18n + license` 与 `lint + typecheck + TS unit`（catalog schema 在 `pnpm rust:test`、l10n 对账在 `pnpm catalog:check`、前端单测在 `pnpm test:unit`）已是 CI `contracts`/`web`/`rust` job 的必需步骤；`browser golden` 已是 CI `golden` job 但暂为 `continue-on-error`；`security/path/IPC negative tests` 随阶段 A 进入 `pnpm rust:test`；`release build` 仍是 tag 触发的手动流水线，未纳入 CI。
 - 任何不支持 Web 的工具，必须在 catalog / capability 表中标注且在 UI 有清晰的不可用说明；测试不得用“跳过”掩盖意外不支持。
 - 每次工具 ID/选项/结果 ABI 改动，至少运行 catalog 双向登记、金样、参数边界、异常错误码、WASM 与 Native 对比。
 - 关键安全回归必须验证 **未经授权的 Native IPC 直接调用**，不能只从正常 UI 流程点击按钮。

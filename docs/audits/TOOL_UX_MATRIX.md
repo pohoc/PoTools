@@ -4,7 +4,8 @@
 
 ## 阅读规则
 
-- **当前登记**只描述 catalog 的 `layout / interaction` 元数据；`action` 包含未显式声明 interaction 的默认行为。
+- **当前登记**只描述 catalog 基线 `88acacb` 的 `layout / interaction` 元数据；`action` 包含未显式声明 interaction 的默认行为。
+  2026-10-13 起 `interaction` 已从 catalog 删除，节奏改由必填的 `experience.execution` 表达（见 [RFC-0001](../rfcs/0001-tool-experience-contract.md)）；本表「建议执行方式」即那次迁移的来源，保留原措辞作为审计记录。
 - **优化方向**和**建议执行方式**是要验证/实现的目标，不等同于说当前工具缺少某项能力；请实际打开页面、录制使用路径并标注截图后再定最终方案。
 - “实时”仅用于廉价本地计算；“防抖实时”必须隔离过期结果；手动执行适合写文件、联网、昂贵处理；随机生成器分开首次显示与主动重新生成。
 - **验收重点**用于后续测试；`P1` 表示优先影响基本任务流程 / 可信性，`P2` 为体验改进。权限类阻断见 [风险账本](IMPLEMENTATION_GAPS.md)。

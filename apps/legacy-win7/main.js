@@ -12,54 +12,10 @@
  * 已 EOL——本壳只为存量 Win7 机器提供过渡方案。
  */
 const { app, BrowserWindow, shell } = require('electron');
-const http = require('node:http');
-const fs = require('node:fs');
 const path = require('node:path');
+const { startServer } = require('./static-server.cjs');
 
 const DIST = path.join(__dirname, 'dist');
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.mjs': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.wasm': 'application/wasm',
-  '.ttf': 'font/ttf',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.txt': 'text/plain; charset=utf-8',
-};
-
-/** 只伺服 dist 内的文件；找不到的路径回退 index.html（哈希路由其实到不了
- *  这里，兜底防手输路径）。 */
-function startServer(dist) {
-  const server = http.createServer((req, res) => {
-    const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
-    let file = path.normalize(path.join(dist, urlPath === '/' ? 'index.html' : urlPath));
-    if (!file.startsWith(dist)) {
-      res.writeHead(403);
-      return res.end();
-    }
-    fs.readFile(file, (err, data) => {
-      if (err) {
-        fs.readFile(path.join(dist, 'index.html'), (indexErr, index) => {
-          if (indexErr) {
-            res.writeHead(404);
-            return res.end();
-          }
-          res.writeHead(200, { 'Content-Type': MIME['.html'] });
-          res.end(index);
-        });
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream' });
-      res.end(data);
-    });
-  });
-  server.listen(0, '127.0.0.1');
-  return server;
-}
 
 app.whenReady().then(() => {
   const server = startServer(DIST);

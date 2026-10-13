@@ -6,11 +6,12 @@
   --ui-line: 220 226 234;
   /* Boundary of interactive controls (inputs, selects, textareas, date/combobox
      controls, checkboxes/radios, segmented controls and bordered buttons).
-     Per user direction the app uses ONE border colour per theme: this tier is
-     identical to `--ui-line` (the card/panel border), replacing the earlier
-     stricter SC 1.4.11 tier that read as a heavy frame on light surfaces. The
-     focus ring, not the resting border, identifies the interacting control. */
-  --ui-control-line: 220 226 234;
+     This is the WCAG 2.2 SC 1.4.11 tier: the boundary is how a user identifies an
+     interactive control, so it has to clear 3:1 against every surface a control
+     can sit on, in both themes. `pnpm theme:check` recomputes those ratios from
+     this file and fails the build when a tweak collapses the tier back into the
+     decorative line. Hue keeps the light palette's original 1 : 1.02 : 1.06 tint. */
+  --ui-control-line: 133 136 141;
   --ui-ink: 24 32 43;
   --ui-muted: 83 96 115;
   /* AA-safe secondary copy on the light canvas/surface while staying softer
@@ -73,8 +74,9 @@
   --ui-surface: 27 32 41;
   --ui-raised: 38 46 58;
   --ui-line: 55 65 80;
-  /* One border colour per theme: identical to the dark `--ui-line` above. */
-  --ui-control-line: 55 65 80;
+  /* Same 3:1 control tier in dark mode (worst case is against `--ui-raised`),
+     keeping the dark palette's 1 : 1.18 : 1.46 tint. */
+  --ui-control-line: 104 123 151;
   --ui-ink: 232 237 244;
   --ui-muted: 161 174 192;
   /* Keep small helper copy readable on both dark surface tones. */

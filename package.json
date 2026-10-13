@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
-  "description": "本机文件工具平台 · Web 前端 + Rust/Tauri 桌面宿主",
+  "description": "\u672c\u673a\u6587\u4ef6\u5de5\u5177\u5e73\u53f0 \u00b7 Web \u524d\u7aef + Rust/Tauri \u684c\u9762\u5bbf\u4e3b",
   "author": "pohoc <po.hoc4@gmail.com>",
   "packageManager": "pnpm@12.5.1",
   "engines": {
@@ -40,8 +40,10 @@
     "icons": "node scripts/make-icons.mjs && node scripts/sync-app-icon.mjs",
     "test:tools": "pnpm --filter @potools/web test:golden:browser",
     "test:golden": "pnpm --filter @potools/web test:golden:browser",
-    "check": "pnpm version:check && pnpm lint && pnpm typecheck && pnpm licenses:check && pnpm rust:fmt && pnpm rust:clippy && pnpm rust:test && pnpm rust:check:wasm",
-    "test:unit": "node --test \"apps/web/tests/*.test.ts\""
+    "test:unit": "node scripts/run-unit-tests.mjs",
+    "catalog:check": "node scripts/check-catalog-contract.mjs",
+    "check": "pnpm version:check && pnpm catalog:check && pnpm lint && pnpm typecheck && pnpm licenses:check && pnpm theme:check && pnpm rust:fmt && pnpm rust:clippy && pnpm rust:test && pnpm rust:check:wasm",
+    "theme:check": "node scripts/check-theme-contrast.mjs"
   },
   "devDependencies": {
     "oxlint": "^1.86.0",

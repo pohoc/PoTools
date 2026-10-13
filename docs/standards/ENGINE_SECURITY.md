@@ -15,47 +15,16 @@
 
 - **前端校验不是授权**：任何 `invoke()` 都应假定可被恶意注入脚本调用；“设置项已经在 UI 展示”不足以证明前端传入的路径是用户主动同意的。
 - **权限来源**：后端系统对话框结果、可信 OS 拖放、经过认证的应用管理目录。设置更改不能直接把任意自由路径变成全局读写 grant。
-- **最小权限**：选中的单文件只授予该文件读权限，输出文件夹授予必要的写权限；来源目录读与目标目录写分别处理；禁止以写权限隐式换取整个目录读权限。
-- **路径检查**：授权目录 canonicalize 后逐分量比较；拒绝相对路径和 traversal；写入需要安全创建和 symlink/reparse point 防护，校验与打开之间关注 TOCTOU。勿用字符串 `startsWith` 判断目录包含关系。
-- **Native IPC**：所有命令都必须在 Rust 入口验证目标路径/来源权限，不能因为底层服务“只接受绝对路径”就省略授权。无需用户路径的系统服务也须定义能力范围。
-- **特权入口清单**：使用来源/目标路径或本地元数据的新增 `#[tauri::command]` 都需列明授权来源、读写/删除边界与直接 IPC 的拒绝测试；覆盖浏览、统计、撤销、清理而不仅是普通文件读写。
+- **第四类来源（受限、须逐条登记）**：由本进程自己枚举出的系统路径，例如 `system_font_candidates` 为嵌入 CJK 字体而授予 `/System/Library/Fonts`、`~/Library/Fonts`、`~/.fonts` 中候选字体文件的权限。它不来自 WebView 的字符串，因此可用；每新增一处都必须在此登记，并说明授予范围与为何无法改由对话框取得。
+- **读授权绝不蕴含写授权**（SEC-06，2026-10-13 修复）：`PathGrants::can_write` 早期实现是「先问 `can_read`」，于是上条列出的每个字体文件、以及用户在 `pick_files` 里选中的**每一个待处理输入文件**，都同时成为 `write_file_bytes` 的可写目标——脚本可原地覆盖用户刚选的发票原件。现在文件授予分两种：`grant_file`（只读，用于字体枚举、选中输入、本进程写完后供「reveal」回读的文件）与 `grant_writable_file`（仅由原生保存对话框结果 `save_as` 授予）；选取/拖放的**目录**仍是子树读写。用例：`a_picked_file_is_readable_but_never_writable`、`only_a_save_dialog_target_is_writable_and_stays_revealed`、`an_enumerated_font_path_is_not_a_write_target`。
 
-## 2. 当前须优先整改的已知路径（Observed）
+行为必须包含：身份和权限判断、目录范围限制、错误码一致性、符号链接校验、审计与单测。路径比较统一走引擎的 `filesystem::resolve_path`（对最近存在的祖先 canonicalize 后原样追加尾部），因此 `..`、符号链接与 macOS 的 `/var` → `/private/var` 变体都不能绕过前缀检查。请勿为了通过 UI 测试而添加任何 JS 可无条件授予读权的接口。
 
-| IPC | 当前路径 | 目标门禁 |
-| --- | --- | --- |
-| `read_file_binary / read_file_bytes` | 已调用 `require_read` | 维持，补竞态测试 |
-| `write_output_file / copy_staged_artifact` | 已调用 `require_write`（及来源读） | 维持，补拒绝/符号链接测试 |
-| `invoice_scan_list` | 传入目录后直接扫描 | 来源必须有 `require_read` 目录 grant |
-| `invoice_read_candidate` | 直接 `fs::read` 路径 | 必须拥有来源文件 / 目录读 grant |
-| `invoice_archive` | 读取来源、在目标目录写入 | 来源读授权与目标写授权都必须由 Rust 验证 |
-| `browse_directories` | 根据自由路径枚举文件夹，失败时可回退父目录；未显式传入 `PathGrants` | 限于已选择目录或原生授权浏览范围；无权限不得探查其他目录结构 |
-| `temp_usage` | 接收自由 root 参数统计 `jobs/inbox` | 仅应用授权的可信 temp root 可访问 |
-| `invoice_undo` | 通过随机归档 ID 查内存记录，先校验路径与 SHA-256 再删除副本 | 验证撤销调用者权限和确认语义；保持现有防替换保护 |
-| `temp_clean / temp_usage` | 接收任意传入的根路径 | 只允许真实应用临时根目录 / 专属子目录，清理只应影响预期对象 |
-| `set_output_dir / set_temp_dir` | IPC 可请求给指定目录 grant | 设置与授权分离，仅可信来源批准特权路径 |
-
-代码参考：`apps/desktop/src/lib.rs`、`apps/desktop/src/access.rs`、`packages/engine/src/services/invoice/`、`services/filesystem.rs` 与 `services/temp.rs`。具体影响、证据与测试建议见 [问题登记](../audits/IMPLEMENTATION_GAPS.md)。
-
-**注意**：这里的是「在脚本拥有 IPC 能力的前提下可能被滥用」的权限边界问题；不声称存在无需用户交互、从任意远程网页直接触发的漏洞。
-
-## 3. 专用授权 API（Target）
-
-建议在 Rust 命令入口统一封装：
-
-```rust
-// 示例接口，当前仓库尚未提供
-fn require_source_file(grants: &PathGrants, path: &Path) -> Result<PathBuf, SecurityError>;
-fn require_source_dir(grants: &PathGrants, path: &Path) -> Result<PathBuf, SecurityError>;
-fn require_destination_dir(grants: &PathGrants, path: &Path) -> Result<PathBuf, SecurityError>;
-fn require_app_temp_root(app: &AppHandle, path: &Path) -> Result<PathBuf, SecurityError>;
-```
-
-行为必须包含：身份和权限判断、目录范围限制、错误码一致性、符号链接校验、审计与单测。请勿为了通过 UI 测试而添加任何 JS 可无条件授予读权的接口。
+**授权与设置分离的取舍**：`directory-approvals.json` 由本进程写入应用配置目录，启动时重新生效，所以「设置里保存的目录」不必每次重启都重新确认；文件记录的是**用途**（输出写入 / 临时暂存），输出始终是只写、临时始终只覆盖 `jobs/`+`inbox/`。该文件本身不做加密与防篡改，属已知残留风险。
 
 ## 4. 任务运行安全
 
-- 每个任务以 `jobId` 标识，支持 cancellation token；Native 和 Worker 侧均有取消传播，取消后不允许写出新的正式产物。
+- 每个任务以 `jobId` 标识并支持 cancellation token。当前**实际粒度**（必须按此理解，不是「随时可中断」）：宿主在读取每个输入前、写出每个产物前检查一次标志（`apps/desktop/src/lib.rs` 的 `engine_run_file_tool` / `stage_native_artifacts`），引擎只在已插桩进度的 3 个循环里协作退出（`page_ops.rs`、`compress.rs` 两处）；merge、images-to-pdf、OFD、extract-images 与各转换工具在单个工具调用内部**没有**检查点，取消要等该调用返回后才生效。Worker 侧靠 `worker.terminate()` 中断（`embedded-engine.worker.ts` 里的 `cancelledJobs` 集合目前无人读取，属死码）。写出侧的三段守卫：原生暂存前检查、Worker 成功后的 JS 暂存循环逐产物检查（`embedded-jobs.ts` `stateOf(...) === 'cancelled'` 即停），以及 runner/store 两层终态守卫。测试：`a_cancelled_native_job_writes_no_artifacts` 断言取消后临时目录与输出目录都没有新文件。
 - 实施分层限额：单文件大小、解压后对象/像素/页数、批次总数据量、运行时间、CPU/内存、文件句柄、并发。
 - OCR/图像/PDF 处理大量不可信字节，失败和 panic 应转成结构化 `EngineError`；不能把堆栈和敏感内容直接放到用户可复制日志。
 - 大文件避免在 JS 与 Rust 双侧重复保留字节；数据在 Worker 传输时使用 transferable，文件产物优先临时 staging 和受控复制。
@@ -72,12 +41,15 @@ fn require_app_temp_root(app: &AppHandle, path: &Path) -> Result<PathBuf, Securi
 
 ## 6. 权限回归测试最低集合
 
-1. 未授予来源目录时，发票枚举和按绝对路径读取必须被拒绝；`browse_directories` 不能越过已授予的目录树或回退到未授权父目录。
-2. 未授予目标目录时，发票归档、文件输出必须被拒绝；拒绝后原文件不变化。
-3. 恶意 `../`、符号链接、目录替换、UNIX/Windows 根路径与 UNC 情况可预测地拒绝。
-4. 临时清理永不访问应用根目录之外的 `jobs/inbox`，不可删除由攻击者自选根目录下的内容。
-5. 非法 Job ID、嵌套文件名、极大文件、巨大解压对象、损坏 PDF 应有受控错误。
-6. Native 任务执行中取消后最终目录无新输出；迟到进度/结果不能覆盖取消态。
-7. 网络调用实际包体内可用；失败和超时具有明确诊断；默认离线能力不触网。
-8. `temp_usage` 不能通过任意路径获取其他目录下 `jobs/inbox` 用量。
-9. `invoice_undo` 使用无效 ID、被篡改或移动文件时不得删除；合法撤销有用户可理解的确认与结果。
+`Verified` 列指已有自动化用例（`pnpm rust:test`，macOS x86_64，Rust 1.98，2026-10-13）；未标注的仍需人工或打包版实测。
+
+1. 未授予来源目录时，发票枚举和按绝对路径读取必须被拒绝；`browse_directories` 不能越过已授予的目录树或回退到未授权父目录。 — Verified：`invoice_tests::scanning_an_unauthorized_source_directory_is_refused`、`reading_an_unauthorized_candidate_returns_no_bytes`、`secure_paths_tests::browsing_is_limited_to_the_authorized_subtrees`、`a_missing_subdirectory_does_not_become_its_parent`、`filesystem::path_guard_tests::*`（同级前缀、符号链接、父级截断）。
+2. 未授予目标目录时，发票归档、文件输出必须被拒绝；拒绝后原文件不变化。 — Verified：`invoice_tests::archiving_without_source_or_target_grants_writes_nothing`（断言目标目录仍为空、源文件字节不变）；`access::tests::an_enumerated_font_path_is_not_a_write_target`、`only_a_save_dialog_target_is_writable_and_stays_revealed`（读授权不蕴含写）。
+3. 恶意 `../`、符号链接、目录替换、UNIX/Windows 根路径与 UNC 情况可预测地拒绝。 — 部分 Verified：`access::tests::traversal_cannot_escape_a_granted_directory`、`a_deleted_and_recreated_symlink_target_stays_out`、`invoice_relative_paths_reject_traversal_and_sanitize_windows_names`；目录替换与 UNC 仍需动态复现。
+4. 临时清理永不访问应用根目录之外的 `jobs/inbox`，不可删除由攻击者自选根目录下的内容。 — Verified：`secure_paths_tests::temp_clean_refuses_a_root_the_app_never_granted`、`temp_usage_is_confined_to_the_app_temp_root`。
+5. 非法 Job ID、嵌套文件名、极大文件、巨大解压对象、损坏 PDF 应有受控错误。 — 待补（阶段 B 与金样覆盖）。
+6. Native 任务执行中取消后最终目录无新输出；迟到进度/结果不能覆盖取消态。 — Verified（写出边界与终态）：`secure_paths_tests::a_cancelled_native_job_writes_no_artifacts`、`jobs::tests` 3 项；工具调用**内部**无检查点的粒度见 §4，仍属限制而非缺陷。
+7. 网络调用实际包体内可用；失败和超时具有明确诊断；默认离线能力不触网。 — 待补（阶段 B/C，打包版）。
+8. `temp_usage` 不能通过任意路径获取其他目录下 `jobs/inbox` 用量。 — Verified：同第 4 项。
+9. `invoice_undo` 使用无效 ID、被篡改或移动文件时不得删除；合法撤销有用户可理解的确认与结果。 — 部分 Verified：`invoice_tests::undo_is_refused_once_the_archive_directory_grant_is_gone`（无 grant、无效 ID、未知根）与 `invoice_archive_and_undo_preserve_verified_files`；「被篡改文件仍保留」由引擎哈希分支实现，UI 确认语义待实测。
+10. 设置的输出/临时目录不能由自由 IPC 参数换取权限。 — Verified：`secure_paths_tests::a_configured_directory_grants_nothing_until_it_is_approved`、`access::tests::an_unapproved_directory_cannot_be_honoured_as_a_setting`、`a_write_only_directory_never_becomes_a_read_grant`、`an_approval_is_recorded_granted_and_survives_a_restart`。

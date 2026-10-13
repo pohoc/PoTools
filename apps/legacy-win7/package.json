@@ -24,6 +24,7 @@
     },
     "files": [
       "main.js",
+      "static-server.cjs",
       "dist/**/*",
       "icon.ico"
     ],

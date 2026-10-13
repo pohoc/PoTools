@@ -29,7 +29,7 @@ scripts: 构建、样例、打包和版本检查
 | Rust | stable、`cargo fmt`、Clippy `-D warnings`、错误用结构化 code + message；路径 / IO 用 `Result` |
 | 文件组织 | 建议新改动的单文件尽量不超过 500 行；这是本规范新增的可维护性建议，不是旧有 CI 门禁；超过时解释职责与拆分计划，不为凑行数制造无关改动 |
 | UI 文案 | 用 `apps/web/src/i18n/zh-CN.ts` 与 `en.ts`；禁止直接加入未经国际化的用户可见字符串 |
-| 样式与无障碍 | 控件识别边界用 `--ui-control-line`，装饰分隔用 `--ui-line`；键盘、焦点、ARIA、WCAG 2.2 1.4.11 |
+| 样式与无障碍 | 控件识别边界用 `--ui-control-line`（浅 `133 136 141`、深 `104 123 151`，对每个可承载控件的背景均 ≥3:1，由 `pnpm theme:check` 从 tokens.css 实测并把守），装饰分隔用 `--ui-line`；键盘、焦点、ARIA、WCAG 2.2 1.4.11 |
 | Git 提交 | `type(scope): summary`，优先 `ui / engine / core / tauri / docs / test` |
 | 依赖 | pnpm lockfile 固定、Rust Cargo lockfile 同步；引入新依赖需评估包体积、许可、安全更新与离线运行 |
 | 生成物 | 不提交可重建的运行产物（除仓库明确要求保留的 WASM 类型声明等） |
@@ -39,6 +39,7 @@ scripts: 构建、样例、打包和版本检查
 ## 3. 开发环境
 
 - Node 要求以根 `package.json#engines` 为准；workspace 使用 `pnpm@12.5.1`，Rust stable + rustfmt + clippy + wasm32 target。
+- `pnpm wasm:build` 与 `pnpm rust:check:wasm` 需要 **rustup 管理的 cargo**（`~/.cargo/bin`）并且该工具链装有 `wasm32-unknown-unknown`。系统包管理器（如 Homebrew）安装的 cargo 看不到 rustup 的 target，会以 `E0463 can't find crate for std` 在依赖上失败——遇到这种情况先检查 `which cargo`，不要以为是仓库构建坏了。
 - `wasm-bindgen-cli` 与引擎 ABI 版本须匹配，当前构建脚本要求 `0.2.129`。
 - 桌面环境还需要 Tauri 系统依赖；Linux 原生打包应在目标架构环境构建，不得等同发行版认证。
 
@@ -48,12 +49,13 @@ pnpm dev:web                         # 浏览器 UI + Worker
 pnpm tauri dev                       # Tauri Native
 pnpm wasm:build                      # WASM ABI
 pnpm --filter @potools/web build     # Web bundle + 启动 smoke
-pnpm check                           # version, lint, typecheck, licenses, Rust, wasm32
-pnpm test:unit                       # 前端纯函数测试；留意 Node 版本兼容
+pnpm check                           # version, catalog 契约, lint, typecheck, licenses, Rust, wasm32
+pnpm test:unit                       # scripts/run-unit-tests.mjs：需 Node >= 22.6（见下）
+pnpm catalog:check                   # catalog ↔ 双语 message 表、catalog ↔ tools.rs 对账
 pnpm test:tools                      # 浏览器金样，需满足 WASM/浏览器依赖
 ```
 
-> `pnpm check` **当前不包含** `test:unit` 或 `test:tools`。开发者需显式运行；CI 补足项见 [质量规范](QUALITY_GATES.md)。本次文档不会将缺失步骤误写为已在 CI 强制执行。
+> `pnpm check` 自 2026-10-13 起**包含** `catalog:check`，仍**不包含** `test:unit` 与 `test:tools`：`engines.node` 声明支持 `^20.19.0`，而 Node 20 无法运行 `.ts` 单测，放进 `check` 会让该版本的本地门禁硬性变红。`test:unit` 由 CI 的 `contracts` job 强制（Node 24），`test:tools` 由 `golden` job 强制（需 pinned wasm-bindgen、WASM 产物与真实 Chromium）。`pnpm test:unit` 会先探测当前 Node 能否执行 `.ts`：Node 20.x 会带版本提示直接失败，而不是静默跳过。若将来收紧 `engines.node` 到 `>=22.6`，应把 `test:unit` 放回 `check`。细节见 [质量规范 §1](QUALITY_GATES.md)。
 
 ## 4. 修改过程中的边界
 

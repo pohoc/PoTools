@@ -1,8 +1,25 @@
 # RFC-0001：工具体验声明与组件路由
 
-- **状态**：Proposal / 待评审，**非已实施 API**
+- **状态**：分阶段实施中。2026-10-13 已落地「阶段 1 基础校验」：`experience` 成为 catalog 必填字段，98 项工具按 [审计矩阵](../audits/TOOL_UX_MATRIX.md) 的「目标模型 / 建议执行方式」逐项登记，`useToolDraft` 的执行节奏与过期结果状态改由该声明驱动（UX-03），并新增 `packages/core/tests/catalog_contract.rs::every_tool_declares_a_consistent_experience_model` 做机械校验。**页面模板与结果契约（阶段 2-3）仍未实施**，`ToolPage` 的主编辑器判断依旧基于 `layout`/字段形态。
 - **背景**：2026-10-13 对 98 个工具 catalog、`ToolPage.tsx`、`OptionForm.tsx`、`ResultPanel.tsx` 的静态检查
 - **关联**：[工具交互规范](../standards/TOOL_INTERACTION.md)、[工具开发规范](../standards/TOOL_DEVELOPMENT.md)、[工具矩阵](../audits/TOOL_UX_MATRIX.md)
+
+## 已实施部分（2026-10-13）
+
+Rust `packages/core/src/tools.rs` 与 TS 镜像 `apps/web/src/lib/core-contract.ts` 中的实际形状：
+
+```rust
+pub struct ToolExperience {
+    pub kind: ExperienceKind,          // 七类 kebab-case 值
+    pub execution: ExecutionMode,      // live | debounced | manual
+}
+```
+
+- `resultView` **尚未引入**：结果渲染契约需要同时定义 `ToolResult.extra` 的可序列化形状与金样兼容策略，留到阶段 3，避免用一半的字段做出看起来完整的声明。
+- 校验规则（`every_tool_declares_a_consistent_experience_model`）：七类模型均至少被一个工具使用；`live` 不得声明在有外联、多文件或 `generator` 类工具上；总数必须等于 catalog 工具数。
+- `interaction` 字段暂时保留为兼容登记；`ToolPage` 的「实时提示 vs 运行按钮」已与 `experience.execution` 同源，不会再出现「无按钮也不自动跑」的工具。
+
+**2026-10-13 评审后的偏离**：`interaction` **没有**保留为兼容后备，而是直接从 catalog、Rust `ToolDescriptor` 和 TS 镜像中删除（39 项登记 + `ToolInteraction` 枚举）。原因是全仓检索确认它已经没有任何运行时读者，而 39 项仍写着 `live`、与新的 `experience.execution` 互相矛盾——留着就是 RUN-03 刚清掉的那种「第二个事实源」。删除后 catalog 只有 `experience` 一处描述节奏，`packages/core/tests/catalog_contract.rs` 负责它的合法性。
 
 ## 问题
 
@@ -17,7 +34,7 @@
 3. 支持七种主模式与辅助组合，复用控件与任务基础设施，并支持少量专业工作台。
 4. 不影响现有 Rust API 的兼容性，不迫使 98 项工具一次性迁移。
 
-## 提议契约（示例，不得直接认为 schema 已支持）
+## 提议契约（`kind`/`execution` 已实施，`resultView` 等仍未支持）
 
 ```ts
 type ExperienceKind =
