@@ -56,6 +56,7 @@ pub(super) fn run(ctx: &RunContext<'_>) -> Result<Option<ToolResult>, EngineErro
         };
         if total_inputs > 1 {
             crate::progress::report(input_index + 1, total_inputs);
+            crate::cancel::check()?;
         }
         if stats.skipped > 0 {
             result.warnings.push(format!(
@@ -178,6 +179,7 @@ fn recompress_images(
         // Reported before the work so skipped images never stall the ramp.
         if per_image_progress {
             crate::progress::report(index + 1, image_ids.len());
+            crate::cancel::check()?;
         }
         let Some(Object::Stream(stream)) = document.objects.get(id) else {
             continue;

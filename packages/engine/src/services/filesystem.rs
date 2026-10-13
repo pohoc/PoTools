@@ -16,25 +16,28 @@ pub struct WrittenFile {
     pub name: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct DirectoryEntry {
     pub name: String,
     pub path: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct QuickDirectory {
     pub id: &'static str,
     pub path: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 pub struct DirectoryListing {
     pub path: String,
     pub requested: String,
     pub parent: Option<String>,
     pub dirs: Vec<DirectoryEntry>,
     pub quick: Vec<QuickDirectory>,
+    /// True when the authorized directory could not be read. Nothing is listed
+    /// and no ancestor is substituted in its place.
+    pub unreadable: bool,
 }
 
 /// Reject path shapes that no legitimate caller can produce.
@@ -77,83 +80,89 @@ pub fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     fs::read(target).map_err(|error| error.to_string())
 }
 
-pub fn browse_directories(path: Option<String>) -> Result<DirectoryListing, String> {
-    let home = home_directory();
-    let requested_path = path.unwrap_or_default();
-    let requested = if requested_path.trim().is_empty() {
-        home.clone()
-    } else {
-        let candidate = PathBuf::from(requested_path.trim());
-        if candidate.is_absolute() {
-            normalize_absolute_path(&candidate)
-        } else {
-            normalize_absolute_path(
-                &std::env::current_dir()
-                    .map_err(|error| error.to_string())?
-                    .join(candidate),
-            )
-        }
+/// List one level of a directory the host has authorized for browsing.
+///
+/// `authorized` is the directory the host resolved and approved (canonical, so
+/// the macOS `/var` → `/private/var` rewrite cannot smuggle a request past a
+/// prefix test); `requested` is only what the caller asked for, echoed back so
+/// the UI can still offer a folder that does not exist yet. `allowed_roots` is
+/// the host's own grant bookkeeping, never a value from the WebView. A path
+/// outside every root is refused, and an unreadable directory is reported as such
+/// instead of quietly listing an ancestor: the previous parent-walk fallback
+/// turned "you cannot see this" into "here is everything one level above it".
+pub fn browse_directories(
+    requested: Option<String>,
+    authorized: &Path,
+    allowed_roots: &[PathBuf],
+) -> Result<DirectoryListing, String> {
+    if allowed_roots.is_empty() {
+        return Err("没有可供浏览的已授权目录".to_string());
+    }
+    let requested_path = match requested.as_deref().map(str::trim) {
+        None | Some("") => authorized.to_path_buf(),
+        Some(value) => normalize_absolute_path(&validate_absolute_path(value, "目录路径")?),
+    };
+    let listed = fs::canonicalize(authorized).unwrap_or_else(|_| authorized.to_path_buf());
+    let Some(root) = allowed_roots
+        .iter()
+        .find(|root| authorized_under(root, &listed))
+    else {
+        return Err(format!("目录未授权浏览：{}", listed.display()));
     };
 
-    let mut listed = requested.clone();
-    let entries = loop {
-        match fs::read_dir(&listed) {
-            Ok(entries) => break entries,
-            Err(_) => {
-                let Some(parent) = listed.parent() else {
-                    return Err(format!("无法读取目录：{}", listed.display()));
-                };
-                if parent == listed {
-                    return Err(format!("无法读取目录：{}", listed.display()));
+    let mut unreadable = false;
+    let mut dirs = Vec::new();
+    match fs::read_dir(&listed) {
+        Ok(entries) => {
+            for entry in entries.flatten() {
+                if entry.file_name().to_string_lossy().starts_with('.') {
+                    continue;
                 }
-                listed = parent.to_path_buf();
-            }
-        }
-    };
-
-    let mut dirs = entries
-        .filter_map(Result::ok)
-        .filter(|entry| !entry.file_name().to_string_lossy().starts_with('.'))
-        .filter_map(|entry| {
-            entry
-                .file_type()
-                .ok()
-                .filter(|kind| kind.is_dir())
-                .map(|_| DirectoryEntry {
+                if !entry.file_type().ok().is_some_and(|kind| kind.is_dir()) {
+                    continue;
+                }
+                dirs.push(DirectoryEntry {
                     name: entry.file_name().to_string_lossy().into_owned(),
                     path: entry.path().to_string_lossy().into_owned(),
-                })
-        })
-        .collect::<Vec<_>>();
+                });
+            }
+        }
+        Err(_) => unreadable = true,
+    }
     dirs.sort_by(|left, right| natural_directory_order(&left.name, &right.name));
 
-    let mut quick = vec![QuickDirectory {
-        id: "home",
-        path: home.to_string_lossy().into_owned(),
-    }];
-    for (id, folder) in [
-        ("documents", "Documents"),
-        ("downloads", "Downloads"),
-        ("desktop", "Desktop"),
-    ] {
-        let candidate = home.join(folder);
-        if candidate.is_dir() {
+    let parent = listed
+        .parent()
+        .filter(|parent| authorized_under(root, parent))
+        .map(|parent| parent.to_string_lossy().into_owned());
+    let mut quick = Vec::new();
+    for (id, candidate) in standard_browse_roots() {
+        let resolved = fs::canonicalize(&candidate).unwrap_or(candidate);
+        if allowed_roots
+            .iter()
+            .any(|root| authorized_under(root, &resolved))
+        {
             quick.push(QuickDirectory {
                 id,
-                path: candidate.to_string_lossy().into_owned(),
+                path: resolved.to_string_lossy().into_owned(),
             });
         }
     }
 
     Ok(DirectoryListing {
         path: listed.to_string_lossy().into_owned(),
-        requested: requested.to_string_lossy().into_owned(),
-        parent: listed
-            .parent()
-            .map(|parent| parent.to_string_lossy().into_owned()),
+        requested: requested_path.to_string_lossy().into_owned(),
+        parent,
         dirs,
         quick,
+        unreadable,
     })
+}
+
+/// Component-wise containment on an already-normalized path, so a `..` segment
+/// and same-prefix siblings (`~/work` vs `~/work-backup`) both fail.
+fn authorized_under(root: &Path, target: &Path) -> bool {
+    target == root || target.starts_with(root)
 }
 
 pub fn stage_artifact(
@@ -216,7 +225,51 @@ pub fn copy_staged_artifact(
     Ok(path.to_string_lossy().to_string())
 }
 
-fn home_directory() -> PathBuf {
+/// Resolve a path that may not exist yet into the form a containment check can
+/// compare: the nearest existing ancestor is canonicalised and the remaining
+/// tail is re-appended **verbatim**, so a `..` left in the tail fails the prefix
+/// check instead of escaping the directory it was granted.
+///
+/// This is also what makes the macOS `/var` → `/private/var` rewrite harmless:
+/// both the grant and the request come back canonical, so a prefix test compares
+/// the same spelling.
+pub fn resolve_path(path: &Path) -> Option<PathBuf> {
+    let mut tail: Vec<&std::ffi::OsStr> = Vec::new();
+    let mut cursor = path;
+    loop {
+        if let Ok(resolved) = cursor.canonicalize() {
+            let mut complete = resolved;
+            for component in tail.iter().rev() {
+                complete.push(component);
+            }
+            return Some(complete);
+        }
+        tail.push(cursor.file_name()?);
+        cursor = cursor.parent()?;
+    }
+}
+
+/// The user's own folders, offered as one-click roots by the desktop picker and
+/// seeded into the host's browse allowlist. Everything outside them — and
+/// outside any folder the user picked — stays unenumerable.
+pub fn standard_browse_roots() -> Vec<(&'static str, PathBuf)> {
+    let home = home_directory();
+    let mut roots = vec![("home", home.clone())];
+    for (id, folder) in [
+        ("documents", "Documents"),
+        ("downloads", "Downloads"),
+        ("desktop", "Desktop"),
+    ] {
+        let candidate = home.join(folder);
+        if candidate.is_dir() {
+            roots.push((id, candidate));
+        }
+    }
+    roots
+}
+
+/// The user's own directory, used by the host to seed the browse allowlist.
+pub fn home_directory() -> PathBuf {
     if cfg!(target_os = "windows") {
         std::env::var_os("USERPROFILE").map(PathBuf::from)
     } else {
@@ -463,5 +516,80 @@ mod path_guard_tests {
             .expect("write");
         assert_eq!(Path::new(&written.path).parent().unwrap(), dir);
         assert_eq!(written.name, "output.pdf");
+    }
+
+    /// What the host hands over: a resolved target plus resolved roots.
+    fn browse(path: &Path, roots: &[PathBuf]) -> Result<DirectoryListing, String> {
+        let authorized =
+            resolve_path(path).ok_or_else(|| format!("无法解析目录：{}", path.display()))?;
+        let roots: Vec<PathBuf> = roots.iter().filter_map(|root| resolve_path(root)).collect();
+        browse_directories(
+            Some(path.to_string_lossy().into_owned()),
+            &authorized,
+            &roots,
+        )
+    }
+
+    #[test]
+    fn browsing_outside_the_authorized_roots_is_refused() {
+        let allowed = scratch("browse-allowed");
+        let outside = scratch("browse-outside");
+        fs::create_dir_all(outside.join("hidden")).unwrap();
+        let error = browse(&outside, &[allowed]).unwrap_err();
+        assert!(error.contains("未授权"), "{error}");
+    }
+
+    #[test]
+    fn a_same_prefix_sibling_is_not_mistaken_for_the_authorized_root() {
+        let root = scratch("browse-prefix");
+        fs::create_dir_all(root.join("inner")).unwrap();
+        let sibling = PathBuf::from(format!("{}-backup", root.display()));
+        fs::create_dir_all(sibling.join("private")).unwrap();
+        assert!(browse(&sibling, &[root]).is_err());
+        let _ = fs::remove_dir_all(&sibling);
+    }
+
+    #[test]
+    fn an_unreadable_directory_reports_empty_instead_of_listing_an_ancestor() {
+        let root = scratch("browse-missing");
+        fs::create_dir_all(root.join("visible")).unwrap();
+        let listing =
+            browse(&root.join("does-not-exist"), std::slice::from_ref(&root)).expect("browse");
+        assert!(listing.unreadable, "the read failure must be explicit");
+        assert!(
+            listing.dirs.is_empty(),
+            "ancestor entries leaked: {:?}",
+            listing.dirs
+        );
+        // A not-yet-created folder is still selectable, so the caller keeps the
+        // path it asked for while `path` reports what was actually resolved.
+        assert_eq!(Path::new(&listing.requested), root.join("does-not-exist"));
+        assert!(!Path::new(&listing.path).exists());
+    }
+
+    #[test]
+    fn the_parent_link_stops_at_the_authorized_root() {
+        let root = scratch("browse-parent");
+        let child = root.join("child");
+        fs::create_dir_all(&child).unwrap();
+        let canonical_root = resolve_path(&root).expect("canonical root");
+        let nested = browse(&child, std::slice::from_ref(&root)).expect("browse child");
+        assert_eq!(
+            nested.parent.as_deref(),
+            Some(canonical_root.to_string_lossy().as_ref())
+        );
+        let top = browse(&canonical_root, &[root]).expect("browse root");
+        assert!(top.parent.is_none(), "escaping upward: {:?}", top.parent);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_symlink_cannot_carry_browsing_out_of_the_root() {
+        let root = scratch("browse-symlink");
+        let outside = scratch("browse-symlink-target");
+        fs::create_dir_all(outside.join("private")).unwrap();
+        std::os::unix::fs::symlink(&outside, root.join("escape")).unwrap();
+        let escape = root.join("escape");
+        assert!(browse(&escape, &[root]).is_err());
     }
 }

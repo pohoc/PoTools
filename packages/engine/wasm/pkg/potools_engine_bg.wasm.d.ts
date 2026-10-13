@@ -5,6 +5,7 @@ export const coreAllTools: (a: number) => void;
 export const coreAssessPasswordStrength: (a: number, b: number, c: number) => void;
 export const coreFieldsOf: (a: number, b: number) => void;
 export const coreFormatPageRanges: (a: number, b: number) => void;
+export const coreHostRoutes: (a: number) => void;
 export const coreIdPhotoPrintSize: (a: number, b: number, c: number) => void;
 export const coreIdPhotoSize: (a: number, b: number, c: number) => void;
 export const coreIsValidPageRanges: (a: number, b: number) => number;

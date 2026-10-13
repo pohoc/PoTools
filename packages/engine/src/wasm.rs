@@ -490,3 +490,23 @@ pub fn pdf_image_rects(bytes: Vec<u8>) -> Result<JsValue, JsValue> {
 pub fn tool_capabilities() -> Result<JsValue, JsValue> {
     to_js_json(&crate::tools::capabilities::advertised())
 }
+
+/// Every catalog tool with the host route that runs it, as `{ toolId: route }`.
+///
+/// The WebView derives its native-file routing set from this instead of keeping a
+/// second list, which is what made Web and desktop routing decisions drift apart
+/// (audit RUN-03).
+#[wasm_bindgen(js_name = coreHostRoutes)]
+pub fn core_host_routes() -> Result<JsValue, JsValue> {
+    let routes: serde_json::Map<String, serde_json::Value> =
+        crate::tools::capabilities::host_routes()
+            .into_iter()
+            .map(|(tool, route)| {
+                (
+                    tool.to_string(),
+                    serde_json::Value::String(route.to_string()),
+                )
+            })
+            .collect();
+    to_js_json(&serde_json::Value::Object(routes))
+}

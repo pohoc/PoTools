@@ -128,6 +128,75 @@ pub const ENGINE_ONLY: &[&str] = &["tiff-preview", "tiff-convert"];
 pub const ADAPTER_HANDLED: &[&str] =
     &["pdf-to-images", "ocr-text", "ocr-table", "invoice-organize"];
 
+/// Catalog tools the **desktop host** runs through `engine_run_file_tool`:
+/// inputs are read by path inside Rust and artifacts are staged straight to disk.
+///
+/// This is the only place the routing decision is made. `apps/web` used to keep
+/// its own copy of the list with nothing comparing the two, so a tool added on one
+/// side quietly ran on the other host — or on none (audit RUN-03); the WebView now
+/// reads it from [`host_routes`] at startup instead.
+pub const NATIVE_FILE_TOOLS: &[&str] = &[
+    "image-compress",
+    "image-resize",
+    "image-crop",
+    "image-rotate",
+    "image-convert",
+    "image-info",
+    "image-metadata-clean",
+    "image-print",
+    "image-cutout",
+    "image-watermark-clean",
+    "image-id-photo",
+    "merge",
+    "split",
+    "organize",
+    "rotate",
+    "extract-pages",
+    "delete-pages",
+    "metadata",
+    "crop",
+    "repair",
+    "invoice-merge",
+    "watermark",
+    "page-numbers",
+    "header-footer",
+    "remove-blank",
+];
+
+/// Where one catalog tool actually executes, as a stable id for the UI, the
+/// capability probe and the cross-host contract tests.
+///
+/// - `native-file`: the desktop command reads the file on disk (desktop only).
+/// - `adapter`: the web host serves it (PDF.js pixels, OCR models, privileged
+///   invoice commands) and hands results back to Rust.
+/// - `engine`: Rust `run_tool`, in the Worker on Web and in the host process on
+///   desktop.
+/// - `unrouted`: offered by the catalog but implemented nowhere.
+pub fn route_of(tool: &str) -> &'static str {
+    if NATIVE_FILE_TOOLS.contains(&tool) {
+        "native-file"
+    } else if ADAPTER_HANDLED.contains(&tool) {
+        "adapter"
+    } else if SUPPORTED.contains(&tool) {
+        "engine"
+    } else {
+        "unrouted"
+    }
+}
+
+/// The route of every catalog tool as `(tool, route)` pairs, exported to the
+/// WebView through `coreHostRoutes` so the routing decision exists in one place.
+pub fn host_routes() -> Vec<(&'static str, &'static str)> {
+    potools_core::tools::all_tools()
+        .map(|tools| {
+            tools
+                .iter()
+                .map(|tool| (tool.id.as_str(), route_of(&tool.id)))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// The frozen display list exposed by `toolCapabilities()`.
 pub fn advertised() -> Vec<&'static str> {
     SUPPORTED.iter().chain(ENGINE_ONLY).copied().collect()
@@ -135,7 +204,7 @@ pub fn advertised() -> Vec<&'static str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{advertised, ADAPTER_HANDLED, ENGINE_ONLY, SUPPORTED};
+    use super::{advertised, route_of, ADAPTER_HANDLED, ENGINE_ONLY, NATIVE_FILE_TOOLS, SUPPORTED};
     use crate::RunContext;
     use serde_json::json;
     use std::collections::BTreeSet;
@@ -146,6 +215,45 @@ mod tests {
             .iter()
             .map(|tool| tool.id.clone())
             .collect()
+    }
+
+    /// The host route list is now the only copy, so it has to be consistent with
+    /// the engine it depends on: every native tool must be an engine tool that the
+    /// catalog actually offers.
+    #[test]
+    fn native_routes_are_catalog_tools_the_engine_handles() {
+        let catalog = catalog_ids();
+        let mut seen = BTreeSet::new();
+        for tool in NATIVE_FILE_TOOLS {
+            assert!(seen.insert(*tool), "duplicate native route entry: {tool}");
+            assert!(
+                SUPPORTED.contains(tool),
+                "'{tool}' is routed to the native host but has no engine dispatch"
+            );
+            assert!(
+                catalog.contains(*tool),
+                "'{tool}' is routed natively but is not in the catalog"
+            );
+        }
+    }
+
+    /// Every catalog tool resolves to a real host route. This is the direction that
+    /// used to be unprovable: the UI's list and Rust's registry could disagree and
+    /// nothing reported the tool that fell through.
+    #[test]
+    fn every_catalog_tool_resolves_to_a_route() {
+        let unrouted: Vec<String> = catalog_ids()
+            .into_iter()
+            .filter(|id| route_of(id) == "unrouted")
+            .collect();
+        assert!(
+            unrouted.is_empty(),
+            "catalog tools with no host route: {unrouted:?}"
+        );
+        assert_eq!(route_of("no-such-tool"), "unrouted");
+        assert_eq!(route_of("merge"), "native-file");
+        assert_eq!(route_of("pdf-to-images"), "adapter");
+        assert_eq!(route_of("json-format"), "engine");
     }
 
     /// Drift tripwire: a tool the engine claims to handle must actually be

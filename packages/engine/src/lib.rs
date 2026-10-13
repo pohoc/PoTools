@@ -38,6 +38,8 @@ impl EngineError {
 
 pub mod ocr;
 
+pub mod cancel;
+
 pub mod progress;
 
 pub mod services;

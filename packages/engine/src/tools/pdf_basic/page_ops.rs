@@ -110,6 +110,7 @@ pub(super) fn run_split(ctx: &RunContext<'_>) -> EngineResult<ToolResult> {
         )?;
         pages_out += group.len();
         crate::progress::report(index + 1, groups.len());
+        crate::cancel::check()?;
     }
     result.extra.insert("__pageCountIn".into(), json!(total));
     result

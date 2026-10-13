@@ -1,4 +1,4 @@
-#[derive(serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InvoiceArchiveInput {
     pub source_directory: String,
@@ -7,7 +7,7 @@ pub struct InvoiceArchiveInput {
     pub files: Vec<InvoiceArchiveFile>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InvoiceArchiveFile {
     pub path: String,
@@ -17,7 +17,7 @@ pub struct InvoiceArchiveFile {
     pub fields: Option<serde_json::Value>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InvoiceScanCandidate {
     pub path: String,
@@ -27,7 +27,7 @@ pub struct InvoiceScanCandidate {
     pub size_bytes: u64,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InvoiceScanListing {
     pub source_directory: String,
@@ -36,7 +36,7 @@ pub struct InvoiceScanListing {
     pub exceeded: bool,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InvoiceCandidateRead {
     pub bytes: Vec<u8>,

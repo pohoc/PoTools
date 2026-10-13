@@ -9,6 +9,15 @@ export function coreFieldsOf(fields: any): any;
 
 export function coreFormatPageRanges(pages: any): string;
 
+/**
+ * Every catalog tool with the host route that runs it, as `{ toolId: route }`.
+ *
+ * The WebView derives its native-file routing set from this instead of keeping a
+ * second list, which is what made Web and desktop routing decisions drift apart
+ * (audit RUN-03).
+ */
+export function coreHostRoutes(): any;
+
 export function coreIdPhotoPrintSize(id?: string | null): any;
 
 export function coreIdPhotoSize(id?: string | null): any;
@@ -109,6 +118,7 @@ export interface InitOutput {
     readonly coreAssessPasswordStrength: (a: number, b: number, c: number) => void;
     readonly coreFieldsOf: (a: number, b: number) => void;
     readonly coreFormatPageRanges: (a: number, b: number) => void;
+    readonly coreHostRoutes: (a: number) => void;
     readonly coreIdPhotoPrintSize: (a: number, b: number, c: number) => void;
     readonly coreIdPhotoSize: (a: number, b: number, c: number) => void;
     readonly coreIsValidPageRanges: (a: number, b: number) => number;

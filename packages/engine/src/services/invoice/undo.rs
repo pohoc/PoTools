@@ -2,7 +2,7 @@ use super::crypto::invoice_sha256;
 use super::paths::invoice_within;
 use std::collections::{HashMap, VecDeque};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use uuid::Uuid;
 
@@ -52,7 +52,15 @@ pub(super) fn record_archive(
     Ok(())
 }
 
-pub fn invoice_undo(archive_id: String) -> Result<serde_json::Value, String> {
+/// Remove the copies produced by one archive.
+///
+/// `destination_authorized` is supplied by the privileged host: an archive id is
+/// only a handle into this process's memory, so the caller still has to prove it
+/// may write the directory the copies live in before anything is deleted.
+pub fn invoice_undo(
+    archive_id: String,
+    destination_authorized: &dyn Fn(&Path) -> bool,
+) -> Result<serde_json::Value, String> {
     let archive = invoice_undo_archives()
         .lock()
         .map_err(|_| "撤销记录锁不可用")?
@@ -60,12 +68,18 @@ pub fn invoice_undo(archive_id: String) -> Result<serde_json::Value, String> {
         .get(&archive_id)
         .cloned()
         .ok_or("本次归档记录已过期或不存在")?;
+    if !destination_authorized(&archive.target_root) {
+        return Err("归档目录的写入授权已失效，请重新选择目录后再撤销".to_string());
+    }
     let mut removed = Vec::new();
     let mut skipped = Vec::new();
     for item in archive.files {
         let result = (|| -> Result<(), String> {
             if !invoice_within(&archive.target_root, &item.path) {
                 return Err("文件不在本次归档目录内".to_string());
+            }
+            if !destination_authorized(&item.path) {
+                return Err("目标文件已不在授权目录内".to_string());
             }
             let meta =
                 fs::symlink_metadata(&item.path).map_err(|_| "目标已不存在或不再是普通文件")?;
