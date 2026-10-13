@@ -222,7 +222,10 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
 
   const error = draft.error ? describeError(draft.error, draft.errorCode, t) : null;
   const textLayout = descriptor.layout === 'text';
-  const liveText = textLayout && descriptor.interaction === 'live';
+  // Whether the page shows a live hint or a run button has to follow the same
+  // declaration the draft hook uses for its cadence — otherwise a tool whose
+  // experience says `manual` would auto-run nowhere and offer no button.
+  const liveText = textLayout && descriptor.experience.execution !== 'manual';
   const outputMode = settings.outputMode ?? 'folder';
   // Output location applies to tools that write files. Text-only results never
   // touch a folder, and the browser build saves through downloads instead.
@@ -403,6 +406,7 @@ function ToolWorkspace({ descriptor }: { descriptor: ToolDescriptor }) {
           error={error}
           errorCode={draft.errorCode}
           running={draft.running}
+          stale={draft.stale}
           onRetry={() => void onRun()}
         />
       ) : (

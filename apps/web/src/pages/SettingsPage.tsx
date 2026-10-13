@@ -30,11 +30,35 @@ import { useI18n } from '../i18n/index.tsx';
 import { DEFAULT_SETTINGS, useSettings } from '../lib/settings.ts';
 import { transportMode, useEngine } from '../stores/engine.ts';
 import { useJobs } from '../stores/jobs.ts';
-import { isTauri, nativePickDirectory } from '../lib/tauri.ts';
+import { isTauri, approveDirectory, nativePickDirectory } from '../lib/tauri.ts';
 import { shouldAutoCheck, useUpdater } from '../lib/updater.ts';
 import { pickFiles } from '../lib/files.ts';
 import { formatBytes } from '../lib/format.ts';
 import { DISPLAY_VERSION } from '../lib/version.ts';
+
+/**
+ * Get the host's approval for a directory before a setting that needs it is
+ * applied. A folder chosen in the native dialog is already approved, so this
+ * only ever prompts for a path the user typed (or restored from an older
+ * version). The dialog is shown by Rust: granting from a JavaScript call alone
+ * would be a permission the WebView could mint for itself.
+ */
+function useDirectoryApproval() {
+  const { t, tf } = useI18n();
+  return useCallback(async (dir: string, purpose: 'output' | 'temp'): Promise<boolean> => {
+    if (!isTauri() || !dir.trim()) return true;
+    const approved = await approveDirectory(
+      dir,
+      purpose,
+      t('settings.approve.title'),
+      tf(purpose === 'temp' ? 'settings.approve.temp' : 'settings.approve.output', { dir }),
+      t('settings.approve.confirm'),
+      t('settings.approve.cancel'),
+    );
+    if (!approved) toast.error(t('settings.approve.declined'));
+    return approved;
+  }, [t, tf]);
+}
 
 const PATTERN_TOKENS = [
   { token: '{name}', key: 'patternToken.name' },
@@ -230,11 +254,12 @@ function OutputTab() {
   const { t } = useI18n();
   const info = useEngine((state) => state.info);
   const settings = useSettings();
+  const approve = useDirectoryApproval();
   const [picking, setPicking] = useState(false);
 
   const chooseDir = () => {
     if (isTauri()) {
-      void nativePickDirectory().then((dir) => {
+      void nativePickDirectory('output').then((dir) => {
         if (dir) settings.set('outputDir', dir);
       });
       return;
@@ -289,6 +314,12 @@ function OutputTab() {
               placeholder="/Users/you/Documents"
               value={settings.outputDir ?? ''}
               onChange={(event) => settings.set('outputDir', event.target.value || null)}
+              onBlur={() => {
+                // A typed path needs the same native approval a folder pick
+                // already carries, or the host will refuse the write later.
+                const dir = settings.outputDir;
+                if (dir) void approve(dir, 'output');
+              }}
             />
             <Button variant="outline" size="sm" icon="folder" className="h-8 shrink-0 rounded-control px-2.5 text-[11.5px]" onClick={chooseDir}>
               {t('settings.choose')}
@@ -298,7 +329,11 @@ function OutputTab() {
             open={picking}
             initialPath={settings.outputDir || info?.defaultOutputDir}
             onOpenChange={setPicking}
-            onPick={(dir) => settings.set('outputDir', dir)}
+            onPick={(dir) => {
+              void approve(dir, 'output').then((granted) => {
+                if (granted) settings.set('outputDir', dir);
+              });
+            }}
           />
           {info?.defaultOutputDir ? (
             <div className="flex min-w-0 items-center gap-2 text-[11.5px] leading-5 text-faint">
@@ -370,7 +405,10 @@ function StorageTab() {
   const settings = useSettings();
   const [usage, setUsage] = useState<TempUsage | null>(null);
 
-  const applyTempDir = (dir: string | null) => {
+  const approve = useDirectoryApproval();
+
+  const applyTempDir = async (dir: string | null) => {
+    if (dir && !(await approve(dir, 'temp'))) return;
     settings.set('tempDir', dir);
     void syncTempDir().then(refresh);
   };
@@ -379,8 +417,8 @@ function StorageTab() {
 
   const chooseTempDir = () => {
     if (isTauri()) {
-      void nativePickDirectory().then((dir) => {
-        if (dir) applyTempDir(dir);
+      void nativePickDirectory('temp').then((dir) => {
+        if (dir) void applyTempDir(dir);
       });
       return;
     }
@@ -434,7 +472,7 @@ function StorageTab() {
               placeholder={info?.defaultTempDir ?? ''}
               value={settings.tempDir ?? ''}
               onChange={(event) => settings.set('tempDir', event.target.value || null)}
-              onBlur={() => applyTempDir(settings.tempDir)}
+              onBlur={() => void applyTempDir(settings.tempDir)}
             />
             <Button variant="outline" size="sm" icon="folder" className="h-8 shrink-0 rounded-control px-2.5 text-[11.5px]" onClick={chooseTempDir}>
               {t('settings.choose')}
@@ -443,7 +481,9 @@ function StorageTab() {
               open={picking}
               initialPath={settings.tempDir || info?.tempDir}
               onOpenChange={setPicking}
-              onPick={applyTempDir}
+              onPick={(dir) => {
+                void applyTempDir(dir);
+              }}
             />
             {settings.tempDir ? (
               <Button variant="outline" size="sm" icon="reset" className="h-8 shrink-0 rounded-control px-2.5 text-[11.5px]" onClick={() => applyTempDir(null)}>

@@ -12,6 +12,7 @@ import type {
   ToolField,
   ToolId,
 } from './core-contract.ts';
+import { installHostRoutes } from './transport-shared.ts';
 
 export const PROTOCOL_VERSION = 1;
 
@@ -72,6 +73,9 @@ export function installToolCatalog(): void {
   TOOL_LIST.splice(0, TOOL_LIST.length, ...descriptors);
   for (const key of Object.keys(TOOLS) as ToolId[]) delete TOOLS[key];
   for (const tool of descriptors) TOOLS[tool.id] = tool;
+  // The host-route manifest comes from Rust with the catalog, so which host runs
+  // which tool is decided in one place (RUN-03).
+  installHostRoutes(rustCore().hostRoutes());
 }
 
 export function defaultOptions(id: ToolId): Record<string, FieldValue> {

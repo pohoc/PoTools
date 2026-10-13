@@ -19,7 +19,7 @@ class TauriTransport extends BaseTransport {
   private healthInFlight = false;
   private tempDir: string | null = null;
   private jobs = new EmbeddedJobRunner({
-    resolveInput: (file: FileRef) => this.resolveInput(file),
+    resolveInput: (file: FileRef, options?: { reference?: boolean }) => this.resolveInput(file, options),
     publish: (snapshot) => this.publishJobEvent(snapshot),
     tempDir: () => this.tempDir,
     defaultTempDir: () => this.info?.defaultTempDir ?? null,
@@ -87,7 +87,21 @@ class TauriTransport extends BaseTransport {
     return this.info as T;
   }
 
-  private async resolveInput(file: FileRef): Promise<ResolvedInput> {
+  private async resolveInput(file: FileRef, options?: { reference?: boolean }): Promise<ResolvedInput> {
+    // RUN-01: `reference` keeps the file on disk. A native tool reads it by path
+    // inside Rust, so materialising it here meant one full IPC round trip per
+    // file plus a JS-sized copy that the job then threw away. Anything that
+    // genuinely needs pixels (an adapter pre-pass, the Worker fallback) asks for
+    // the bytes on demand instead.
+    if (options?.reference && file.path) {
+      return {
+        id: file.id,
+        name: file.name,
+        path: file.path,
+        bytes: new Uint8Array(),
+        sizeBytes: file.sizeBytes ?? 0,
+      };
+    }
     let bytes: Uint8Array;
     if (file.path) {
       const bridge = await this.requireNativeHost();
@@ -97,11 +111,11 @@ class TauriTransport extends BaseTransport {
       bytes = decodeBase64(file.dataBase64);
     } else if (typeof File !== 'undefined' && (file as FileRef & { file?: File }).file instanceof File) {
       const browserFile = (file as FileRef & { file: File }).file;
-      return { id: file.id, name: file.name, path: null, bytes: new Uint8Array(), file: browserFile } as ResolvedInput & { file: File };
+      return { id: file.id, name: file.name, path: null, bytes: new Uint8Array(), sizeBytes: file.sizeBytes ?? 0, file: browserFile } as ResolvedInput & { file: File };
     } else {
       throw new RpcError('bad_request', `${file.name || '文件'} 缺少路径或内容`);
     }
-    return { id: file.id, name: file.name, path: file.path ?? null, bytes };
+    return { id: file.id, name: file.name, path: file.path ?? null, bytes, sizeBytes: file.sizeBytes ?? 0 };
   }
 
   private async tryEmbeddedFileRpc<T>(method: RpcMethodName, params: Record<string, unknown>): Promise<{ handled: boolean; result?: T }> {
@@ -171,10 +185,16 @@ class TauriTransport extends BaseTransport {
       return { pong: Date.now() } as T;
     }
     if (method === 'engine.setTempDir') {
-      this.tempDir = typeof params.dir === 'string' && params.dir.trim() ? params.dir.trim() : null;
-      await authorizeTempDir(this.tempDir);
-      if (this.info) this.info = { ...this.info, tempDir: this.tempDir ?? this.info.defaultTempDir };
-      return { tempDir: this.tempDir ?? this.info?.defaultTempDir ?? '' } as T;
+      const requested = typeof params.dir === 'string' && params.dir.trim() ? params.dir.trim() : null;
+      const honoured = await authorizeTempDir(requested);
+      // The host only grants a directory the user approved through a native
+      // gesture. When it refuses — a temp folder restored from an older build,
+      // say — the app really is staging in the platform default, and the UI has
+      // to report that instead of echoing the saved path.
+      this.tempDir = honoured ? requested : null;
+      const active = honoured && requested ? requested : this.info?.defaultTempDir ?? '';
+      if (this.info) this.info = { ...this.info, tempDir: active };
+      return { tempDir: active } as T;
     }
     if (method === 'tools.list') return TOOL_LIST as T;
     if (method === 'temp.stat' || method === 'temp.clean') {

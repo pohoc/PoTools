@@ -8,6 +8,7 @@ export function ensureRustCore(): Promise<void> {
   ready ??= initWasm().then(() => {
     installRustCore({
       allTools: wasm.coreAllTools,
+      hostRoutes: wasm.coreHostRoutes,
       fieldsOf: wasm.coreFieldsOf,
       visibleFields: wasm.coreVisibleFields,
       parsePageRanges: wasm.coreParsePageRanges,

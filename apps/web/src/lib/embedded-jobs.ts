@@ -16,7 +16,12 @@ import {
 
 /** Dependencies the embedded job runner needs from the owning transport. */
 export interface EmbeddedJobHost {
-  resolveInput(file: FileRef): Promise<ResolvedInput>;
+  /**
+   * `reference` resolves a disk-backed file without pulling its bytes across the
+   * bridge; the runner only sets it for a native tool whose every input already
+   * lives on disk.
+   */
+  resolveInput(file: FileRef, options?: { reference?: boolean }): Promise<ResolvedInput>;
   /** Publishes a job snapshot event; the runner already updated its own map. */
   publish(snapshot: JobSnapshot): void;
   tempDir(): string | null;
@@ -24,10 +29,48 @@ export interface EmbeddedJobHost {
   ensureRuntime(): Promise<EngineInfo>;
 }
 
+/** Job states that must not be reversed by a later event. */
+const TERMINAL_STATES = new Set(['succeeded', 'failed', 'cancelled']);
+
+/**
+ * Bytes for an input that was resolved by reference. Only the steps that truly
+ * need the content ask: an adapter pre-pass, or the Worker fallback after the
+ * native route declined to handle the tool at all.
+ */
+async function materializeResolved(input: ResolvedInput): Promise<Uint8Array> {
+  if (input.bytes.byteLength || !input.path || !isTauri()) return materializeInput(input);
+  const bridge = await engineBridge();
+  const value = await bridge.invoke<ArrayBuffer | Uint8Array | number[]>('read_file_binary', { path: input.path });
+  return Array.isArray(value)
+    ? Uint8Array.from(value)
+    : value instanceof Uint8Array
+      ? value.slice()
+      : new Uint8Array(value);
+}
+
+/**
+ * Ask the host to stop a running native job. The invoke that is already in flight
+ * cannot be abandoned, so the runner's terminal guard is what keeps a late
+ * `succeeded` reply from overwriting the cancelled state the user acted on.
+ */
+async function cancelNativeJob(jobId: string): Promise<void> {
+  try {
+    await (await engineBridge()).invoke('cancel_native_job', { jobId });
+  } catch {
+    // The job is either finished or never started natively; locally it is already
+    // terminal, which is the only state the UI can act on.
+  }
+}
+
 /** Browser/network precomputation for text tools dispatched through tool.run. */
 export async function textToolRuntimeData(tool: string, options: Record<string, unknown>): Promise<Record<string, unknown> | undefined> {
   let runtimeData: Record<string, unknown> | undefined;
   if (tool === 'ip-lookup') {
+    // The only outbound call the desktop shell makes from the WebView, so its host
+    // is allow-listed in `app.security.csp` (`connect-src … https://ip.bt.cn`).
+    // Leaving that entry out does not throw: the fetch rejects and the result
+    // silently degrades to the `network` status, which is why the packaged build
+    // has to be checked rather than the dev server.
     const ip = String(options.ip ?? '').trim();
     const endpoint = new URL('https://ip.bt.cn/ip_api.php');
     if (ip) endpoint.searchParams.set('ip', ip);
@@ -102,12 +145,19 @@ export class EmbeddedJobRunner {
   }
 
   async submit<T>(request: JobRequest): Promise<T> {
+    // RUN-01: for a native tool whose every input is already a file on disk, the
+    // bytes never need to reach JavaScript at all. Anything that later needs them
+    // — an adapter pre-pass, or the Worker because the native route declined —
+    // reads them through `materializeResolved`.
+    const reference = isTauri()
+      && RUST_NATIVE_FILE_TOOLS.has(request.tool)
+      && (request.files ?? []).every((file) => Boolean(file.path));
     let inputs: ResolvedInput[];
     let failedInput: { file: FileRef; error: unknown } | undefined;
     try {
       inputs = await Promise.all((request.files ?? []).map(async (file: FileRef) => {
         try {
-          return await this.host.resolveInput(file);
+          return await this.host.resolveInput(file, { reference });
         } catch (error) {
           failedInput ??= { file, error };
           throw error;
@@ -142,6 +192,10 @@ export class EmbeddedJobRunner {
       this.queue.splice(queuedIndex, 1);
     } else {
       cancelEmbeddedFileJob(jobId);
+      // RUN-02: the Worker controller cannot interrupt an already-dispatched
+      // native command, so the host is told too — it stops reading inputs and
+      // refuses to write any artifact from that point on.
+      if (isTauri() && RUST_NATIVE_FILE_TOOLS.has(job.tool)) void cancelNativeJob(jobId);
     }
     this.publish({
       ...job,
@@ -248,8 +302,9 @@ export class EmbeddedJobRunner {
       const shrinkToContent = optionTruthy(request.options.shrinkToContent);
       // The ink/insets builders rasterize with main-thread pdf.js, which needs
       // real bytes — resolved File-backed inputs carry their payload out of
-      // band, so materialize before handing them over.
-      const rasterInputs = async () => Promise.all(inputs.map(async (input) => ({ id: input.id, bytes: await materializeInput(input) })));
+      // band, so materialize before handing them over. A reference-resolved
+      // native input is read here, at the step that actually needs pixels.
+      const rasterInputs = async () => Promise.all(inputs.map(async (input) => ({ id: input.id, bytes: await materializeResolved(input) })));
       const contentInsetsData = (request.tool === 'invoice-merge' && autoCrop)
         || (request.tool === 'crop' && shrinkToContent)
         ? await contentInsetsRuntimeData(await rasterInputs(), request.globals?.password)
@@ -349,7 +404,9 @@ export class EmbeddedJobRunner {
             outputPath: stagedToDisk ? artifact.outputPath ?? null : undefined,
             bytes: stagedToDisk ? undefined : decodeBase64(artifact.dataBase64 ?? ''),
           }));
-          const inputBytes = inputs.reduce((sum, input) => sum + input.bytes.byteLength, 0);
+          // A reference-resolved input carries no bytes by design; its on-disk
+          // size is what the summary needs.
+          const inputBytes = inputs.reduce((sum, input) => sum + (input.bytes.byteLength || input.sizeBytes || 0), 0);
           const outputBytes = stagedToDisk
             ? native.result.artifacts.reduce((sum, artifact) => sum + (artifact.sizeBytes ?? 0), 0)
             : outputArtifacts.reduce((sum, artifact) => sum + (artifact.bytes?.byteLength ?? 0), 0);
@@ -393,8 +450,16 @@ export class EmbeddedJobRunner {
         }
       }
       if (!embedded) {
+        // The Worker needs real content. An input the native route would have read
+        // by path — because the tool declined it, or a pre-pass never asked for
+        // pixels — is fetched here and only here.
+        const workerInputs = await Promise.all(inputs.map(async (input) => (
+          input.bytes.byteLength || !input.path
+            ? input
+            : { ...input, bytes: await materializeResolved(input) }
+        )));
         embedded = await callEmbeddedRpc('job.submit', { job: request }, {
-          inputs,
+          inputs: workerInputs,
           runtimeData,
           onProgress: (progress) => {
             if (progress.progress.state === 'running') this.publish(progress);
@@ -413,7 +478,9 @@ export class EmbeddedJobRunner {
             error: { code: 'unsupported', message: '该输入在当前内置引擎下不受支持，请更新 PoTools' },
           });
         }
-        this.jobs.delete(request.id);
+        // RUN-04: the failure stays in the job map. Dropping it here made the
+        // record vanish on the next refresh, so a job the user could see fail
+        // became invisible — and uncopyable for a bug report.
         return;
       }
       const result = embedded.jobResult;
@@ -428,6 +495,15 @@ export class EmbeddedJobRunner {
         const runtime = await this.host.ensureRuntime();
         const tempRoot = this.host.tempDir() ?? runtime.defaultTempDir;
         for (let index = 0; index < artifacts.length; index += 1) {
+          // RUN-02: staging runs *after* the engine finished, so the cancel flag
+          // has to be re-read here. Without this a job the user cancelled still
+          // wrote every artifact into the output directory — the terminal guard
+          // only fixed what the UI displayed, not what reached disk. Temp copies
+          // are deliberately left in place so nothing already staged is lost.
+          if (this.stateOf(request.id) === 'cancelled') {
+            console.warn('[potools] job cancelled before staging; no artifact written', request.tool, request.id);
+            return;
+          }
           const artifact = artifacts[index];
           const snapshotArtifact = final.artifacts[index];
           if (!artifact || !snapshotArtifact) continue;
@@ -498,7 +574,23 @@ export class EmbeddedJobRunner {
     }
   }
 
+  /** The runner's own view of one job's state, terminal guard included. */
+  private stateOf(jobId: string): JobSnapshot['progress']['state'] | null {
+    return this.jobs.get(jobId)?.progress.state ?? null;
+  }
+
   private publish(snapshot: JobSnapshot): void {
+    // RUN-02: once a job is terminal it stays terminal. A native invoke cannot be
+    // abandoned, so the reply a cancelled job eventually sends — and any late
+    // progress tick — must not reverse the state the user acted on. Republishing
+    // the *same* terminal state is allowed, because staging rewrites artifact
+    // paths onto the final snapshot.
+    const previous = this.jobs.get(snapshot.id);
+    if (previous
+      && TERMINAL_STATES.has(previous.progress.state)
+      && previous.progress.state !== snapshot.progress.state) {
+      return;
+    }
     this.jobs.set(snapshot.id, snapshot);
     this.host.publish(snapshot);
   }

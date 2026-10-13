@@ -67,7 +67,7 @@ export function DirectoryPicker({
     };
   }, [open, initialPath, call]);
 
-  const missing = !!listing && listing.requested !== listing.path;
+  const unreadable = !!listing && listing.unreadable;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -148,7 +148,7 @@ export function DirectoryPicker({
             : null}
         </div>
 
-        {missing ? <p className="px-5 pb-2 text-[11.5px] leading-4 text-muted">{t('picker.missingHint')}</p> : null}
+        {unreadable ? <p className="px-5 pb-2 text-[11.5px] leading-4 text-muted">{t('picker.unreadableHint')}</p> : null}
 
         <DialogFooter className="border-t border-line px-5 py-3">
           <Button type="button" variant="ghost" size="sm" className="rounded-control" onClick={() => onOpenChange(false)}>

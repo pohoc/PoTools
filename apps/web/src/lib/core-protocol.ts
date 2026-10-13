@@ -277,13 +277,16 @@ export interface EngineInfo {
 
 /** One level of the folder tree, for the in-app directory picker. */
 export interface DirListing {
-  /** Folder actually listed; equals `requested` unless it does not exist yet. */
+  /** Folder actually listed; the resolved form of `requested`. */
   path: string;
   /** Path the caller asked for, so a not-yet-created folder stays selectable. */
   requested: string;
+  /** Only set when the parent is inside the same authorized root. */
   parent: string | null;
   dirs: Array<{ name: string; path: string }>;
   quick: Array<{ id: 'home' | 'documents' | 'downloads' | 'desktop'; path: string }>;
+  /** The authorized folder could not be read; nothing was listed in its place. */
+  unreadable: boolean;
 }
 
 export interface TempUsage {

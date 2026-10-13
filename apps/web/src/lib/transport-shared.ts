@@ -2,14 +2,27 @@ import type { EngineEvent, EngineInfo, RpcMethodName } from 'core';
 
 export type TransportStatus = 'connecting' | 'ready' | 'offline';
 
-/** Tools that run through the desktop host's native Rust engine command. */
-export const RUST_NATIVE_FILE_TOOLS = new Set([
-  'image-compress', 'image-resize', 'image-crop', 'image-rotate', 'image-convert', 'image-info', 'image-metadata-clean', 'image-print',
-  'image-cutout', 'image-watermark-clean', 'image-id-photo',
-  'merge', 'split', 'organize', 'rotate', 'extract-pages', 'delete-pages',
-  'metadata', 'crop', 'repair', 'invoice-merge', 'watermark', 'page-numbers', 'header-footer',
-  'remove-blank',
-]);
+/**
+ * Tools the desktop host runs through `engine_run_file_tool`: inputs are read by
+ * path in Rust and artifacts are staged straight to disk.
+ *
+ * The set is filled from the Rust manifest (`capabilities::host_routes`, exported
+ * as `coreHostRoutes`) during `installToolCatalog`, so the routing decision exists
+ * in exactly one place. It used to be a hand-maintained copy here, and the two
+ * drifted with nothing between them — a tool added on one side quietly ran on the
+ * other host, or on none (audit RUN-03).
+ */
+export const RUST_NATIVE_FILE_TOOLS = new Set<string>();
+
+/** Replaces the routing set from Rust's `{ toolId: route }` manifest. */
+export function installHostRoutes(routes: Record<string, string>): void {
+  const native = Object.entries(routes).filter(([, route]) => route === 'native-file');
+  if (!native.length) {
+    throw new Error('Rust 主机路由清单为空，无法确定哪些工具走原生执行');
+  }
+  RUST_NATIVE_FILE_TOOLS.clear();
+  for (const [tool] of native) RUST_NATIVE_FILE_TOOLS.add(tool);
+}
 
 export class RpcError extends Error {
   readonly code: string;

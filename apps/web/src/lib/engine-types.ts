@@ -5,6 +5,12 @@ export interface ResolvedInput {
   name: string;
   path: string | null;
   bytes: Uint8Array;
+  /**
+   * Size of the file on disk, carried for inputs that stay on disk (a native job
+   * never needs their bytes in JS). The job summary reports input volume from
+   * this when `bytes` is deliberately empty; `0` means "not read, not known".
+   */
+  sizeBytes?: number;
 }
 
 export interface EmbeddedRpcRequest {

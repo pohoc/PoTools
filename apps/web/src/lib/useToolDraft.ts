@@ -50,8 +50,23 @@ export interface ToolDraft {
   error: string | null;
   errorCode: string | null;
   textResult: TextRunResult | null;
+  /**
+   * Why the result on screen no longer reflects a run of the current draft, or
+   * `null` when it does. `invalid` means the options cannot be sent; `held` means
+   * a generator is deliberately keeping its value; `changed` covers the tools that
+   * only run on request, whose previous output would otherwise sit there
+   * copyable after the draft moved on.
+   * Either way the panel has to say so — an unlabeled old result is one the user
+   * copies out and trusts.
+   */
+  stale: 'invalid' | 'held' | 'changed' | null;
   jobId: string | null;
   probing: boolean;
+}
+
+/** Options identity of one run, so the panel can tell whether the result matches. */
+function fingerprint(options: Record<string, FieldValue>, overrides?: Record<string, FieldValue>): string {
+  return JSON.stringify({ ...options, ...(overrides ?? {}) });
 }
 
 export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
@@ -68,6 +83,7 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [textResult, setTextResult] = useState<TextRunResult | null>(null);
+  const [stale, setStale] = useState<'invalid' | 'held' | 'changed' | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   // Per-run destination: set from the run panel's 保存位置 picker, wins over the
   // settings-resolved folder for this tool page only (state dies with remount).
@@ -182,6 +198,8 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
       setError(null);
       setErrorCode(null);
       setTextResult(null);
+      setStale(null);
+      runFingerprintRef.current = fingerprint(options, overrides);
       try {
         const result = await call<TextRunResult>('tool.run', {
           tool: descriptor.id,
@@ -200,23 +218,45 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
     [call, descriptor.id, fontPath, locale, options],
   );
 
-  // Live tools (`interaction: "live"`) re-run as the draft changes instead of
-  // waiting for the run button. Edits are debounced; runs are chained so a
-  // burst of keystrokes cannot interleave replies and let an older result
-  // overwrite a newer one. With no text-ish content there is nothing to
-  // compute: the stale result is dropped and no RPC is issued.
-  const live = descriptor.interaction === 'live';
+  // UX-01/UX-03: the cadence comes from the tool's declared `experience.execution`,
+  // not from whether a textarea happens to exist. `live` is a cheap local
+  // transform, `debounced` settles before recomputing, `manual` only runs when the
+  // user asks. Runs are chained so a burst of keystrokes cannot let an older reply
+  // overwrite a newer one.
+  const { kind: experienceKind, execution } = descriptor.experience;
+  // A generator is the one `manual` case that still produces something on first
+  // open: §2 allows a first sample, and without it the page opens on an empty
+  // result area for 密码生成/UUID and the task reads as broken.
+  const autoRun = execution !== 'manual' || experienceKind === 'generator';
+  // …but only a random generator holds that value once shown. TOTP declares
+  // `debounced` because its code is a function of the secret and the clock, so a
+  // new secret must recompute rather than keep the previous code on screen.
+  const holdsGenerated = experienceKind === 'generator' && execution === 'manual';
+  // `live` fires on the next settle of the keystroke stream; `debounced` is for
+  // heavier parses where even that would thrash.
+  const cadenceMs = execution === 'debounced' ? 350 : 120;
   const engineStatus = useEngine((state) => state.status);
+  const optionsFingerprint = fingerprint(options);
+  const runFingerprintRef = useRef<string | null>(null);
   const runChainRef = useRef<Promise<void>>(Promise.resolve());
   const runInMemoryRef = useRef(runInMemory);
+  const textResultRef = useRef(textResult);
   useEffect(() => {
     runInMemoryRef.current = runInMemory;
   }, [runInMemory]);
   useEffect(() => {
-    if (!live || engineStatus !== 'ready') return;
-    // Structurally invalid options (missing required secret, out-of-range
-    // number) suppress the auto-run; the form itself shows the field errors.
-    if (!areOptionsValid(descriptor.fields, options)) return;
+    textResultRef.current = textResult;
+  }, [textResult]);
+  useEffect(() => {
+    if (!autoRun || engineStatus !== 'ready') return;
+    // Structurally invalid options (missing required secret, out-of-range number)
+    // suppress the auto-run; the form shows the field errors. A result already on
+    // screen must not stay silently copyable, so it is labelled stale instead of
+    // being thrown away while the user fixes a typo.
+    if (!areOptionsValid(descriptor.fields, options)) {
+      setStale(textResultRef.current ? 'invalid' : null);
+      return;
+    }
     // Fileless generators (password-gen, uuid-gen, totp) produce output from
     // options alone, so they run as soon as their defaults validate instead of
     // waiting for content.
@@ -227,13 +267,39 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
     });
     if (!fileless && !hasContent) {
       setTextResult(null);
+      setStale(null);
       return;
     }
+    // §2 生成例外: adjusting length or character sets must not replace a random
+    // value the user is reading or copying, so a `manual` generator runs once and
+    // then holds until an explicit run.
+    if (holdsGenerated && textResultRef.current) {
+      setStale('held');
+      return;
+    }
+    setStale(null);
     const timer = window.setTimeout(() => {
       runChainRef.current = runChainRef.current.then(() => runInMemoryRef.current());
-    }, 250);
+    }, cadenceMs);
     return () => window.clearTimeout(timer);
-  }, [live, engineStatus, descriptor.fields, descriptor.requiresInput, options]);
+  }, [
+    autoRun,
+    cadenceMs,
+    engineStatus,
+    experienceKind,
+    holdsGenerated,
+    descriptor.fields,
+    descriptor.requiresInput,
+    options,
+  ]);
+
+  // §2 空值/非法值 applies to the tools that do not auto-run as well: after a
+  // manual run the draft can move on while the old output stays selectable. Mark
+  // it, so "copy the value" cannot silently pick up a result of other settings.
+  useEffect(() => {
+    if (autoRun || !textResult || runFingerprintRef.current === null) return;
+    setStale(runFingerprintRef.current === optionsFingerprint ? null : 'changed');
+  }, [autoRun, textResult, optionsFingerprint]);
 
   const run = useCallback(
     (overrides?: Record<string, FieldValue>, outputDir?: string) =>
@@ -292,6 +358,7 @@ export function useToolDraft(descriptor: ToolDescriptor): ToolDraft {
     error,
     errorCode,
     textResult,
+    stale,
     jobId,
     probing,
   };

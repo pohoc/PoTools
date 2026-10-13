@@ -68,9 +68,40 @@ export async function nativePickFiles(kind: AcceptKind, multiple: boolean): Prom
   return invoke<string[]>('pick_files', { filters: filtersFor(kind), multiple });
 }
 
-export async function nativePickDirectory(): Promise<string | null> {
+export async function nativePickDirectory(purpose?: 'output' | 'temp'): Promise<string | null> {
   if (!isTauri()) return null;
-  return (await invoke<string | null>('pick_directory')) ?? null;
+  // `purpose` lets the host record the pick as the approval its settings need
+  // later, so choosing the folder in the native dialog is enough on its own.
+  return (await invoke<string | null>('pick_directory', { purpose: purpose ?? null })) ?? null;
+}
+
+/**
+ * Ask the user — in a native dialog — to approve a directory they typed for the
+ * output or temp role. The host records the approval itself, which is what lets a
+ * saved setting keep working after a restart without any IPC argument being able
+ * to claim a folder the user never agreed to.
+ */
+export async function approveDirectory(
+  dir: string,
+  purpose: 'output' | 'temp',
+  title: string,
+  message: string,
+  confirmLabel: string,
+  cancelLabel: string,
+): Promise<boolean> {
+  if (!isTauri()) return false;
+  try {
+    return await invoke<boolean>('approve_directory', {
+      dir,
+      purpose,
+      title,
+      message,
+      confirmLabel,
+      cancelLabel,
+    });
+  } catch {
+    return false;
+  }
 }
 
 export async function nativeSaveAs(name: string, bytes?: Uint8Array): Promise<string | null> {
@@ -86,11 +117,13 @@ export async function nativeSaveAs(name: string, bytes?: Uint8Array): Promise<st
 /**
  * Report the configured output/temp directories to the host.
  *
- * These two settings are visible and persisted, so the host grants them without
- * a native gesture — but only for writes (output) and only for the app's own
- * `jobs/`+`inbox/` subdirectories (temp), so pointing a setting at a sensitive
- * directory does not turn into a read capability. Failures are ignored: the
- * operation that follows reports its own, clearer denial.
+ * The host only honours a directory the user already approved through a native
+ * gesture — a folder pick carrying `purpose: 'output'`/`'temp'`, or
+ * {@link approveDirectory} — and the approval stays write-only (temp covers just
+ * the app's own `jobs/`+`inbox/`), so pointing a setting at a sensitive directory
+ * never becomes a read capability. Failures are ignored here: the operation that
+ * follows reports its own, clearer denial, and the settings page offers the
+ * approval prompt.
  */
 export async function authorizeOutputDir(dir: string | null | undefined): Promise<void> {
   if (!isTauri()) return;
@@ -122,12 +155,19 @@ export async function requestOutputDirGrant(
   }
 }
 
-export async function authorizeTempDir(dir: string | null | undefined): Promise<void> {
-  if (!isTauri()) return;
+/**
+ * Point the host at the configured temp directory and report whether it honoured
+ * the request. Only a directory the user approved natively gets grants, so a
+ * restored setting from an older build can legitimately be refused — the caller
+ * then shows the platform default as the active root instead of the saved path.
+ */
+export async function authorizeTempDir(dir: string | null | undefined): Promise<boolean> {
+  if (!isTauri()) return Boolean(dir && dir.trim());
   try {
     await invoke('set_temp_dir', { dir: dir && dir.trim() ? dir : null });
+    return true;
   } catch {
-    /* the staging call that follows reports the denial */
+    return false;
   }
 }
 

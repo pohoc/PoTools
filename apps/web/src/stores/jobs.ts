@@ -80,6 +80,14 @@ export const useJobs = create<JobState>((set, get) => ({
       if (event.event !== 'job.updated') return;
       const incoming = event.job;
       const previous = get().jobs.find((job) => job.id === incoming.id);
+      // RUN-02: a terminal job stays terminal at this layer too. A native command
+      // cannot be abandoned mid-flight, so the reply a cancelled job sends after
+      // the user pressed cancel would otherwise flip the row back to 成功 and —
+      // worse — trigger 自动打开 on output the user stopped. Republishing the same
+      // terminal state still passes, because staging rewrites artifact paths.
+      if (previous && TERMINAL.has(previous.progress.state) && previous.progress.state !== incoming.progress.state) {
+        return;
+      }
       set((state) => {
         const index = state.jobs.findIndex((job) => job.id === incoming.id);
         if (index === -1) return { jobs: [incoming, ...state.jobs] };
@@ -161,6 +169,11 @@ export const useJobs = create<JobState>((set, get) => ({
         const known = new Map(state.jobs.map((job) => [job.id, job]));
         const merged = jobs.map((job) => {
           const local = known.get(job.id);
+          // Same terminal rule as the event path: a watchdog reconcile must not
+          // resurrect a job the user cancelled.
+          if (local && TERMINAL.has(local.progress.state) && local.progress.state !== job.progress.state) {
+            return local;
+          }
           // Event frames strip base64 payloads; keep the richer local copy.
           if (local && local.artifacts.some((a) => a.dataBase64) && !job.artifacts.some((a) => a.dataBase64)) {
             if (local.progress.state === job.progress.state) return local;

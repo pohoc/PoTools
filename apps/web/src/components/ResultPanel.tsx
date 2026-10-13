@@ -349,6 +349,7 @@ export function TextRunPanel({
   error,
   errorCode,
   running,
+  stale,
   onRetry,
 }: {
   defaultName: string;
@@ -356,6 +357,8 @@ export function TextRunPanel({
   error: string | null;
   errorCode: string | null;
   running: boolean;
+  /** Why the shown result is not a run of the current draft; see `useToolDraft`. */
+  stale?: 'invalid' | 'held' | 'changed' | null;
   onRetry?: () => void;
 }) {
   const { t, tf } = useI18n();
@@ -440,6 +443,22 @@ export function TextRunPanel({
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {stale && blocks.length ? (
+        // Not colour alone: the text names the state and a screen reader gets it
+        // as a status update (`docs/standards/TOOL_INTERACTION.md` §5).
+        <p
+          role="status"
+          className="mx-4 mb-3 flex items-start gap-2 rounded-control border border-warn/30 bg-warn/10 px-3 py-2.5 text-[12px] leading-5 text-ink"
+        >
+          <Icon name="warning" size={14} className="mt-[2px] shrink-0 text-warn" />
+          {stale === 'held'
+            ? t('result.staleGenerator')
+            : stale === 'changed'
+              ? t('result.staleChanged')
+              : t('result.staleInput')}
+        </p>
       ) : null}
 
       {blocks.length ? (
