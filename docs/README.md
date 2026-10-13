@@ -2,7 +2,23 @@
 
 > 文档基线：2026-10-13，仓库 `main` 提交 `88acacba375f25a6f3980a1faacc03cf5b4cebb9`。本组文档定义**目标规范与审查准则**，不表示对应代码全部已实现。
 
-## 阅读顺序
+## V2：TypeScript + Electron 全新实现（目标，未上线）
+
+**正式需求：[Issue #2](https://github.com/pohoc/PoTools/issues/2)**。V2 是独立新代码库式的**全面重写**：自研 Core、Engine、Tools、任务、文件/安全与 UI 均为 TypeScript；Desktop Electron + Node.js、Web React/Worker。优先复用合规成熟的 NPM/标准库/WASM，而不是逐行翻译 Rust。**98 项工具与全部平台/体验/安全通过统一验收后一次性切换**；内部工作包可并行开发，但不逐域发布、不用 V1 Rust 引擎作 V2 fallback。
+
+| V2 规范与规划 | 用途 |
+| --- | --- |
+| [RFC-0002](rfcs/0002-typescript-v2-greenfield.md) | 新架构和一次性切换决策 |
+| [全量重写计划](plans/typescript-v2-full-rewrite.md) | 并行工作包与单一 Cutover Gate |
+| [98 工具清单](plans/typescript-v2-tool-inventory.md) | 逐工具目标与证据登记 |
+| [V2 TS 工程规范](standards/V2_TYPESCRIPT_ENGINEERING.md) | Core/Engine/工具/UX 统一工程标准 |
+| [V2 依赖优先规范](standards/V2_DEPENDENCY_FIRST.md) | 第三方包优先及许可证/适配器 |
+| [V2 Electron 安全](standards/V2_ELECTRON_SECURITY.md) | IPC、文件授权与资源边界 |
+| [V2 质量门禁](standards/V2_QUALITY_GATES.md) | 全量验收、CI 与切换约束 |
+
+**以下为当前 V1 开发规范**，在 V2 完成之前仍有效；不要把 V2 目标文件理解为现行生产实现。
+
+## V1 阅读顺序
 
 | 场景 | 文档 | 性质 |
 | --- | --- | --- |
