@@ -17,7 +17,8 @@
 - **权限来源**：后端系统对话框结果、可信 OS 拖放、经过认证的应用管理目录。设置更改不能直接把任意自由路径变成全局读写 grant。
 - **最小权限**：选中的单文件只授予该文件读权限，输出文件夹授予必要的写权限；来源目录读与目标目录写分别处理；禁止以写权限隐式换取整个目录读权限。
 - **路径检查**：授权目录 canonicalize 后逐分量比较；拒绝相对路径和 traversal；写入需要安全创建和 symlink/reparse point 防护，校验与打开之间关注 TOCTOU。勿用字符串 `startsWith` 判断目录包含关系。
-- **Native IPC**：所有命令都必须在 Rust 入口验证目标路径/来源权限，不能因为底层服务“只接受绝对路径”就省略授权。
+- **Native IPC**：所有命令都必须在 Rust 入口验证目标路径/来源权限，不能因为底层服务“只接受绝对路径”就省略授权。无需用户路径的系统服务也须定义能力范围。
+- **特权入口清单**：使用来源/目标路径或本地元数据的新增 `#[tauri::command]` 都需列明授权来源、读写/删除边界与直接 IPC 的拒绝测试；覆盖浏览、统计、撤销、清理而不仅是普通文件读写。
 
 ## 2. 当前须优先整改的已知路径（Observed）
 
@@ -28,10 +29,13 @@
 | `invoice_scan_list` | 传入目录后直接扫描 | 来源必须有 `require_read` 目录 grant |
 | `invoice_read_candidate` | 直接 `fs::read` 路径 | 必须拥有来源文件 / 目录读 grant |
 | `invoice_archive` | 读取来源、在目标目录写入 | 来源读授权与目标写授权都必须由 Rust 验证 |
+| `browse_directories` | 根据自由路径枚举文件夹，失败时可回退父目录；未显式传入 `PathGrants` | 限于已选择目录或原生授权浏览范围；无权限不得探查其他目录结构 |
+| `temp_usage` | 接收自由 root 参数统计 `jobs/inbox` | 仅应用授权的可信 temp root 可访问 |
+| `invoice_undo` | 通过随机归档 ID 查内存记录，先校验路径与 SHA-256 再删除副本 | 验证撤销调用者权限和确认语义；保持现有防替换保护 |
 | `temp_clean / temp_usage` | 接收任意传入的根路径 | 只允许真实应用临时根目录 / 专属子目录，清理只应影响预期对象 |
 | `set_output_dir / set_temp_dir` | IPC 可请求给指定目录 grant | 设置与授权分离，仅可信来源批准特权路径 |
 
-代码参考：`apps/desktop/src/lib.rs`、`apps/desktop/src/access.rs`、`packages/engine/src/services/invoice/` 与 `services/temp.rs`。具体影响、证据与测试建议见 [问题登记](../audits/IMPLEMENTATION_GAPS.md)。
+代码参考：`apps/desktop/src/lib.rs`、`apps/desktop/src/access.rs`、`packages/engine/src/services/invoice/`、`services/filesystem.rs` 与 `services/temp.rs`。具体影响、证据与测试建议见 [问题登记](../audits/IMPLEMENTATION_GAPS.md)。
 
 **注意**：这里的是「在脚本拥有 IPC 能力的前提下可能被滥用」的权限边界问题；不声称存在无需用户交互、从任意远程网页直接触发的漏洞。
 
@@ -68,10 +72,12 @@ fn require_app_temp_root(app: &AppHandle, path: &Path) -> Result<PathBuf, Securi
 
 ## 6. 权限回归测试最低集合
 
-1. 未授予来源目录时，发票枚举和按绝对路径读取必须被拒绝。
+1. 未授予来源目录时，发票枚举和按绝对路径读取必须被拒绝；`browse_directories` 不能越过已授予的目录树或回退到未授权父目录。
 2. 未授予目标目录时，发票归档、文件输出必须被拒绝；拒绝后原文件不变化。
 3. 恶意 `../`、符号链接、目录替换、UNIX/Windows 根路径与 UNC 情况可预测地拒绝。
 4. 临时清理永不访问应用根目录之外的 `jobs/inbox`，不可删除由攻击者自选根目录下的内容。
 5. 非法 Job ID、嵌套文件名、极大文件、巨大解压对象、损坏 PDF 应有受控错误。
 6. Native 任务执行中取消后最终目录无新输出；迟到进度/结果不能覆盖取消态。
 7. 网络调用实际包体内可用；失败和超时具有明确诊断；默认离线能力不触网。
+8. `temp_usage` 不能通过任意路径获取其他目录下 `jobs/inbox` 用量。
+9. `invoice_undo` 使用无效 ID、被篡改或移动文件时不得删除；合法撤销有用户可理解的确认与结果。

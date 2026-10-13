@@ -27,14 +27,14 @@ scripts: 构建、样例、打包和版本检查
 | --- | --- |
 | JavaScript / TypeScript | strict 类型、两空格缩进、显式错误处理；组件 PascalCase，变量/函数 camelCase |
 | Rust | stable、`cargo fmt`、Clippy `-D warnings`、错误用结构化 code + message；路径 / IO 用 `Result` |
-| 文件组织 | 新功能倾向每文件不超过 500 行；超过需解释拆分方案；不要因重构产生无关行为修改 |
+| 文件组织 | 建议新改动的单文件尽量不超过 500 行；这是本规范新增的可维护性建议，不是旧有 CI 门禁；超过时解释职责与拆分计划，不为凑行数制造无关改动 |
 | UI 文案 | 用 `apps/web/src/i18n/zh-CN.ts` 与 `en.ts`；禁止直接加入未经国际化的用户可见字符串 |
 | 样式与无障碍 | 控件识别边界用 `--ui-control-line`，装饰分隔用 `--ui-line`；键盘、焦点、ARIA、WCAG 2.2 1.4.11 |
 | Git 提交 | `type(scope): summary`，优先 `ui / engine / core / tauri / docs / test` |
 | 依赖 | pnpm lockfile 固定、Rust Cargo lockfile 同步；引入新依赖需评估包体积、许可、安全更新与离线运行 |
 | 生成物 | 不提交可重建的运行产物（除仓库明确要求保留的 WASM 类型声明等） |
 
-**已知差距**：`apps/desktop/src/lib.rs` 与 `apps/web/src/pages/ToolPage.tsx` 等已超过 500 行。这是重构任务，不应为纯文档 PR 引入大规模搬迁。
+**维护性改进候选**：`apps/desktop/src/lib.rs` 与 `apps/web/src/pages/ToolPage.tsx` 等已超过建议的 500 行。原始 `AGENTS.md` 没有这条硬性上限；应按职责与变更风险分批拆分，而不是为了满足行数机械拆文件。
 
 ## 3. 开发环境
 

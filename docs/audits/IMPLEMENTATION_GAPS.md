@@ -15,6 +15,9 @@
 | --- | --- | --- | --- | --- | --- |
 | SEC-01 | P0 | 代码确认 | `apps/desktop/src/lib.rs` 发票 IPC 与 `services/invoice/` | `invoice_scan_list` / `invoice_read_candidate` / `invoice_archive` 缺少 `PathGrants` 源/目标范围检查。拥有 WebView IPC 能力的脚本可能枚举或读取未选取路径、执行非授权归档 | 未经用户选择源目录不能扫描或读，目标未授权不能写；直接调用 IPC 的负面测试通过 |
 | SEC-02 | P0 | 代码确认 | `apps/desktop/src/lib.rs` 的 `set_output_dir` / `set_temp_dir` / `temp_clean` | 自由路径进入授权或清理，不等同于可信 OS 手势；清理根目录由调用者提供 | 任意传入根路径不得得到目录写 grant 或删除其 `jobs/inbox`，保留可信设置来源 |
+| SEC-03 | P1 | 代码确认 | `apps/desktop/src/lib.rs` 的 `browse_directories` / `services/filesystem.rs` | 未经用户目录授权即可枚举给定路径，失败时还可回退父目录，涉及元数据泄露面 | 未授权目录无法枚举；合法选择和导航继续可用 |
+| SEC-04 | P1 | 代码确认 | `apps/desktop/src/lib.rs` 的 `temp_usage` / `services/temp.rs` | 自由 root 参数用于 `jobs/inbox` 用量统计，可能探测其他目录元信息 | 仅可信应用 temp root 可统计；非法路径拒绝 |
+| SEC-05 | P2 | 权限语义待审，未证实越权 | `invoice_undo` / `services/invoice/undo.rs` | 通过随机 archive ID 查内存记录，已有路径和 SHA-256 校验，仍需检查谁能要求撤销与用户确认 | 无效 ID / 内容被改的文件不能删；合法撤销有范围与反馈 |
 | RUN-01 | P1 | 代码确认 | `apps/web/src/lib/transport.ts` `resolveInput` / `embedded-jobs.ts` `submit` | 磁盘输入先进入 JS 字节数组，原生任务又传路径让 Rust 重新读，造成不必要 IPC/内存往返 | Native 任务不经 JS 预读整文件，按需预处理例外被测量并记录 |
 | RUN-02 | P1 | 代码确认，效果待实测 | `embedded-jobs.ts` `cancel` / `engine_run_file_tool` | Worker 取消机制无法中断已提交的原生 Rust 文件任务；旧结果可能到达并发布成功 | Native 有明确取消 token；取消后不能写最终产物或覆盖终态 |
 | RUN-03 | P1 | 代码确认 | `transport-shared.ts` `RUST_NATIVE_FILE_TOOLS` / Rust `capabilities.rs` | 执行路由与能力列表两处维护，目录有实现不保证走理想宿主 | 建立可测试路由契约，解释各工具 Browser / Tauri 路由和退化策略 |
@@ -25,7 +28,7 @@
 | RUN-04 | P2 | 代码确认 | `embedded-jobs.ts` unsupported 分支 | 发布失败快照后立即 `jobs.delete`，列表刷新可能丢失失败记录 | 失败/取消记录保留到用户清理；watchdog 刷新稳定 |
 | CAT-01 | P2 | 需新增自动检查 | `core/catalog/*.json` / `tools/capabilities.rs` | 能力列表已有对账，但字段 key 重复、默认值类型、双语翻译、schema 交叉引用没有集中强制检查的证据 | Schema/l10n 检查报出文件、工具和字段级错误 |
 | WIN-01 | P2 | 代码确认，攻击效果待实测 | `apps/legacy-win7/main.js` | 使用 `file.startsWith(dist)` 判断静态目录包含关系，并直接对 URL 调用 `decodeURIComponent`，需防同前缀路径及非法编码异常 | 基于 `path.relative` 的真实目录边界、异常输入 HTTP 测试 |
-| GOV-01 | P2 | 代码确认 | `AGENTS.md` / 大型服务和页面 | 声明建议 500 行以内，但 `desktop/src/lib.rs`、`ToolPage.tsx`、`OptionForm.tsx` 持续增长；专项逻辑难以拆分复用 | 分层拆出模块，每次 PR 有变更范围和回归覆盖 |
+| GOV-01 | P2 | 维护性建议 | `AGENTS.md` / 大型服务和页面 | 本次规范建议将新代码控制在约 500 行内；**原始 `AGENTS.md` 并没有该硬性约束**。部分页面/服务超过建议值，专项逻辑存在耦合风险 | 按职责分层拆模块；保持行为等价，单项 PR 有回归证据 |
 
 > 关注安全：`SEC-01` / `SEC-02` 的前置条件是能够调用桌面 WebView IPC；不能在未证明的情况下宣传为远程零点击漏洞。所有问题均保留为“未修复”，直至对应代码 PR 和可复现测试合入。
 
@@ -33,7 +36,9 @@
 
 ### SEC-01 / SEC-02：路径与数据权限
 
-- 从测试 WebView 以无 grant 的绝对路径调用 `invoice_scan_list` 与 `invoice_read_candidate`，要求路径授权拒绝且不返回元数据/字节。
+- 从测试 WebView 以无 grant 的绝对路径调用 `invoice_scan_list`、`invoice_read_candidate`、`browse_directories`，要求权限拒绝且无目录/文件数据泄露。
+- 传入任意 root 调用 `temp_usage`，需验证不能获取未经授权的用量元信息。
+- `invoice_undo` 应测试合法记录、非法 ID、文件被改动/移动与用户取消；已有随机 ID+哈希校验不能被误称为任意路径删除漏洞。
 - 以未获授权的来源和目标路径调用 `invoice_archive`，确保没有任何源内容被拷贝到目标。
 - 提供可控的任意根目录（内含 `jobs` 和 `inbox`）请求 `temp_clean`，确保服务拒绝删除；权限拒绝无副作用。
 - 目录替换、符号链接、绝对/相对路径、Unicode 与 Windows 路径在访问时重复验证。
@@ -54,7 +59,7 @@
 
 | 阶段 | 内容 | 完成定义 |
 | --- | --- | --- |
-| A：安全阻断 | SEC-01、SEC-02、必要 IPC 授权重构 | 权限负面测试通过，文件未被改写/清除 |
+| A：安全阻断 | SEC-01、SEC-02、SEC-03、SEC-04；并复核 SEC-05 | 权限负面测试通过，文件未被改写/清除 |
 | B：引擎运行契约 | RUN-01/02/03/04、NET-01 | Native/Worker 行为明确、取消与网络可验证 |
 | C：质量与发布 | QA-01、CAT-01、REL-01、WIN-01 | CI 强制门禁及模拟发布成功 |
 | D：工具交互 | UX-01、GOV-01 + [98 工具矩阵](TOOL_UX_MATRIX.md) | 七类模板先经真实使用验证，随后逐域迁移 |
